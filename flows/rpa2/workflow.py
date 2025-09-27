@@ -10,6 +10,8 @@ from typing import Any
 from prefect import flow, get_run_logger, task
 from prefect.task_runners import ConcurrentTaskRunner
 
+from core.config import rpa2_config
+
 
 @task
 def create_validation_data() -> str:
@@ -127,6 +129,18 @@ def rpa2_workflow() -> dict[str, Any]:
     """
     logger = get_run_logger()
     logger.info("Starting RPA2: Data Validation Workflow")
+    
+    # Get environment-specific configuration
+    validation_strict = rpa2_config.get_variable("validation_strict", "true")
+    max_retries = rpa2_config.get_variable("max_retries", 3)
+    timeout = rpa2_config.get_variable("timeout", 30)
+    cleanup_temp_files = rpa2_config.get_variable("cleanup_temp_files", "true")
+    
+    logger.info(f"Environment: {rpa2_config.environment}")
+    logger.info(f"Validation strict mode: {validation_strict}")
+    logger.info(f"Max retries: {max_retries}")
+    logger.info(f"Timeout: {timeout} seconds")
+    logger.info(f"Cleanup temp files: {cleanup_temp_files}")
 
     # Step 1: Create validation data
     data_file = create_validation_data()

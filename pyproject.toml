@@ -62,7 +62,7 @@ ban-relative-imports = "all"
 max-complexity = 10
 
 [tool.pytest.ini_options]
-testpaths = ["core/test", "flows/rpa1/test", "flows/rpa2/test"]
+testpaths = ["core/test", "flows/rpa1/test", "flows/rpa2/test", "flows/rpa3/test"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

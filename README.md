@@ -20,7 +20,8 @@ A modern, modular RPA (Robotic Process Automation) solution built with Prefect 3
 │       └── test_tasks.py   # Task function tests
 ├── docs/                   # Documentation
 │   ├── TESTING_STRATEGY.md # Comprehensive testing documentation
-│   └── MOCKING_STRATEGY.md # Mocking strategies for Prefect workflows
+│   ├── MOCKING_STRATEGY.md # Mocking strategies for Prefect workflows
+│   └── CONFIGURATION_SYSTEM.md # Environment and configuration management
 ├── flows/                  # RPA workflow modules
 │   ├── rpa1/              # File processing workflows
 │   │   ├── workflow.py    # RPA1 workflow definition
@@ -31,13 +32,21 @@ A modern, modular RPA (Robotic Process Automation) solution built with Prefect 3
 │   │   └── test/          # RPA1 tests (unit + integration)
 │   │       ├── test_workflow.py      # Unit tests
 │   │       └── test_integration.py   # Integration tests
-│   └── rpa2/              # Data validation workflows
-│       ├── workflow.py    # RPA2 workflow definition
-│       ├── data/          # RPA2 input data
-│       │   └── validation_data.json
-│       ├── output/        # RPA2 generated reports
-│       │   └── validation_report_*.json
-│       └── test/          # RPA2 tests (unit + integration)
+│   ├── rpa2/              # Data validation workflows
+│   │   ├── workflow.py    # RPA2 workflow definition
+│   │   ├── data/          # RPA2 input data
+│   │   │   └── validation_data.json
+│   │   ├── output/        # RPA2 generated reports
+│   │   │   └── validation_report_*.json
+│   │   └── test/          # RPA2 tests (unit + integration)
+│   │       └── test_workflow.py      # Unit tests
+│   └── rpa3/              # Concurrent processing workflows
+│       ├── workflow.py    # RPA3 workflow definition
+│       ├── data/          # RPA3 input data
+│       │   └── customer_orders.csv
+│       ├── output/        # RPA3 generated reports
+│       │   └── fulfillment_report_*.json
+│       └── test/          # RPA3 tests (unit + integration)
 │           └── test_workflow.py      # Unit tests
 ├── conftest.py             # Pytest configuration and fixtures
 └── main.py                # Main entry point
@@ -134,7 +143,8 @@ make test-coverage
 - **Coverage Reports**: `htmlcov/` - HTML coverage reports
 
 📖 **For detailed testing information, see [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md)**  
-📖 **For mocking strategies, see [MOCKING_STRATEGY.md](docs/MOCKING_STRATEGY.md)**
+📖 **For mocking strategies, see [MOCKING_STRATEGY.md](docs/MOCKING_STRATEGY.md)**  
+📖 **For configuration management, see [CONFIGURATION_SYSTEM.md](docs/CONFIGURATION_SYSTEM.md)**
 
 ## 🔧 Development
 

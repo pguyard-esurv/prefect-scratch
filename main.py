@@ -8,6 +8,7 @@ from typing import Any
 
 from flows.rpa1.workflow import rpa1_workflow
 from flows.rpa2.workflow import rpa2_workflow
+from flows.rpa3.workflow import rpa3_workflow
 
 
 def run_rpa1() -> dict[str, Any]:
@@ -26,6 +27,14 @@ def run_rpa2() -> dict[str, Any]:
     return result
 
 
+def run_rpa3() -> dict[str, Any]:
+    """Run RPA3: Concurrent data processing workflow."""
+    print("🤖 Starting RPA3: Concurrent Data Processing Demo...")
+    result = rpa3_workflow()
+    print(f"✅ RPA3 completed! Summary: {result}")
+    return result
+
+
 def run_all() -> None:
     """Run all RPA workflows."""
     print("🤖 Starting Complete RPA Solution...")
@@ -36,6 +45,10 @@ def run_all() -> None:
 
     # Run RPA2
     run_rpa2()
+    print()
+
+    # Run RPA3
+    run_rpa3()
     print()
 
     print("🎉 All RPA workflows completed successfully!")
@@ -50,11 +63,13 @@ def main():
             run_rpa1()
         elif workflow == "rpa2":
             run_rpa2()
+        elif workflow == "rpa3":
+            run_rpa3()
         elif workflow == "all":
             run_all()
         else:
             print(f"❌ Unknown workflow: {workflow}")
-            print("Available workflows: rpa1, rpa2, all")
+            print("Available workflows: rpa1, rpa2, rpa3, all")
             sys.exit(1)
     else:
         # Default: run all workflows

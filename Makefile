@@ -1,4 +1,4 @@
-.PHONY: help install install-dev clean lint format test run run-rpa1 run-rpa2 run-all check pre-commit activate
+.PHONY: help install install-dev clean lint format test run run-rpa1 run-rpa2 run-rpa3 run-all check pre-commit activate test-unit test-integration test-coverage test-watch info setup-dev setup-staging setup-prod setup-all list-config run-dev run-staging run-prod run-rpa1-dev run-rpa1-staging run-rpa1-prod run-rpa2-dev run-rpa2-staging run-rpa2-prod run-rpa3-dev run-rpa3-staging run-rpa3-prod
 
 # Default target
 help: ## Show this help message
@@ -79,6 +79,61 @@ activate: ## Activate the virtual environment
 	@echo "  uv run python main.py"
 	@echo "  uv run pytest"
 
+# Environment setup
+setup-dev: ## Set up development environment configuration
+	uv run python scripts/setup_environments.py development
+
+setup-staging: ## Set up staging environment configuration
+	uv run python scripts/setup_environments.py staging
+
+setup-prod: ## Set up production environment configuration
+	uv run python scripts/setup_environments.py production
+
+setup-all: setup-dev setup-staging setup-prod ## Set up all environments
+
+list-config: ## List current configurations
+	uv run python scripts/setup_environments.py list
+
+# Environment-specific runs
+run-dev: ## Run workflows in development mode
+	PREFECT_ENVIRONMENT=development uv run python main.py
+
+run-staging: ## Run workflows in staging mode
+	PREFECT_ENVIRONMENT=staging uv run python main.py
+
+run-prod: ## Run workflows in production mode
+	PREFECT_ENVIRONMENT=production uv run python main.py
+
+run-rpa1-dev: ## Run RPA1 workflow in development mode
+	PREFECT_ENVIRONMENT=development uv run python main.py rpa1
+
+run-rpa1-staging: ## Run RPA1 workflow in staging mode
+	PREFECT_ENVIRONMENT=staging uv run python main.py rpa1
+
+run-rpa1-prod: ## Run RPA1 workflow in production mode
+	PREFECT_ENVIRONMENT=production uv run python main.py rpa1
+
+run-rpa2-dev: ## Run RPA2 workflow in development mode
+	PREFECT_ENVIRONMENT=development uv run python main.py rpa2
+
+run-rpa2-staging: ## Run RPA2 workflow in staging mode
+	PREFECT_ENVIRONMENT=staging uv run python main.py rpa2
+
+run-rpa2-prod: ## Run RPA2 workflow in production mode
+	PREFECT_ENVIRONMENT=production uv run python main.py rpa2
+
+run-rpa3: ## Run RPA3 workflow only
+	uv run python main.py rpa3
+
+run-rpa3-dev: ## Run RPA3 workflow in development mode
+	PREFECT_ENVIRONMENT=development uv run python main.py rpa3
+
+run-rpa3-staging: ## Run RPA3 workflow in staging mode
+	PREFECT_ENVIRONMENT=staging uv run python main.py rpa3
+
+run-rpa3-prod: ## Run RPA3 workflow in production mode
+	PREFECT_ENVIRONMENT=production uv run python main.py rpa3
+
 # Project info
 info: ## Show project information
 	@echo "Project: prefect-rpa-solution"
@@ -89,4 +144,10 @@ info: ## Show project information
 	@echo "Available workflows:"
 	@echo "  - RPA1: File processing and data transformation"
 	@echo "  - RPA2: Data validation and reporting"
+	@echo "  - RPA3: Concurrent data processing demo using .map()"
+	@echo ""
+	@echo "Environment configuration:"
+	@echo "  - Development: Local development with debug settings"
+	@echo "  - Staging: Testing environment with production-like settings"
+	@echo "  - Production: Production environment with optimized settings"
 
