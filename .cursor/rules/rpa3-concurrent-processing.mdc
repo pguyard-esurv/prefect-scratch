@@ -1,0 +1,50 @@
+---
+globs: flows/rpa3/**/*.py
+---
+
+# RPA3 Concurrent Processing Rules
+
+## .map() Function Usage
+RPA3 demonstrates Prefect's `.map()` function for concurrent processing:
+
+```python
+# Process multiple records concurrently
+validation_results = validate_order.map(orders)
+totals_results = calculate_order_totals.map(orders)
+inventory_results = check_inventory_availability.map(orders)
+
+# Combine results from parallel operations
+fulfillment_results = process_order_fulfillment.map(
+    orders, validation_results, totals_results, inventory_results
+)
+```
+
+## Concurrency Control
+- Use [ConfigManager](mdc:core/config.py) for environment-specific concurrency settings
+- Configuration key: `max_concurrent_tasks`
+- Default values: Dev=5, Staging=8, Production=15
+- Set via .env files: `{ENVIRONMENT}_RPA3_MAX_CONCURRENT_TASKS`
+
+## Task Design for .map()
+- Tasks should be stateless and pure functions
+- Each task processes a single record
+- Use descriptive logging for debugging
+- Handle errors gracefully within each task
+- Return structured data for aggregation
+
+## Data Flow Pattern
+1. **Create** sample data
+2. **Load** data from CSV
+3. **Validate** each record concurrently
+4. **Calculate** totals for each record concurrently  
+5. **Check** inventory for each record concurrently
+6. **Process** fulfillment combining all results
+7. **Generate** summary from aggregated results
+8. **Save** detailed report
+
+## Testing Concurrent Tasks
+- Test individual task logic in isolation
+- Mock external dependencies (APIs, databases)
+- Use controlled test data
+- Verify concurrent execution behavior
+- Test error handling in parallel operations

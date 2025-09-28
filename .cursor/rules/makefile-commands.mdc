@@ -1,0 +1,35 @@
+---
+globs: Makefile
+---
+
+# Makefile Commands Reference
+
+## Environment Setup
+- `make setup-dev` - Set up development environment from .env files
+- `make setup-staging` - Set up staging environment from .env files  
+- `make setup-prod` - Set up production environment from .env files
+- `make setup-all` - Set up all environments
+
+## Running Workflows
+- `make run-rpa1-dev` - Run RPA1 in development mode
+- `make run-rpa1-staging` - Run RPA1 in staging mode
+- `make run-rpa1-prod` - Run RPA1 in production mode
+- Similar patterns for RPA2 and RPA3
+
+## Testing
+- `make test` - Run all tests
+- `make test-unit` - Run unit tests only
+- `make test-integration` - Run integration tests only
+- `make test-coverage` - Run tests with coverage report
+- `make test-watch` - Run tests in watch mode
+
+## Development
+- `make install` - Install production dependencies
+- `make install-dev` - Install development dependencies
+- `make clean` - Clean up temporary files and caches
+- `make lint` - Run linting with ruff
+- `make format` - Format code with ruff
+
+## Configuration
+- `make list-config` - List current configurations
+- `make info` - Show project information and available workflows

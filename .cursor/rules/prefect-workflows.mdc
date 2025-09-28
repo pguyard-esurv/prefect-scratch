@@ -1,0 +1,56 @@
+---
+globs: flows/**/*.py,core/tasks.py
+---
+
+# Prefect Workflow Rules
+
+## Flow Definition Pattern
+```python
+from prefect import flow, get_run_logger
+from prefect.task_runners import ConcurrentTaskRunner
+from core.config import ConfigManager
+
+@flow(
+    name="workflow-name",
+    task_runner=ConcurrentTaskRunner(),
+    description="Workflow description"
+)
+def workflow_function():
+    logger = get_run_logger()
+    config = ConfigManager("flow_name", "environment")
+    
+    # Get configuration
+    batch_size = config.get_variable("batch_size", 100)
+    api_key = config.get_secret("api_key")
+    
+    # Workflow logic here
+```
+
+## Task Definition Pattern
+```python
+from prefect import task, get_run_logger
+
+@task
+def task_function(param: str) -> str:
+    logger = get_run_logger()
+    # Task logic here
+    return result
+```
+
+## Configuration Integration
+- Always use [ConfigManager](mdc:core/config.py) for configuration
+- Load environment-specific settings at flow start
+- Log configuration values for debugging
+- Use flow-specific config instances: `ConfigManager("flow_name")`
+
+## Error Handling
+- Use try/finally blocks for cleanup
+- Log errors with context
+- Handle missing configuration gracefully
+- Clean up temporary files
+
+## Testing Workflows
+- Unit tests: Test task logic without Prefect dependencies
+- Integration tests: Test full workflow execution
+- Use `@pytest.mark.unit` and `@pytest.mark.integration` markers
+- Mock external dependencies in tests

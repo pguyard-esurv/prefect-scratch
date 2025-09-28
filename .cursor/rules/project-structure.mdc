@@ -1,0 +1,37 @@
+---
+alwaysApply: true
+---
+
+# Project Structure Guide
+
+This is a Prefect-based RPA solution with a hierarchical .env file configuration system.
+
+## Core Architecture
+- **Entry Point**: [main.py](mdc:main.py) - Main entry point for running workflows
+- **Configuration**: [core/config.py](mdc:core/config.py) - Enhanced ConfigManager with .env file support
+- **Tasks**: [core/tasks.py](mdc:core/tasks.py) - Shared Prefect task definitions
+- **Setup**: [scripts/setup_environments.py](mdc:scripts/setup_environments.py) - Environment configuration setup
+
+## Flow Structure
+Each flow follows this pattern:
+- `flows/{flow_name}/workflow.py` - Main workflow definition
+- `flows/{flow_name}/data/` - Input data directory
+- `flows/{flow_name}/output/` - Generated reports directory
+- `flows/{flow_name}/test/` - Flow-specific tests
+- `flows/{flow_name}/.env.{environment}` - Flow-specific environment configuration
+
+## Configuration System
+- **Global Config**: [core/envs/.env.{environment}](mdc:core/envs) - Environment-specific global settings
+- **Flow Config**: [flows/{flow}/.env.{environment}](mdc:flows) - Flow-specific overrides
+- **Hierarchy**: Flow configs override global configs
+- **Naming**: `{ENVIRONMENT}_{FLOW}_{KEY}` format (e.g., `DEVELOPMENT_RPA1_BATCH_SIZE`)
+
+## Available Flows
+- **RPA1**: File processing and data transformation
+- **RPA2**: Data validation and reporting  
+- **RPA3**: Concurrent data processing demo using .map()
+
+## Testing
+- **Unit Tests**: `core/test/`, `flows/*/test/` - Isolated component testing
+- **Integration Tests**: `flows/*/test/test_integration.py` - End-to-end workflow testing
+- **Run Tests**: `make test`, `make test-unit`, `make test-integration`

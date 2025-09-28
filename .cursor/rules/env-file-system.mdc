@@ -1,0 +1,42 @@
+---
+globs: *.env*,core/config.py,scripts/setup_environments.py
+---
+
+# .env File System Rules
+
+## Environment Variable Naming Convention
+Always use this format: `{ENVIRONMENT}_{FLOW}_{KEY}`
+
+**Examples:**
+- Global: `DEVELOPMENT_GLOBAL_DATABASE_URL`
+- Flow-specific: `STAGING_RPA1_BATCH_SIZE`
+- Secrets: `PRODUCTION_RPA3_API_KEY`
+
+## .env File Locations
+- **Global**: [core/envs/.env.{environment}](mdc:core/envs)
+- **Flow-specific**: [flows/{flow}/.env.{environment}](mdc:flows)
+
+## Configuration Loading Order
+1. Flow-specific .env files (overrides global)
+2. Global .env files (base configuration)
+3. Prefect Secret/Variable blocks (fallback)
+
+## Using ConfigManager
+```python
+from core.config import ConfigManager
+
+# Global configuration
+config = ConfigManager(environment="development")
+value = config.get_variable("key")
+secret = config.get_secret("secret_key")
+
+# Flow-specific configuration
+flow_config = ConfigManager(flow_name="rpa1", environment="development")
+batch_size = flow_config.get_variable("batch_size")
+```
+
+## Security Rules
+- Never commit .env files to version control
+- Use different secrets for each environment
+- Separate secrets from variables in naming
+- Rotate secrets regularly in production

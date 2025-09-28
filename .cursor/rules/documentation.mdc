@@ -1,0 +1,36 @@
+---
+globs: docs/**/*.md,README.md
+---
+
+# Documentation Standards
+
+## Documentation Files
+- [README.md](mdc:README.md) - Project overview and quick start
+- [docs/CONFIGURATION_SYSTEM.md](mdc:docs/CONFIGURATION_SYSTEM.md) - Configuration management guide
+- [docs/ENV_FILE_SYSTEM.md](mdc:docs/ENV_FILE_SYSTEM.md) - .env file system documentation
+- [docs/TESTING_STRATEGY.md](mdc:docs/TESTING_STRATEGY.md) - Testing approaches and best practices
+- [docs/MOCKING_STRATEGY.md](mdc:docs/MOCKING_STRATEGY.md) - Mocking strategies for Prefect workflows
+- [docs/CONCURRENCY_CONTROL.md](mdc:docs/CONCURRENCY_CONTROL.md) - Concurrency control documentation
+
+## Documentation Structure
+- Use clear headings and subheadings
+- Include code examples with syntax highlighting
+- Provide step-by-step instructions
+- Include troubleshooting sections
+- Link to related documentation
+
+## Code Documentation
+- Use docstrings for all functions and classes
+- Include type hints for better IDE support
+- Document configuration parameters
+- Explain complex business logic
+- Include usage examples in docstrings
+
+## README Requirements
+- Project description and purpose
+- Installation instructions
+- Quick start guide
+- Available workflows
+- Configuration setup
+- Testing instructions
+- Links to detailed documentation

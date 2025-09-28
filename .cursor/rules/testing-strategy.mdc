@@ -1,0 +1,51 @@
+---
+globs: **/test/**/*.py,conftest.py
+---
+
+# Testing Strategy Rules
+
+## Test Organization
+- **Unit Tests**: Test individual functions/tasks in isolation
+- **Integration Tests**: Test complete workflows end-to-end
+- **Location**: Each flow has its own `test/` directory
+
+## Test Markers
+```python
+import pytest
+pytestmark = pytest.mark.unit  # or pytest.mark.integration
+```
+
+## Unit Testing Pattern
+```python
+def test_task_logic():
+    """Test task logic without Prefect dependencies."""
+    # Mock Prefect functions
+    with patch("module.get_run_logger") as mock_logger:
+        mock_logger.return_value = MagicMock()
+        
+        # Test the actual function logic
+        result = task_function.fn(test_input)
+        assert result == expected_output
+```
+
+## Integration Testing Pattern
+```python
+def test_workflow_integration():
+    """Test complete workflow execution."""
+    with prefect_test_harness():
+        with disable_run_logger():
+            result = workflow_function()
+            assert result is not None
+```
+
+## Mocking Strategy
+- Mock external dependencies (APIs, databases, file systems)
+- Use `unittest.mock.patch` for Prefect functions
+- Test pure business logic separately from Prefect orchestration
+- Use `side_effect` for complex mock behaviors
+
+## Test Data
+- Use fake/controlled data for integration tests
+- Create test data in `test/` directories
+- Clean up test data after tests
+- Use descriptive test data that explains the test case

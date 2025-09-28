@@ -1,0 +1,39 @@
+---
+alwaysApply: true
+---
+
+# Security Best Practices
+
+## .env File Security
+- **Never commit .env files** to version control
+- Use `.gitignore` to exclude all `.env*` files
+- Store .env files in secure locations
+- Use different secrets for each environment
+- Rotate secrets regularly in production
+
+## Configuration Security
+- Separate secrets from variables in naming
+- Use environment-specific secret values
+- Never hardcode secrets in source code
+- Use Prefect Secret blocks for sensitive data
+- Implement proper access controls
+
+## Code Security
+- Validate all input parameters
+- Sanitize file paths and user inputs
+- Use secure file handling practices
+- Implement proper error handling without exposing sensitive information
+- Log security events appropriately
+
+## Environment Isolation
+- Use separate .env files for each environment
+- Isolate development, staging, and production configurations
+- Never use production secrets in development
+- Implement proper environment detection
+- Use different database connections per environment
+
+## Dependencies
+- Keep dependencies up to date
+- Use `uv` for fast, secure dependency management
+- Audit dependencies for security vulnerabilities
+- Pin dependency versions in production

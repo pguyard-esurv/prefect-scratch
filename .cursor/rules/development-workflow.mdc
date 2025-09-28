@@ -1,0 +1,46 @@
+---
+alwaysApply: true
+---
+
+# Development Workflow
+
+## Getting Started
+1. **Setup**: `make install-dev` - Install development dependencies
+2. **Configure**: `make setup-dev` - Set up development environment
+3. **Test**: `make test` - Run all tests
+4. **Run**: `make run-rpa1-dev` - Run a workflow
+
+## Development Cycle
+1. **Code** - Write/modify code following project patterns
+2. **Test** - Run `make test-unit` for quick feedback
+3. **Lint** - Run `make lint` to check code quality
+4. **Format** - Run `make format` to auto-format code
+5. **Integration** - Run `make test-integration` for full testing
+6. **Deploy** - Use environment-specific commands
+
+## Environment Management
+- **Development**: Local development with debug settings
+- **Staging**: Testing environment with production-like settings  
+- **Production**: Production environment with optimized settings
+- Use `make setup-{environment}` to configure each environment
+- Use `make run-{flow}-{environment}` to run workflows
+
+## Configuration Changes
+1. Update .env files in appropriate directories
+2. Run `make setup-{environment}` to apply changes
+3. Test with `make run-{flow}-{environment}`
+4. Verify configuration loading in logs
+
+## Adding New Flows
+1. Create flow directory: `flows/{new_flow}/`
+2. Add workflow.py with proper structure
+3. Create .env files for each environment
+4. Add tests in `flows/{new_flow}/test/`
+5. Update Makefile with new commands
+6. Update documentation
+
+## Debugging
+- Check .env file loading in logs (look for "📁 Loaded" messages)
+- Verify environment variable naming convention
+- Use `make list-config` to see current configuration
+- Check flow-specific vs global configuration hierarchy
