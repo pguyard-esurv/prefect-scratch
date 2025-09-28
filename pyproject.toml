@@ -20,6 +20,7 @@ dependencies = [
     "pyway<=0.3.32",
     "sqlalchemy>=2.0.0",
     "tenacity>=8.0.0",
+    "psutil>=7.1.0",
 ]
 
 [project.optional-dependencies]
@@ -78,6 +79,10 @@ markers = [
     "unit: Unit tests for individual components",
     "integration: Integration tests for workflows",
     "slow: Slow running tests",
+    "performance: Performance and benchmarking tests",
+]
+filterwarnings = [
+    "ignore:.*callable.*is not a Python type.*:UserWarning:pydantic.*",
 ]
 
 [tool.flake8]

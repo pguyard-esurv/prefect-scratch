@@ -20,6 +20,14 @@ from prefect.task_runners import ConcurrentTaskRunner
 
 from core.config import ConfigManager
 
+# Distributed processing imports (lazy loaded to maintain backward compatibility)
+try:
+    from core.database import DatabaseManager
+    from core.distributed import DistributedProcessor
+    DISTRIBUTED_AVAILABLE = True
+except ImportError:
+    DISTRIBUTED_AVAILABLE = False
+
 
 @task
 def create_customer_orders_data() -> str:
@@ -413,7 +421,11 @@ def save_fulfillment_report(
     task_runner=ConcurrentTaskRunner(),
     description="RPA3: Concurrent data processing demo using .map() function",
 )
-def rpa3_workflow(max_workers: Optional[int] = None) -> dict[str, Any]:
+def rpa3_workflow(
+    max_workers: Optional[int] = None,
+    use_distributed: Optional[bool] = None,
+    batch_size: Optional[int] = None
+) -> dict[str, Any]:
     """
     RPA3 workflow demonstrating concurrent processing with .map().
 
@@ -423,6 +435,11 @@ def rpa3_workflow(max_workers: Optional[int] = None) -> dict[str, Any]:
     3. Calculate totals for each record
     4. Check inventory for each record
     5. Combine results from parallel operations
+
+    Args:
+        max_workers: Maximum number of concurrent workers (for standard processing)
+        use_distributed: Whether to use distributed processing (overrides config)
+        batch_size: Batch size for distributed processing (overrides config)
 
     Returns:
         Dictionary containing the processing summary
@@ -435,14 +452,41 @@ def rpa3_workflow(max_workers: Optional[int] = None) -> dict[str, Any]:
     max_concurrent = max_workers or config.get_variable("max_concurrent_tasks", 10)
     timeout = config.get_variable("timeout", 60)
 
+    # Distributed processing configuration
+    config_use_distributed = config.get_variable("use_distributed_processing", "false").lower() == "true"
+    config_distributed_batch_size = int(config.get_variable("distributed_batch_size", 10))
+
+    # Override with parameters if provided
+    final_use_distributed = use_distributed if use_distributed is not None else config_use_distributed
+    final_batch_size = batch_size if batch_size is not None else config_distributed_batch_size
+
     logger.info(f"Environment: {config.environment}")
     logger.info(f"Max concurrent tasks: {max_concurrent}")
     logger.info(f"Timeout: {timeout} seconds")
+    logger.info(f"Distributed processing: {'Enabled' if final_use_distributed else 'Disabled'}")
+    if final_use_distributed:
+        logger.info(f"Distributed batch size: {final_batch_size}")
+
+    # Check distributed processing availability
+    if final_use_distributed and not DISTRIBUTED_AVAILABLE:
+        logger.warning("Distributed processing requested but not available. Falling back to standard processing.")
+        final_use_distributed = False
 
     # Note: In a real implementation, you would need to recreate the task runner
     # with the new max_workers value. For this demo, we'll log the setting.
     if max_concurrent != 10:  # Default value
         logger.info(f"Concurrency limit set to {max_concurrent} (configuration-based)")
+
+    # Choose processing mode
+    if final_use_distributed:
+        return _run_distributed_rpa3_workflow(final_batch_size, logger)
+    else:
+        return _run_standard_rpa3_workflow(logger)
+
+
+def _run_standard_rpa3_workflow(logger) -> dict[str, Any]:
+    """Run the standard (non-distributed) RPA3 workflow."""
+    logger.info("Running standard RPA3 workflow")
 
     # Step 1: Create sample data
     logger.info("Step 1: Creating sample customer orders data")
@@ -491,6 +535,130 @@ def rpa3_workflow(max_workers: Optional[int] = None) -> dict[str, Any]:
             logger.info(f"Cleaned up temporary file: {orders_file}")
         except FileNotFoundError:
             logger.warning(f"File not found for cleanup: {orders_file}")
+
+
+def _run_distributed_rpa3_workflow(batch_size: int, logger) -> dict[str, Any]:
+    """Run the distributed RPA3 workflow."""
+    logger.info("Running distributed RPA3 workflow")
+
+    # Initialize distributed processor
+    rpa_db_manager = DatabaseManager("rpa_db")
+    processor = DistributedProcessor(rpa_db_manager)
+
+    # Perform health check
+    health_status = processor.health_check()
+    if health_status["status"] == "unhealthy":
+        error_msg = f"Database health check failed: {health_status.get('error', 'Unknown error')}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
+
+    # Claim records from processing queue
+    flow_name = "rpa3_concurrent_processing"
+    records = processor.claim_records_batch(flow_name, batch_size)
+
+    if not records:
+        logger.info("No records available for distributed processing")
+        return {
+            "flow_name": flow_name,
+            "records_processed": 0,
+            "message": "No records to process"
+        }
+
+    # Process records using .map()
+    results = process_rpa3_record.map(records)
+
+    # Generate summary
+    completed_count = sum(1 for r in results if r["status"] == "completed")
+    failed_count = sum(1 for r in results if r["status"] == "failed")
+
+    # Aggregate order processing results
+    total_orders = sum(r.get("result", {}).get("total_orders", 0) for r in results if r["status"] == "completed")
+    approved_orders = sum(r.get("result", {}).get("approved_orders", 0) for r in results if r["status"] == "completed")
+
+    summary = {
+        "flow_name": flow_name,
+        "records_processed": len(records),
+        "records_completed": completed_count,
+        "records_failed": failed_count,
+        "success_rate": (completed_count / len(records) * 100) if records else 0,
+        "total_orders": total_orders,
+        "approved_orders": approved_orders,
+        "approval_rate": (approved_orders / total_orders * 100) if total_orders > 0 else 0,
+        "processor_instance": processor.instance_id
+    }
+
+    logger.info(f"Distributed RPA3 workflow completed: {completed_count}/{len(records)} successful")
+    return summary
+
+
+@task(name="process-rpa3-record", retries=0)
+def process_rpa3_record(record: dict[str, Any]) -> dict[str, Any]:
+    """Process individual RPA3 record with distributed processing."""
+    logger = get_run_logger()
+    record_id = record['id']
+    payload = record['payload']
+
+    logger.info(f"Processing RPA3 record {record_id}")
+
+    try:
+        # Initialize processor for status updates
+        rpa_db_manager = DatabaseManager("rpa_db")
+        processor = DistributedProcessor(rpa_db_manager)
+
+        # Process the record using standard RPA3 logic
+        # Extract orders data from payload
+        orders_data = payload.get("orders", [])
+
+        if not orders_data:
+            raise ValueError("No orders data found in payload")
+
+        # Process each order through the standard pipeline
+        validation_results = []
+        totals_results = []
+        inventory_results = []
+
+        for order in orders_data:
+            validation_results.append(validate_order.fn(order))
+            totals_results.append(calculate_order_totals.fn(order))
+            inventory_results.append(check_inventory_availability.fn(order))
+
+        # Process fulfillment
+        fulfillment_results = []
+        for i, order in enumerate(orders_data):
+            fulfillment_result = process_order_fulfillment.fn(
+                order, validation_results[i], totals_results[i], inventory_results[i]
+            )
+            fulfillment_results.append(fulfillment_result)
+
+        # Generate summary
+        summary = generate_processing_summary.fn(fulfillment_results)
+
+        # Save report
+        report_file = save_fulfillment_report.fn(summary, fulfillment_results)
+
+        # Prepare result
+        result = {
+            "summary": summary,
+            "report_file": str(report_file),
+            "processed_at": datetime.now().isoformat()
+        }
+
+        # Mark as completed
+        processor.mark_record_completed(record_id, result)
+
+        logger.info(f"Successfully processed RPA3 record {record_id}")
+        return {"record_id": record_id, "status": "completed", "result": summary}
+
+    except Exception as e:
+        # Mark as failed
+        error_message = str(e)
+        try:
+            processor.mark_record_failed(record_id, error_message)
+        except Exception:
+            pass  # Don't fail if we can't update status
+
+        logger.error(f"Failed to process RPA3 record {record_id}: {error_message}")
+        return {"record_id": record_id, "status": "failed", "error": error_message}
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ This document outlines the design for a unified database management system that 
 ## 🎯 Core Requirements
 
 ### **Primary Goals**
+
 - ✅ **Multi-Database Support**: Seamless access to PostgreSQL and SQL Server
 - ✅ **Flow-Specific Tables**: Each flow manages its own database schema
 - ✅ **Simple Migrations**: SQL-based migration system with automatic execution
@@ -15,6 +16,7 @@ This document outlines the design for a unified database management system that 
 - ✅ **Transparent Usage**: Flows use simple `execute_query()` calls
 
 ### **Secondary Goals**
+
 - ✅ **Performance Optimization**: Connection reuse and pooling
 - ✅ **Error Handling**: Robust error handling and logging
 - ✅ **Environment Support**: Development, staging, and production configurations
@@ -24,6 +26,7 @@ This document outlines the design for a unified database management system that 
 ## 🏛️ System Architecture
 
 ### **High-Level Overview**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Prefect Flow                            │
@@ -55,6 +58,7 @@ This document outlines the design for a unified database management system that 
 ```
 
 ### **Component Architecture**
+
 ```
 core/
 ├── database.py              # DatabaseManager class
@@ -79,12 +83,14 @@ flows/
 ## 🗄️ Database Design
 
 ### **Connection Management**
+
 - **Engine Pooling**: SQLAlchemy QueuePool with configurable pool size
 - **Connection Reuse**: Single engine instance per database type per flow
 - **Health Checks**: Pre-ping connections before use
 - **Environment Isolation**: Separate connections per environment
 
 ### **Migration System (Pyway Integration)**
+
 - **Pyway-Based**: Uses Pyway library for migration management
 - **SQL-First**: Pure SQL migration files with versioning
 - **Sequential Execution**: Files executed in version order (V001, V002, etc.)
@@ -93,6 +99,7 @@ flows/
 - **Automatic Tracking**: Pyway handles migration state tracking
 
 ### **Configuration Integration**
+
 - **Environment Variables**: Database connection strings from `.env` files
 - **Flow-Specific Overrides**: Flow-specific database configurations
 - **Secret Management**: Secure storage of connection credentials
@@ -101,9 +108,11 @@ flows/
 ## 🔧 Core Components
 
 ### **1. DatabaseManager Class**
+
 **Purpose**: Single database management and connection pooling
 
 **Key Responsibilities**:
+
 - Manage SQLAlchemy engine for one specific database
 - Provide unified query execution interface
 - Handle connection pooling and health checks
@@ -111,12 +120,14 @@ flows/
 - Use global configuration (no flow-specific config needed)
 
 **Key Methods**:
+
 - `execute_query(query, params)`: Execute query and return results
 - `run_migrations()`: Execute Pyway migrations for this database
 - `get_migration_status()`: Get current migration status and version
 - `health_check()`: Get connection health information
 
 **Implementation Example**:
+
 ```python
 # core/database.py
 from sqlalchemy import create_engine, text
@@ -132,17 +143,17 @@ from prefect.context import get_run_context
 
 class DatabaseManager:
     """Single database manager with Pyway migration support."""
-    
+
     def __init__(self, database_name: str):
         self.database_name = database_name
         self.config = ConfigManager()  # Use global config
         self.engine = None
         self.pyway_instance = None
         self._logger = None  # Lazy initialization for task context
-        
+
         # Initialize engine on first use
         self._initialize_engine()
-    
+
     @property
     def logger(self):
         """Lazy logger initialization for proper Prefect task context."""
@@ -154,17 +165,17 @@ class DatabaseManager:
                 import logging
                 self._logger = logging.getLogger(f"database.{self.database_name}")
         return self._logger
-    
+
     def _initialize_engine(self):
         """Initialize SQLAlchemy engine for this database."""
         if self.engine is None:
             # Get database type and connection string from config
             db_type = self.config.get_variable(f"{self.database_name}_type")
             connection_string = self.config.get_secret(f"{self.database_name}_connection_string")
-            
+
             if not db_type or not connection_string:
                 raise ValueError(f"Database '{self.database_name}' not configured globally")
-            
+
             self.engine = create_engine(
                 connection_string,
                 poolclass=QueuePool,
@@ -172,18 +183,18 @@ class DatabaseManager:
                 max_overflow=10,
                 pool_pre_ping=True
             )
-    
+
     def execute_query(self, query: str, params: Dict = None) -> List[Dict]:
         """Execute query and return results as list of dictionaries."""
         with self.engine.connect() as conn:
             result = conn.execute(text(query), params or {})
             conn.commit()
             return [dict(row._mapping) for row in result.fetchall()]
-    
+
     def __enter__(self):
         """Context manager entry for proper resource management."""
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit for proper resource cleanup."""
         try:
@@ -192,7 +203,7 @@ class DatabaseManager:
                 self.logger.debug(f"Disposed engine for {self.database_name}")
         except Exception as e:
             self.logger.warning(f"Error disposing engine for {self.database_name}: {e}")
-    
+
     def run_migrations(self) -> None:
         """Run Pyway migrations for this database."""
         if self.pyway_instance is None:
@@ -203,17 +214,17 @@ class DatabaseManager:
                 migration_dir=migration_dir,
                 schema_version_table="schema_version"
             )
-        
+
         self.logger.info(f"Running migrations for {self.database_name}...")
         self.pyway_instance.migrate()
         self.logger.info(f"Migrations completed for {self.database_name}")
-    
+
     def get_migration_status(self) -> Dict:
         """Get current migration status and version."""
         if self.pyway_instance:
             return self.pyway_instance.info()
         return {"status": "not_initialized"}
-    
+
     def health_check(self) -> Dict[str, Any]:
         """Perform health check for this database."""
         health_status = {
@@ -226,48 +237,48 @@ class DatabaseManager:
             "timestamp": datetime.now().isoformat(),
             "response_time_ms": None
         }
-        
+
         start_time = time.time()
-        
+
         try:
             with self.engine.connect() as conn:
                 health_status["connection"] = True
-                
+
                 # Test basic query execution
                 result = conn.execute(text("SELECT 1 as health_check"))
                 if result.fetchone()[0] == 1:
                     health_status["query_test"] = True
-                
+
                 # Get migration status if available
                 try:
                     migration_status = self.get_migration_status()
                     health_status["migration_status"] = migration_status
                 except Exception:
                     health_status["migration_status"] = "unavailable"
-            
+
             # Calculate response time
             response_time = (time.time() - start_time) * 1000
             health_status["response_time_ms"] = round(response_time, 2)
-            
+
             # Overall status
             if health_status["connection"] and health_status["query_test"]:
                 health_status["status"] = "healthy"
             else:
                 health_status["status"] = "degraded"
-                
+
         except Exception as e:
             health_status["status"] = "unhealthy"
             health_status["error"] = str(e)
             health_status["response_time_ms"] = round((time.time() - start_time) * 1000, 2)
             self.logger.error(f"Health check failed for {self.database_name}: {e}")
-        
+
         return health_status
-    
+
     def get_pool_status(self) -> Dict[str, Any]:
         """Get connection pool status for monitoring."""
         if not self.engine:
             return {"status": "not_initialized"}
-        
+
         try:
             pool = self.engine.pool
             return {
@@ -286,7 +297,7 @@ class DatabaseManager:
                 "error": str(e),
                 "timestamp": datetime.now().isoformat()
             }
-    
+
     def execute_transaction(self, queries: List[tuple]) -> List[Dict]:
         """Execute multiple queries in a single transaction."""
         with self.engine.connect() as conn:
@@ -296,13 +307,13 @@ class DatabaseManager:
                     result = conn.execute(text(query), params or {})
                     results.append([dict(row._mapping) for row in result.fetchall()])
                 return results
-    
+
     def execute_query_with_timeout(self, query: str, params: Dict = None, timeout: int = 30) -> List[Dict]:
         """Execute query with configurable timeout."""
         with self.engine.connect() as conn:
             result = conn.execute(
-                text(query), 
-                params or {}, 
+                text(query),
+                params or {},
                 execution_options={"timeout": timeout}
             )
             conn.commit()
@@ -310,9 +321,11 @@ class DatabaseManager:
 ```
 
 ### **2. Migration System (Pyway Integration)**
+
 **Purpose**: Manage database schema changes per flow using Pyway
 
 **Key Features**:
+
 - **Pyway Integration**: Uses Pyway library for migration management
 - **SQL-First Approach**: Pure SQL migration files with versioning
 - **Sequential Execution**: Automatic ordering by version number (V001, V002, etc.)
@@ -323,6 +336,7 @@ class DatabaseManager:
 - **Error Handling**: Graceful handling of migration failures
 
 **Migration File Structure**:
+
 ```
 core/migrations/
 ├── {database_name}/
@@ -336,6 +350,7 @@ core/migrations/
 ```
 
 **Example Structure**:
+
 ```
 core/migrations/
 ├── rpa_db/
@@ -347,15 +362,18 @@ core/migrations/
 ```
 
 **Migration Naming Convention**:
+
 - Format: `V{version}__{description}.sql`
 - Version: Sequential number with leading zeros (V001, V002, etc.)
 - Description: Descriptive name with underscores for spaces
 - Examples: `V001__Create_customers_table.sql`, `V002__Add_email_index.sql`
 
 ### **3. Configuration Integration**
+
 **Purpose**: Leverage existing ConfigManager system
 
 **Integration Points**:
+
 - **ConfigManager**: Use existing configuration system
 - **Environment Variables**: Database connection strings from `.env` files
 - **Global Configuration**: All database settings in core configuration
@@ -364,12 +382,14 @@ core/migrations/
 > **📝 Future Enhancement Note**: Prefect Blocks integration can be added in the future as an alternative credential management approach. This would provide native Prefect credential management while maintaining backward compatibility with the existing ConfigManager system.
 
 **Configuration Hierarchy**:
+
 1. Global database settings (`.env.{environment}`)
 2. Default fallback values
 
 **Configuration Examples**:
 
 #### **Global Database Configuration**
+
 ```env
 # core/envs/.env.development
 DEVELOPMENT_GLOBAL_RPA_DB_TYPE=postgresql
@@ -380,8 +400,8 @@ DEVELOPMENT_GLOBAL_DATABASE_TIMEOUT=30
 DEVELOPMENT_GLOBAL_CONNECTION_POOL_SIZE=5
 ```
 
-
 #### **Production Configuration**
+
 ```env
 # core/envs/.env.production
 PRODUCTION_GLOBAL_RPA_DB_TYPE=postgresql
@@ -391,7 +411,6 @@ PRODUCTION_GLOBAL_SURVEYHUB_CONNECTION_STRING=mssql+pyodbc://prod_user:${SQL_PAS
 PRODUCTION_GLOBAL_DATABASE_TIMEOUT=60
 PRODUCTION_GLOBAL_CONNECTION_POOL_SIZE=10
 ```
-
 
 ## 📦 **Dependencies**
 
@@ -409,6 +428,7 @@ dependencies = [
 ```
 
 ### **Dependency Details**
+
 - **psycopg2-binary**: PostgreSQL database adapter for Python
 - **pyodbc**: SQL Server database adapter for Python
 - **pyway**: Database migration tool inspired by Flyway
@@ -418,31 +438,35 @@ dependencies = [
 ## 🚀 Usage Patterns
 
 ### **Flow Integration**
+
 **Pattern**: Flows initialize separate DatabaseManager instances for each database
 
 **Typical Usage**:
+
 1. Initialize separate DatabaseManager instances for each database
 2. Run Pyway migrations for required databases
 3. Execute queries using `execute_query(query)`
 4. Process results in Prefect tasks
 
 **Example Pattern**:
+
 ```python
 # Initialize database managers using context managers
 with DatabaseManager("rpa_db") as rpa_db, \
      DatabaseManager("SurveyHub") as survey_hub:
-    
+
     # Query from one database
     records = survey_hub.execute_query("SELECT * FROM survey_responses")
-    
+
     # Process records concurrently using .map()
     processed_records = process_survey_record.map(records)
-    
+
     # Save results to another database
     write_results = write_processed_record.map(processed_records)
 ```
 
 **Flow Integration Example**:
+
 ```python
 # flows/rpa1/workflow.py
 from prefect import flow, task, get_run_logger
@@ -453,7 +477,7 @@ def process_survey_data(survey_responses: list[dict]) -> list[dict]:
     """Process survey response data."""
     logger = get_run_logger()
     logger.info(f"Processing {len(survey_responses)} survey responses")
-    
+
     # Process each survey response
     processed = []
     for response in survey_responses:
@@ -461,7 +485,7 @@ def process_survey_data(survey_responses: list[dict]) -> list[dict]:
             # Calculate satisfaction score from response data
             response_data = json.loads(response["response_data"])
             satisfaction_score = calculate_satisfaction_score(response_data)
-            
+
             processed.append({
                 "survey_id": response["survey_id"],
                 "customer_id": response["customer_id"],
@@ -478,7 +502,7 @@ def process_survey_data(survey_responses: list[dict]) -> list[dict]:
                 "status": "failed",
                 "error": str(e)
             })
-    
+
     return processed
 
 def calculate_satisfaction_score(response_data: dict) -> float:
@@ -492,29 +516,29 @@ def rpa1_workflow():
     """RPA1 workflow with database integration."""
     logger = get_run_logger()
     logger.info("Starting RPA1 database workflow")
-    
+
     # Initialize database managers - one per database
     rpa_db = DatabaseManager("rpa_db")
     survey_hub = DatabaseManager("SurveyHub")
-    
+
     # Run migrations for PostgreSQL database
     logger.info("Running database migrations...")
     rpa_db.run_migrations()
-    
+
     # Query data from SQL Server (SurveyHub) - read-only
     logger.info("Querying survey responses from SurveyHub...")
     survey_responses = survey_hub.execute_query(
         "SELECT survey_id, customer_id, response_data, submitted_at FROM survey_responses WHERE processed = 0"
     )
-    
+
     # Process survey data
     processed_surveys = process_survey_data(survey_responses)
-    
+
     # Write results to PostgreSQL (rpa_db)
     for survey in processed_surveys:
         rpa_db.execute_query(
-            """INSERT INTO rpa1_processed_surveys 
-               (survey_id, customer_id, satisfaction_score, processed_at, status) 
+            """INSERT INTO rpa1_processed_surveys
+               (survey_id, customer_id, satisfaction_score, processed_at, status)
                VALUES (:survey_id, :customer_id, :satisfaction_score, :processed_at, :status)""",
             {
                 "survey_id": survey["survey_id"],
@@ -524,15 +548,17 @@ def rpa1_workflow():
                 "status": survey["status"]
             }
         )
-    
+
     logger.info("RPA1 workflow completed successfully")
     return {"surveys_processed": len(processed_surveys), "responses_found": len(survey_responses)}
 ```
 
 ### **Migration Management with Pyway**
+
 **Pattern**: Versioned SQL files in global migration directories
 
 **Migration Lifecycle**:
+
 1. Create versioned SQL migration files (V001, V002, etc.) in `core/migrations/{database_name}/`
 2. Pyway automatically executes pending migrations when DatabaseManager is initialized
 3. Sequential execution ensures proper ordering
@@ -542,12 +568,14 @@ def rpa1_workflow():
 **User Workflow for Database Changes**:
 
 #### **Step 1: Create Migration File**
+
 ```bash
 # Create new migration file
 touch core/migrations/rpa_db/V005__Add_customer_phone_column.sql
 ```
 
 #### **Step 2: Write SQL Migration**
+
 ```sql
 -- V005__Add_customer_phone_column.sql
 ALTER TABLE customers ADD COLUMN phone VARCHAR(20);
@@ -555,6 +583,7 @@ CREATE INDEX idx_customers_phone ON customers(phone);
 ```
 
 #### **Step 3: Migration Execution**
+
 - **Automatic**: Runs when flow starts
 - **Manual**: Can be run manually for testing
 - **Status Check**: View current migration status
@@ -562,6 +591,7 @@ CREATE INDEX idx_customers_phone ON customers(phone);
 ### **Migration Types and Examples**
 
 #### **Creating Tables**
+
 ```sql
 -- V001__Create_customers_table.sql
 CREATE TABLE customers (
@@ -573,12 +603,14 @@ CREATE TABLE customers (
 ```
 
 #### **Adding Columns**
+
 ```sql
 -- V002__Add_customer_phone.sql
 ALTER TABLE customers ADD COLUMN phone VARCHAR(20);
 ```
 
 #### **Creating Indexes**
+
 ```sql
 -- V003__Add_customer_indexes.sql
 CREATE INDEX idx_customers_email ON customers(email);
@@ -586,22 +618,25 @@ CREATE INDEX idx_customers_phone ON customers(phone);
 ```
 
 #### **Adding Constraints**
+
 ```sql
 -- V004__Add_customer_constraints.sql
-ALTER TABLE customers 
-ADD CONSTRAINT chk_customers_email 
+ALTER TABLE customers
+ADD CONSTRAINT chk_customers_email
 CHECK (email LIKE '%@%');
 ```
 
 #### **Simple Data Updates**
+
 ```sql
 -- V005__Update_customer_data.sql
-UPDATE customers 
-SET phone = 'N/A' 
+UPDATE customers
+SET phone = 'N/A'
 WHERE phone IS NULL;
 ```
 
 #### **Creating Views**
+
 ```sql
 -- V006__Create_active_customers_view.sql
 CREATE VIEW active_customers AS
@@ -611,18 +646,22 @@ WHERE created_at > '2024-01-01';
 ```
 
 ### **Multi-Database Queries**
+
 **Pattern**: Transparent access to multiple database types
 
 **Common Scenarios**:
+
 - Query PostgreSQL for customer data
 - Query SQL Server for order information
 - Join data across database types in application logic
 - Write results back to appropriate database
 
 ### **Migration Status and Monitoring**
+
 **Pattern**: Check migration status and health
 
 **Status Checking**:
+
 ```python
 # Check migration status
 status = db.get_migration_status("rpa_db")
@@ -639,6 +678,7 @@ print(f"Pending migrations: {status.pending_migrations}")
 ```
 
 **Error Handling Example**:
+
 ```python
 # flows/rpa1/workflow.py
 from prefect import flow, task, get_run_logger
@@ -648,12 +688,12 @@ from core.database import DatabaseManager
 def rpa1_workflow():
     """RPA1 workflow with comprehensive error handling."""
     logger = get_run_logger()
-    
+
     try:
         # Initialize database managers - one per database
         rpa_db = DatabaseManager("rpa_db")
         survey_hub = DatabaseManager("SurveyHub")
-        
+
         # Run migrations with error handling (only for PostgreSQL)
         try:
             rpa_db.run_migrations()
@@ -661,7 +701,7 @@ def rpa1_workflow():
         except Exception as e:
             logger.error(f"rpa_db migration failed: {e}")
             raise
-        
+
         # Query data with error handling
         try:
             survey_responses = survey_hub.execute_query(
@@ -671,18 +711,20 @@ def rpa1_workflow():
         except Exception as e:
             logger.error(f"Failed to query survey responses: {e}")
             raise
-        
+
         return {"status": "success", "survey_responses_processed": len(survey_responses)}
-        
+
     except Exception as e:
         logger.error(f"Workflow failed: {e}")
         return {"status": "failed", "error": str(e)}
 ```
 
 ### **Concurrent Survey Processing Pattern**
+
 **Purpose**: Process survey data using Prefect's concurrent task execution
 
 **Concurrent Task Implementation**:
+
 ```python
 # flows/rpa1/workflow.py - Concurrent processing example
 from prefect import flow, task, get_run_logger
@@ -695,14 +737,14 @@ import json
 def process_survey_data_concurrently(survey_response: dict) -> dict:
     """Process individual survey response data concurrently."""
     logger = get_run_logger()
-    
+
     try:
         # Calculate satisfaction score from response data
         response_data = json.loads(survey_response["response_data"])
         satisfaction_score = calculate_satisfaction_score(response_data)
-        
+
         logger.info(f"Processed survey {survey_response['survey_id']} with score {satisfaction_score}")
-        
+
         return {
             "survey_id": survey_response["survey_id"],
             "customer_id": survey_response["customer_id"],
@@ -725,13 +767,13 @@ def process_survey_data_concurrently(survey_response: dict) -> dict:
 def write_survey_results(processed_survey: dict) -> dict:
     """Write processed survey results to database."""
     logger = get_run_logger()
-    
+
     try:
         # Initialize database manager within task context
         with DatabaseManager("rpa_db") as rpa_db:
             rpa_db.execute_query(
-                """INSERT INTO rpa1_processed_surveys 
-                   (survey_id, customer_id, satisfaction_score, processed_at, status) 
+                """INSERT INTO rpa1_processed_surveys
+                   (survey_id, customer_id, satisfaction_score, processed_at, status)
                    VALUES (:survey_id, :customer_id, :satisfaction_score, :processed_at, :status)""",
                 {
                     "survey_id": processed_survey["survey_id"],
@@ -741,10 +783,10 @@ def write_survey_results(processed_survey: dict) -> dict:
                     "status": processed_survey["status"]
                 }
             )
-            
+
         logger.info(f"Successfully wrote survey {processed_survey['survey_id']} to database")
         return {"survey_id": processed_survey["survey_id"], "write_status": "success"}
-        
+
     except Exception as e:
         logger.error(f"Failed to write survey {processed_survey['survey_id']}: {e}")
         return {"survey_id": processed_survey["survey_id"], "write_status": "failed", "error": str(e)}
@@ -758,48 +800,48 @@ def rpa1_concurrent_workflow():
     """RPA1 workflow with concurrent task execution."""
     logger = get_run_logger()
     logger.info("Starting RPA1 concurrent workflow")
-    
+
     # Validate database health first
     database_names = ["rpa_db", "SurveyHub"]
     health_check_passed = validate_database_prerequisites(database_names, "rpa1")
-    
+
     if not health_check_passed:
         logger.error("Database health check failed - aborting workflow")
         return {"status": "aborted", "reason": "database_health_check_failed"}
-    
+
     # Initialize database managers using context managers
     with DatabaseManager("rpa_db") as rpa_db, \
          DatabaseManager("SurveyHub") as survey_hub:
-        
+
         # Run migrations for PostgreSQL database
         logger.info("Running database migrations...")
         rpa_db.run_migrations()
-        
+
         # Query data from SQL Server (SurveyHub) - read-only
         logger.info("Querying survey responses from SurveyHub...")
         survey_responses = survey_hub.execute_query(
             "SELECT survey_id, customer_id, response_data, submitted_at FROM survey_responses WHERE processed = 0"
         )
-        
+
          logger.info(f"Found {len(survey_responses)} survey responses to process")
-         
+
          # Process survey data concurrently (max 8 concurrent tasks)
          if survey_responses:
              processed_surveys = process_survey_data_concurrently.map(survey_responses)
-             
+
              # Write results to PostgreSQL concurrently
              write_results = write_survey_results.map(processed_surveys)
          else:
              logger.info("No survey responses found to process")
              processed_surveys = []
              write_results = []
-        
+
         # Analyze results
         successful_writes = sum(1 for result in write_results if result["write_status"] == "success")
         failed_writes = len(write_results) - successful_writes
-        
+
         logger.info(f"Workflow completed: {successful_writes} successful, {failed_writes} failed")
-        
+
         return {
             "status": "success",
             "surveys_processed": len(processed_surveys),
@@ -811,15 +853,18 @@ def rpa1_concurrent_workflow():
 ```
 
 **Migration Tracking**:
+
 - Pyway automatically creates `schema_version` table
 - Tracks executed migrations with checksums
 - Prevents execution of modified migration files
 - Provides audit trail of all migrations
 
 ### **Database Health Monitoring**
+
 **Pattern**: Monitor database connectivity and operational status
 
 **Health Check Implementation**:
+
 ```python
 # core/database.py - Add to DatabaseManager class
 def health_check(self, database_name: str) -> Dict[str, Any]:
@@ -829,7 +874,7 @@ def health_check(self, database_name: str) -> Dict[str, Any]:
         db_type = self.config.get_variable(f"{database_name}_type")
     except Exception:
         db_type = "unknown"
-    
+
     health_status = {
         "database_name": database_name,
         "database_type": db_type,
@@ -841,20 +886,20 @@ def health_check(self, database_name: str) -> Dict[str, Any]:
         "timestamp": datetime.now().isoformat(),
         "response_time_ms": None
     }
-    
+
     start_time = time.time()
-    
+
     try:
         # Test basic connection
         engine = self.get_engine(database_name)
         with engine.connect() as conn:
             health_status["connection"] = True
-            
+
             # Test basic query execution
             result = conn.execute(text("SELECT 1 as health_check"))
             if result.fetchone()[0] == 1:
                 health_status["query_test"] = True
-            
+
             # Get migration status if Pyway is configured (only for writable databases)
             if db_type == "postgresql":
                 try:
@@ -864,23 +909,23 @@ def health_check(self, database_name: str) -> Dict[str, Any]:
                     health_status["migration_status"] = "unavailable"
             else:
                 health_status["migration_status"] = "read_only"
-        
+
         # Calculate response time
         response_time = (time.time() - start_time) * 1000
         health_status["response_time_ms"] = round(response_time, 2)
-        
+
         # Overall status
         if health_status["connection"] and health_status["query_test"]:
             health_status["status"] = "healthy"
         else:
             health_status["status"] = "degraded"
-            
+
     except Exception as e:
         health_status["status"] = "unhealthy"
         health_status["error"] = str(e)
         health_status["response_time_ms"] = round((time.time() - start_time) * 1000, 2)
         self.logger.error(f"Health check failed for {database_name}: {e}")
-    
+
     return health_status
 
 def health_check_all(self) -> Dict[str, Any]:
@@ -891,11 +936,11 @@ def health_check_all(self) -> Dict[str, Any]:
         "databases": {},
         "timestamp": datetime.now().isoformat()
     }
-    
+
     # Check configured databases
     database_names = ["rpa_db", "survey_hub"]
     healthy_count = 0
-    
+
     for database_name in database_names:
         try:
             # Only check if connection string is configured
@@ -903,7 +948,7 @@ def health_check_all(self) -> Dict[str, Any]:
             if connection_string:
                 health_status = self.health_check(database_name)
                 overall_health["databases"][database_name] = health_status
-                
+
                 if health_status["status"] == "healthy":
                     healthy_count += 1
         except Exception as e:
@@ -911,11 +956,11 @@ def health_check_all(self) -> Dict[str, Any]:
                 "status": "not_configured",
                 "error": f"Configuration missing: {e}"
             }
-    
+
     # Determine overall status
-    total_configured = len([db for db in overall_health["databases"].values() 
+    total_configured = len([db for db in overall_health["databases"].values()
                            if db.get("status") != "not_configured"])
-    
+
     if total_configured == 0:
         overall_health["overall_status"] = "not_configured"
     elif healthy_count == total_configured:
@@ -924,11 +969,12 @@ def health_check_all(self) -> Dict[str, Any]:
         overall_health["overall_status"] = "degraded"
     else:
         overall_health["overall_status"] = "unhealthy"
-    
+
     return overall_health
 ```
 
 **Health Check Task Integration**:
+
 ```python
 # flows/rpa1/workflow.py - Add health check task
 from prefect import task, get_run_logger
@@ -940,41 +986,41 @@ def database_health_check(database_names: list[str], flow_name: str) -> Dict[str
     """Comprehensive database health check task."""
     logger = get_run_logger()
     logger.info(f"Starting database health check for {database_names}")
-    
+
     overall_health = {
         "flow_name": flow_name,
         "overall_status": "unknown",
         "databases": {},
         "timestamp": datetime.now().isoformat()
     }
-    
+
     healthy_count = 0
-    
+
     for database_name in database_names:
         try:
             # Use context manager for proper resource cleanup
             with DatabaseManager(database_name) as db:
                 health_status = db.health_check()
                 overall_health["databases"][database_name] = health_status
-                
+
                 if health_status["status"] == "healthy":
                     healthy_count += 1
-                    
+
                 # Log details
                 db_status = health_status.get("status", "unknown")
                 response_time = health_status.get("response_time_ms", "N/A")
                 logger.info(f"{database_name}: {db_status} ({response_time}ms)")
-                
+
                 if health_status.get("error"):
                     logger.warning(f"{database_name} error: {health_status['error']}")
-                    
+
         except Exception as e:
             overall_health["databases"][database_name] = {
                 "status": "error",
                 "error": str(e)
             }
             logger.error(f"Health check failed for {database_name}: {e}")
-    
+
     # Determine overall status
     total_databases = len(database_names)
     if healthy_count == total_databases:
@@ -983,7 +1029,7 @@ def database_health_check(database_names: list[str], flow_name: str) -> Dict[str
         overall_health["overall_status"] = "degraded"
     else:
         overall_health["overall_status"] = "unhealthy"
-    
+
     logger.info(f"Database health check completed: {overall_health['overall_status']}")
     return overall_health
 
@@ -991,10 +1037,10 @@ def database_health_check(database_names: list[str], flow_name: str) -> Dict[str
 def validate_database_prerequisites(database_names: list[str], flow_name: str) -> bool:
     """Validate that databases are healthy before starting main workflow."""
     logger = get_run_logger()
-    
+
     health_status = database_health_check(database_names, flow_name)
     overall_status = health_status.get("overall_status")
-    
+
     if overall_status in ["healthy", "degraded"]:
         logger.info("Database prerequisites validated successfully")
         return True
@@ -1008,54 +1054,55 @@ def validate_database_prerequisites(database_names: list[str], flow_name: str) -
 ```
 
 **Flow Integration with Health Checks**:
+
 ```python
 @flow(name="rpa1-with-health-monitoring")
 def rpa1_workflow_with_health():
     """RPA1 workflow with comprehensive health monitoring."""
     logger = get_run_logger()
     logger.info("Starting RPA1 workflow with health monitoring")
-    
+
     # Define databases used by this flow
     database_names = ["rpa_db", "SurveyHub"]
-    
+
     try:
         # Validate database health before starting
         health_check_passed = validate_database_prerequisites(database_names, "rpa1")
-        
+
         if not health_check_passed:
             logger.error("Database health check failed - aborting workflow")
             return {
-                "status": "aborted", 
+                "status": "aborted",
                 "reason": "database_health_check_failed",
                 "timestamp": datetime.now().isoformat()
             }
-        
+
         # Initialize database managers - one per database
         rpa_db = DatabaseManager("rpa_db")
         survey_hub = DatabaseManager("SurveyHub")
-        
+
         # Run migrations
         logger.info("Running database migrations...")
         rpa_db.run_migrations()
-        
+
         # Perform periodic health check during processing
         mid_workflow_health = database_health_check(database_names, "rpa1")
         if mid_workflow_health["overall_status"] == "unhealthy":
             logger.warning("Database health degraded during workflow execution")
-        
+
         # Main workflow logic
         survey_responses = survey_hub.execute_query(
             "SELECT survey_id, customer_id, response_data FROM survey_responses WHERE processed = 0"
         )
-        
+
         # Process survey data
         processed_surveys = process_survey_data(survey_responses)
-        
+
         # Write results to PostgreSQL
         for survey in processed_surveys:
             rpa_db.execute_query(
-                """INSERT INTO rpa1_processed_surveys 
-                   (survey_id, customer_id, satisfaction_score, processed_at, status) 
+                """INSERT INTO rpa1_processed_surveys
+                   (survey_id, customer_id, satisfaction_score, processed_at, status)
                    VALUES (:survey_id, :customer_id, :satisfaction_score, :processed_at, :status)""",
                 {
                     "survey_id": survey["survey_id"],
@@ -1065,10 +1112,10 @@ def rpa1_workflow_with_health():
                     "status": survey["status"]
                 }
             )
-        
+
         # Final health check
         final_health = database_health_check(database_names, "rpa1")
-        
+
         logger.info("RPA1 workflow completed successfully")
         return {
             "status": "success",
@@ -1078,7 +1125,7 @@ def rpa1_workflow_with_health():
             "final_health": final_health["overall_status"],
             "timestamp": datetime.now().isoformat()
         }
-        
+
     except Exception as e:
         logger.error(f"Workflow failed: {e}")
         # Perform health check to diagnose potential database issues
@@ -1092,6 +1139,7 @@ def rpa1_workflow_with_health():
 ```
 
 **Health Check Monitoring Examples**:
+
 ```python
 # Example health check responses
 {
@@ -1113,7 +1161,7 @@ def rpa1_workflow_with_health():
         },
         "survey_hub": {
             "database_name": "survey_hub",
-            "database_type": "sqlserver", 
+            "database_type": "sqlserver",
             "status": "healthy",
             "connection": true,
             "query_test": true,
@@ -1149,24 +1197,28 @@ def rpa1_workflow_with_health():
 ### **Pyway Best Practices**
 
 #### **Naming Conventions**
+
 - Use descriptive names: `V001__Create_customers_table.sql`
 - Keep names short but clear
 - Use underscores for spaces
 - Use sequential version numbers with leading zeros
 
 #### **Migration Content**
+
 - Keep migrations small and focused
 - Test migrations on development first
 - Include rollback information in comments
 - Use transactions for complex changes
 
 #### **Version Management**
+
 - Use sequential version numbers (V001, V002, etc.)
 - Don't skip version numbers
 - Use leading zeros for proper sorting
 - Never modify existing migration files
 
 #### **Environment Management**
+
 - Test migrations in development first
 - Use separate migration directories if needed
 - Document environment-specific changes
@@ -1175,30 +1227,35 @@ def rpa1_workflow_with_health():
 ## 📊 Performance Considerations
 
 ### **Connection Pooling**
+
 - **Pool Size**: Configurable per database type
 - **Max Overflow**: Additional connections when needed
 - **Pre-ping**: Verify connections before use
 - **Connection Reuse**: Single engine per database type per flow
 
 ### **Query Optimization**
+
 - **Parameterized Queries**: Prevent SQL injection
 - **Connection Management**: Automatic connection lifecycle
 - **Result Processing**: Efficient result set handling
 - **Error Recovery**: Graceful handling of connection issues
 
 ### **Memory Management**
+
 - **Engine Reuse**: Single engine instance per database type
 - **Connection Cleanup**: Automatic connection cleanup
 - **Result Streaming**: Large result set handling
 - **Garbage Collection**: Proper resource cleanup
 
 ### **Performance Best Practices**
+
 **Batch Operations**:
+
 ```python
 # Use transactions for batch operations
 with DatabaseManager("rpa_db") as db:
     queries = [
-        ("INSERT INTO processed_surveys (survey_id, status) VALUES (:survey_id, :status)", 
+        ("INSERT INTO processed_surveys (survey_id, status) VALUES (:survey_id, :status)",
          {"survey_id": survey["survey_id"], "status": "completed"})
         for survey in processed_surveys
     ]
@@ -1206,6 +1263,7 @@ with DatabaseManager("rpa_db") as db:
 ```
 
 **Connection Pool Tuning**:
+
 ```python
 # Customize connection pool for high-throughput scenarios
 class HighThroughputDatabaseManager(DatabaseManager):
@@ -1224,6 +1282,7 @@ class HighThroughputDatabaseManager(DatabaseManager):
 ```
 
 **Query Performance Monitoring**:
+
 ```python
 # Monitor query performance
 import time
@@ -1231,11 +1290,11 @@ import time
 def execute_query_with_timing(self, query: str, params: Dict = None) -> Dict[str, Any]:
     """Execute query and return results with timing information."""
     start_time = time.time()
-    
+
     try:
         results = self.execute_query(query, params)
         execution_time = time.time() - start_time
-        
+
         return {
             "results": results,
             "execution_time_ms": round(execution_time * 1000, 2),
@@ -1256,18 +1315,21 @@ def execute_query_with_timing(self, query: str, params: Dict = None) -> Dict[str
 ## 🔒 Security Considerations
 
 ### **Connection Security**
+
 - **Encrypted Connections**: SSL/TLS for database connections
 - **Credential Management**: Secure storage of connection strings
 - **Environment Isolation**: Separate credentials per environment
 - **Access Control**: Database user permissions
 
 ### **Query Security**
+
 - **Parameterized Queries**: Prevent SQL injection
 - **Input Validation**: Validate query parameters
 - **Error Handling**: Don't expose sensitive information
 - **Audit Logging**: Log database operations
 
 ### **Configuration Security**
+
 - **Secret Management**: Use Prefect secrets for sensitive data
 - **Environment Variables**: Secure `.env` file handling
 - **Access Control**: Limit access to configuration files
@@ -1276,24 +1338,28 @@ def execute_query_with_timing(self, query: str, params: Dict = None) -> Dict[str
 ## 🚀 Deployment
 
 ### **Prerequisites**
+
 - PostgreSQL database access
 - SQL Server database access
 - Python dependencies (SQLAlchemy, drivers)
 - Environment configuration
 
 ### **Configuration Setup**
+
 1. **Database Credentials**: Set connection strings in `.env` files
 2. **Flow Configuration**: Configure flow-specific database settings
 3. **Environment Variables**: Set environment-specific configurations
 4. **Secret Management**: Store sensitive credentials securely
 
 ### **Migration Deployment**
+
 1. **Migration Files**: Place SQL files in flow migration directories
 2. **Automatic Execution**: Migrations run on flow initialization
 3. **Environment Isolation**: Migrations run per environment
 4. **Error Handling**: Graceful handling of migration failures
 
 **Deployment Example**:
+
 ```yaml
 # kubernetes/database-workflow-deployment.yaml
 apiVersion: apps/v1
@@ -1311,35 +1377,36 @@ spec:
         app: rpa-database-workflow
     spec:
       containers:
-      - name: rpa-processor
-        image: rpa-solution:latest
-        env:
-        - name: PREFECT_ENVIRONMENT
-          value: "production"
-        - name: HOSTNAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-secrets
-              key: postgres-password
-        - name: SQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-secrets
-              key: sql-password
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
+        - name: rpa-processor
+          image: rpa-solution:latest
+          env:
+            - name: PREFECT_ENVIRONMENT
+              value: "production"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: postgres-password
+            - name: SQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: sql-password
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
 ```
 
 **Testing Example**:
+
 ```python
 # flows/rpa1/test/test_database_integration.py
 import pytest
@@ -1349,7 +1416,7 @@ from core.database import DatabaseManager
 def test_database_migrations():
     """Test that migrations run successfully."""
     rpa_db = DatabaseManager("rpa_db")
-    
+
     # Test rpa_db migrations
     rpa_db.run_migrations()
     status = rpa_db.get_migration_status()
@@ -1360,11 +1427,11 @@ def test_database_queries():
     """Test database query execution."""
     rpa_db = DatabaseManager("rpa_db")
     survey_hub = DatabaseManager("SurveyHub")
-    
+
     # Test rpa_db query
     result = rpa_db.execute_query("SELECT 1 as test_value")
     assert result[0]["test_value"] == 1
-    
+
     # Test SurveyHub query
     result = survey_hub.execute_query("SELECT 1 as test_value")
     assert result[0]["test_value"] == 1
@@ -1374,11 +1441,11 @@ def test_health_checks():
     """Test database health checks."""
     rpa_db = DatabaseManager("rpa_db")
     survey_hub = DatabaseManager("SurveyHub")
-    
+
     # Test individual health checks
     rpa_health = rpa_db.health_check()
     assert rpa_health["status"] == "healthy"
-    
+
     survey_health = survey_hub.health_check()
     assert survey_health["status"] == "healthy"
 ```
@@ -1386,13 +1453,16 @@ def test_health_checks():
 ## 📈 Monitoring and Observability
 
 ### **Health Monitoring**
+
 - **Connection Health**: Monitor database connection status
 - **Query Performance**: Track query execution times
 - **Pool Status**: Monitor connection pool utilization
 - **Error Rates**: Track database operation failures
 
 ### **Advanced Monitoring with DatabaseManager**
+
 **Pool Status Monitoring**:
+
 ```python
 # Monitor connection pool status
 with DatabaseManager("rpa_db") as db:
@@ -1404,12 +1474,13 @@ with DatabaseManager("rpa_db") as db:
 ```
 
 **Transaction Monitoring**:
+
 ```python
 # Execute multiple queries in a single transaction
 queries = [
-    ("INSERT INTO processed_surveys (survey_id, status) VALUES (:survey_id, :status)", 
+    ("INSERT INTO processed_surveys (survey_id, status) VALUES (:survey_id, :status)",
      {"survey_id": "123", "status": "completed"}),
-    ("UPDATE survey_responses SET processed = 1 WHERE survey_id = :survey_id", 
+    ("UPDATE survey_responses SET processed = 1 WHERE survey_id = :survey_id",
      {"survey_id": "123"})
 ]
 
@@ -1419,12 +1490,13 @@ with DatabaseManager("rpa_db") as db:
 ```
 
 **Query Timeout Monitoring**:
+
 ```python
 # Execute query with custom timeout
 with DatabaseManager("SurveyHub") as db:
     try:
         results = db.execute_query_with_timeout(
-            "SELECT * FROM large_table", 
+            "SELECT * FROM large_table",
             timeout=60  # 60 second timeout
         )
         print(f"Query completed: {len(results)} rows returned")
@@ -1433,22 +1505,24 @@ with DatabaseManager("SurveyHub") as db:
 ```
 
 ### **Error Handling and Retry Logic**
+
 **Retry Configuration**:
+
 ```python
 # Add retry logic for database operations
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 class DatabaseManager:
     # ... existing code ...
-    
+
     @retry(
-        stop=stop_after_attempt(3), 
+        stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10)
     )
     def execute_query_with_retry(self, query: str, params: Dict = None) -> List[Dict]:
         """Execute query with automatic retry on connection failures."""
         return self.execute_query(query, params)
-    
+
     def execute_query_safe(self, query: str, params: Dict = None, retry_on_failure: bool = True) -> List[Dict]:
         """Execute query with optional retry logic."""
         if retry_on_failure:
@@ -1458,43 +1532,44 @@ class DatabaseManager:
 ```
 
 **Graceful Degradation**:
+
 ```python
 # Handle database failures gracefully in flows
 @flow(name="rpa1-resilient-workflow")
 def rpa1_resilient_workflow():
     """RPA1 workflow with resilient database operations."""
     logger = get_run_logger()
-    
+
     try:
         with DatabaseManager("rpa_db") as rpa_db, \
              DatabaseManager("SurveyHub") as survey_hub:
-            
+
             # Try to run migrations with retry
             try:
                 rpa_db.run_migrations()
                 logger.info("Migrations completed successfully")
             except Exception as e:
                 logger.warning(f"Migration failed, continuing with existing schema: {e}")
-            
+
             # Query with retry logic
             survey_responses = survey_hub.execute_query_safe(
                 "SELECT survey_id, customer_id, response_data FROM survey_responses WHERE processed = 0",
                 retry_on_failure=True
             )
-            
+
             if not survey_responses:
                 logger.info("No survey responses found")
                 return {"status": "success", "message": "No data to process"}
-            
+
             # Process with error handling
             processed_count = 0
             failed_count = 0
-            
+
             for response in survey_responses:
                 try:
                     # Process individual response
                     processed = process_survey_data_concurrently(response)
-                    
+
                     # Write with retry
                     rpa_db.execute_query_safe(
                         "INSERT INTO processed_surveys (survey_id, status) VALUES (:survey_id, :status)",
@@ -1502,30 +1577,32 @@ def rpa1_resilient_workflow():
                         retry_on_failure=True
                     )
                     processed_count += 1
-                    
+
                 except Exception as e:
                     logger.error(f"Failed to process survey {response['survey_id']}: {e}")
                     failed_count += 1
-            
+
             return {
                 "status": "success",
                 "processed": processed_count,
                 "failed": failed_count,
                 "total": len(survey_responses)
             }
-            
+
     except Exception as e:
         logger.error(f"Workflow failed completely: {e}")
         return {"status": "failed", "error": str(e)}
 ```
 
 ### **Logging**
+
 - **Query Logging**: Log all database operations
 - **Error Logging**: Detailed error information
 - **Performance Logging**: Query execution times
 - **Migration Logging**: Migration execution status
 
 ### **Metrics**
+
 - **Connection Pool Metrics**: Pool size, active connections
 - **Query Metrics**: Execution time, success rate
 - **Migration Metrics**: Migration execution time, success rate
@@ -1534,6 +1611,7 @@ def rpa1_resilient_workflow():
 ## 🛠️ Maintenance
 
 ### **Regular Tasks**
+
 - **Connection Health**: Monitor database connectivity
 - **Migration Management**: Maintain migration files
 - **Performance Tuning**: Optimize query performance
@@ -1542,7 +1620,9 @@ def rpa1_resilient_workflow():
 ### **Troubleshooting**
 
 #### **Connection Issues**
+
 **Problem**: Database connectivity problems
+
 ```python
 # Check connection status
 rpa_db = DatabaseManager("rpa_db")
@@ -1564,7 +1644,9 @@ except Exception as e:
 ```
 
 #### **Migration Failures**
+
 **Problem**: Schema change issues
+
 ```python
 # Check migration status
 rpa_db = DatabaseManager("rpa_db")
@@ -1580,7 +1662,9 @@ print(f"Pending migrations: {status.get('pending_migrations', [])}")
 ```
 
 #### **Performance Issues**
+
 **Problem**: Slow query execution
+
 ```python
 # Monitor query performance
 import time
@@ -1601,7 +1685,9 @@ print(f"Returned {len(result)} rows")
 ```
 
 #### **Configuration Issues**
+
 **Problem**: Incorrect database settings
+
 ```python
 # Verify configuration loading
 from core.config import ConfigManager
@@ -1625,6 +1711,7 @@ print(f"SurveyHub URL configured: {bool(survey_hub_url)}")
 > **📌 Design Note**: This implementation uses the existing ConfigManager system for credential management. Future enhancements could include Prefect Blocks integration as an alternative approach while maintaining backward compatibility.
 
 ### **Phase 1: Core Infrastructure (Week 1)**
+
 - [ ] DatabaseManager class implementation
 - [ ] SQLAlchemy engine configuration
 - [ ] Basic query execution interface
@@ -1632,6 +1719,7 @@ print(f"SurveyHub URL configured: {bool(survey_hub_url)}")
 - [ ] Pyway integration setup
 
 ### **Phase 2: Migration System (Week 2)**
+
 - [ ] Pyway migration system integration
 - [ ] Migration file structure setup
 - [ ] Flow-specific migration directories
@@ -1639,6 +1727,7 @@ print(f"SurveyHub URL configured: {bool(survey_hub_url)}")
 - [ ] Error handling and recovery
 
 ### **Phase 3: Integration & Testing (Week 3)**
+
 - [ ] Flow integration examples
 - [ ] Multi-database testing (PostgreSQL + SQL Server)
 - [ ] Migration testing and validation
@@ -1648,18 +1737,21 @@ print(f"SurveyHub URL configured: {bool(survey_hub_url)}")
 ## 🎯 Success Metrics
 
 ### **Functional Requirements**
+
 - ✅ **Multi-Database Access**: Seamless PostgreSQL and SQL Server access
 - ✅ **Flow Isolation**: Each flow manages its own database schema
 - ✅ **Migration Management**: Simple SQL-based migration system
 - ✅ **Configuration Integration**: Leverage existing configuration system
 
 ### **Performance Targets**
+
 - **Connection Pooling**: <100ms connection acquisition
 - **Query Execution**: <1s for typical queries
 - **Migration Speed**: <30s for typical migration sets
 - **Memory Usage**: <50MB per database type per flow
 
 ### **Operational Requirements**
+
 - **Setup Time**: <5 minutes to configure new flow
 - **Migration Time**: <1 minute to run migrations
 - **Error Recovery**: <30 seconds to recover from connection issues
