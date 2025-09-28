@@ -19,122 +19,148 @@ Environments:
     production   - Production environment
 """
 
+import os
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
 from prefect.blocks.system import Secret
 from prefect.variables import Variable
 
 
+def load_env_config(environment: str, flow_name: str = None):
+    """Load configuration from .env files."""
+    project_root = Path(__file__).parent.parent
+    
+    # Load global .env file
+    global_env_file = project_root / "core" / "envs" / f".env.{environment}"
+    if global_env_file.exists():
+        load_dotenv(global_env_file)
+        print(f"📁 Loaded global config: {global_env_file}")
+    else:
+        print(f"⚠️  Global .env file not found: {global_env_file}")
+    
+    # Load flow-specific .env file
+    if flow_name:
+        flow_env_file = project_root / "flows" / flow_name / f".env.{environment}"
+        if flow_env_file.exists():
+            load_dotenv(flow_env_file, override=True)
+            print(f"📁 Loaded flow config: {flow_env_file}")
+        else:
+            print(f"⚠️  Flow .env file not found: {flow_env_file}")
+
+
 def setup_development():
-    """Set up development environment configuration."""
-    print("🔧 Setting up development environment...")
+    """Set up development environment configuration from .env files."""
+    print("🔧 Setting up development environment from .env files...")
     
-    # Development secrets
-    Secret(value="dev-api-key-123").save("development-global-api-key", overwrite=True)
-    Secret(value="dev-db-password").save("development-global-db-password", overwrite=True)
-    Secret(value="dev-external-api-token").save("development-global-external-api-token", overwrite=True)
+    # Load global config
+    load_env_config("development")
     
-    # Development variables
-    Variable.set("development_global_database_url", "sqlite:///dev.db", overwrite=True)
-    Variable.set("development_global_log_level", "DEBUG", overwrite=True)
-    Variable.set("development_global_debug_mode", "true", overwrite=True)
-    Variable.set("development_global_max_retries", "1", overwrite=True)
-    Variable.set("development_global_timeout", "30", overwrite=True)
+    # Set global secrets from .env
+    global_api_key = os.getenv("GLOBAL_API_KEY", "dev-api-key-123")
+    global_db_password = os.getenv("GLOBAL_DB_PASSWORD", "dev-db-password")
+    global_external_token = os.getenv("GLOBAL_EXTERNAL_API_TOKEN", "dev-external-token")
     
-    # RPA1 development overrides
-    Secret(value="dev-rpa1-specific-key").save("development-rpa1-api-key", overwrite=True)
-    Variable.set("development_rpa1_batch_size", "100", overwrite=True)
-    Variable.set("development_rpa1_timeout", "30", overwrite=True)
-    Variable.set("development_rpa1_cleanup_temp_files", "true", overwrite=True)
-    Variable.set("development_rpa1_output_format", "json", overwrite=True)
+    Secret(value=global_api_key).save("development-global-api-key", overwrite=True)
+    Secret(value=global_db_password).save("development-global-db-password", overwrite=True)
+    Secret(value=global_external_token).save("development-global-external-api-token", overwrite=True)
     
-    # RPA2 development overrides
-    Variable.set("development_rpa2_validation_strict", "false", overwrite=True)
-    Variable.set("development_rpa2_max_retries", "1", overwrite=True)
-    Variable.set("development_rpa2_timeout", "15", overwrite=True)
-    Variable.set("development_rpa2_cleanup_temp_files", "true", overwrite=True)
+    # Set global variables from .env
+    Variable.set("development_global_database_url", os.getenv("GLOBAL_DATABASE_URL", "sqlite:///dev.db"), overwrite=True)
+    Variable.set("development_global_log_level", os.getenv("GLOBAL_LOG_LEVEL", "DEBUG"), overwrite=True)
+    Variable.set("development_global_debug_mode", os.getenv("GLOBAL_DEBUG_MODE", "true"), overwrite=True)
+    Variable.set("development_global_max_retries", os.getenv("GLOBAL_MAX_RETRIES", "1"), overwrite=True)
+    Variable.set("development_global_timeout", os.getenv("GLOBAL_TIMEOUT", "30"), overwrite=True)
     
-    # RPA3 development overrides
-    Variable.set("development_rpa3_max_concurrent_tasks", "5", overwrite=True)
-    Variable.set("development_rpa3_timeout", "30", overwrite=True)
-    Variable.set("development_rpa3_cleanup_temp_files", "true", overwrite=True)
+    # Set up each flow
+    for flow in ["rpa1", "rpa2", "rpa3"]:
+        setup_flow_config("development", flow)
     
-    print("✅ Development environment configured successfully!")
+    print("✅ Development environment configured from .env files!")
+
+
+def setup_flow_config(environment: str, flow_name: str):
+    """Set up flow-specific configuration from .env files."""
+    load_env_config(environment, flow_name)
+    
+    # Flow-specific secrets
+    flow_api_key = os.getenv(f"{environment.upper()}_{flow_name.upper()}_API_KEY")
+    if flow_api_key:
+        Secret(value=flow_api_key).save(f"{environment}-{flow_name}-api-key", overwrite=True)
+    
+    # Flow-specific variables
+    flow_vars = [
+        "batch_size", "timeout", "cleanup_temp_files", "output_format",
+        "validation_strict", "max_retries", "max_concurrent_tasks"
+    ]
+    
+    for var in flow_vars:
+        env_key = f"{environment.upper()}_{flow_name.upper()}_{var.upper()}"
+        value = os.getenv(env_key)
+        if value is not None:
+            var_name = f"{environment}_{flow_name}_{var}"
+            Variable.set(var_name, value, overwrite=True)
 
 
 def setup_staging():
-    """Set up staging environment configuration."""
-    print("🔧 Setting up staging environment...")
+    """Set up staging environment configuration from .env files."""
+    print("🔧 Setting up staging environment from .env files...")
     
-    # Staging secrets
-    Secret(value="staging-api-key-456").save("staging-global-api-key", overwrite=True)
-    Secret(value="staging-db-password").save("staging-global-db-password", overwrite=True)
-    Secret(value="staging-external-api-token").save("staging-global-external-api-token", overwrite=True)
+    # Load global config
+    load_env_config("staging")
     
-    # Staging variables
-    Variable.set("staging_global_database_url", "postgresql://staging:pass@staging-db:5432/rpa", overwrite=True)
-    Variable.set("staging_global_log_level", "INFO", overwrite=True)
-    Variable.set("staging_global_debug_mode", "false", overwrite=True)
-    Variable.set("staging_global_max_retries", "3", overwrite=True)
-    Variable.set("staging_global_timeout", "60", overwrite=True)
+    # Set global secrets from .env
+    global_api_key = os.getenv("GLOBAL_API_KEY", "staging-api-key-456")
+    global_db_password = os.getenv("GLOBAL_DB_PASSWORD", "staging-db-password")
+    global_external_token = os.getenv("GLOBAL_EXTERNAL_API_TOKEN", "staging-external-token")
     
-    # RPA1 staging overrides
-    Secret(value="staging-rpa1-specific-key").save("staging-rpa1-api-key", overwrite=True)
-    Variable.set("staging_rpa1_batch_size", "500", overwrite=True)
-    Variable.set("staging_rpa1_timeout", "60", overwrite=True)
-    Variable.set("staging_rpa1_cleanup_temp_files", "true", overwrite=True)
-    Variable.set("staging_rpa1_output_format", "json", overwrite=True)
+    Secret(value=global_api_key).save("staging-global-api-key", overwrite=True)
+    Secret(value=global_db_password).save("staging-global-db-password", overwrite=True)
+    Secret(value=global_external_token).save("staging-global-external-api-token", overwrite=True)
     
-    # RPA2 staging overrides
-    Variable.set("staging_rpa2_validation_strict", "true", overwrite=True)
-    Variable.set("staging_rpa2_max_retries", "3", overwrite=True)
-    Variable.set("staging_rpa2_timeout", "30", overwrite=True)
-    Variable.set("staging_rpa2_cleanup_temp_files", "true", overwrite=True)
+    # Set global variables from .env
+    Variable.set("staging_global_database_url", os.getenv("GLOBAL_DATABASE_URL", "postgresql://staging:pass@staging-db:5432/rpa"), overwrite=True)
+    Variable.set("staging_global_log_level", os.getenv("GLOBAL_LOG_LEVEL", "INFO"), overwrite=True)
+    Variable.set("staging_global_debug_mode", os.getenv("GLOBAL_DEBUG_MODE", "false"), overwrite=True)
+    Variable.set("staging_global_max_retries", os.getenv("GLOBAL_MAX_RETRIES", "3"), overwrite=True)
+    Variable.set("staging_global_timeout", os.getenv("GLOBAL_TIMEOUT", "60"), overwrite=True)
     
-    # RPA3 staging overrides
-    Variable.set("staging_rpa3_max_concurrent_tasks", "8", overwrite=True)
-    Variable.set("staging_rpa3_timeout", "60", overwrite=True)
-    Variable.set("staging_rpa3_cleanup_temp_files", "true", overwrite=True)
+    # Set up each flow
+    for flow in ["rpa1", "rpa2", "rpa3"]:
+        setup_flow_config("staging", flow)
     
-    print("✅ Staging environment configured successfully!")
+    print("✅ Staging environment configured from .env files!")
 
 
 def setup_production():
-    """Set up production environment configuration."""
-    print("🔧 Setting up production environment...")
+    """Set up production environment configuration from .env files."""
+    print("🔧 Setting up production environment from .env files...")
     
-    # Production secrets
-    Secret(value="prod-api-key-789").save("production-global-api-key", overwrite=True)
-    Secret(value="prod-db-password").save("production-global-db-password", overwrite=True)
-    Secret(value="prod-external-api-token").save("production-global-external-api-token", overwrite=True)
+    # Load global config
+    load_env_config("production")
     
-    # Production variables
-    Variable.set("production_global_database_url", "postgresql://prod:pass@prod-db:5432/rpa", overwrite=True)
-    Variable.set("production_global_log_level", "WARNING", overwrite=True)
-    Variable.set("production_global_debug_mode", "false", overwrite=True)
-    Variable.set("production_global_max_retries", "5", overwrite=True)
-    Variable.set("production_global_timeout", "120", overwrite=True)
+    # Set global secrets from .env
+    global_api_key = os.getenv("GLOBAL_API_KEY", "prod-api-key-789")
+    global_db_password = os.getenv("GLOBAL_DB_PASSWORD", "prod-db-password")
+    global_external_token = os.getenv("GLOBAL_EXTERNAL_API_TOKEN", "prod-external-token")
     
-    # RPA1 production overrides
-    Secret(value="prod-rpa1-specific-key").save("production-rpa1-api-key", overwrite=True)
-    Variable.set("production_rpa1_batch_size", "1000", overwrite=True)
-    Variable.set("production_rpa1_timeout", "120", overwrite=True)
-    Variable.set("production_rpa1_cleanup_temp_files", "true", overwrite=True)
-    Variable.set("production_rpa1_output_format", "json", overwrite=True)
+    Secret(value=global_api_key).save("production-global-api-key", overwrite=True)
+    Secret(value=global_db_password).save("production-global-db-password", overwrite=True)
+    Secret(value=global_external_token).save("production-global-external-api-token", overwrite=True)
     
-    # RPA2 production overrides
-    Variable.set("production_rpa2_validation_strict", "true", overwrite=True)
-    Variable.set("production_rpa2_max_retries", "5", overwrite=True)
-    Variable.set("production_rpa2_timeout", "60", overwrite=True)
-    Variable.set("production_rpa2_cleanup_temp_files", "true", overwrite=True)
+    # Set global variables from .env
+    Variable.set("production_global_database_url", os.getenv("GLOBAL_DATABASE_URL", "postgresql://prod:pass@prod-db:5432/rpa"), overwrite=True)
+    Variable.set("production_global_log_level", os.getenv("GLOBAL_LOG_LEVEL", "WARNING"), overwrite=True)
+    Variable.set("production_global_debug_mode", os.getenv("GLOBAL_DEBUG_MODE", "false"), overwrite=True)
+    Variable.set("production_global_max_retries", os.getenv("GLOBAL_MAX_RETRIES", "5"), overwrite=True)
+    Variable.set("production_global_timeout", os.getenv("GLOBAL_TIMEOUT", "120"), overwrite=True)
     
-    # RPA3 production overrides
-    Variable.set("production_rpa3_max_concurrent_tasks", "15", overwrite=True)
-    Variable.set("production_rpa3_timeout", "120", overwrite=True)
-    Variable.set("production_rpa3_cleanup_temp_files", "true", overwrite=True)
+    # Set up each flow
+    for flow in ["rpa1", "rpa2", "rpa3"]:
+        setup_flow_config("production", flow)
     
-    print("✅ Production environment configured successfully!")
+    print("✅ Production environment configured from .env files!")
 
 
 def list_configurations():

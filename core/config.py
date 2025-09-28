@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 
+from dotenv import load_dotenv
 from prefect.blocks.system import Secret
 from prefect.variables import Variable
 
@@ -45,18 +46,20 @@ SAMPLE_PRODUCTS = [
 
 class ConfigManager:
     """
-    Manages configuration with environment and flow-specific overrides.
+    Enhanced configuration manager with .env file support.
     
     This class provides a hierarchical configuration system that supports:
+    - .env file configuration (primary)
     - Environment-specific configuration (development, staging, production)
     - Flow-specific overrides within each environment
-    - Fallback to global configuration for backwards compatibility
-    - Support for both secrets (encrypted) and variables (plain text)
+    - Prefect Secret/Variable blocks (fallback)
     
     Configuration lookup hierarchy (most specific to least specific):
-    1. {environment}.{flow}.{key} - Flow-specific in specific environment
-    2. {environment}.global.{key} - Global in specific environment  
-    3. global.{key} - Base global (backwards compatibility)
+    1. .env files: flows/{flow}/.env.{environment} (overrides global)
+    2. .env files: core/envs/.env.{environment} (global)
+    3. Prefect: {environment}.{flow}.{key} - Flow-specific in specific environment
+    4. Prefect: {environment}.global.{key} - Global in specific environment  
+    5. Prefect: global.{key} - Base global (backwards compatibility)
     """
     
     def __init__(self, flow_name: Optional[str] = None, environment: Optional[str] = None):
@@ -71,14 +74,32 @@ class ConfigManager:
         self.flow_name = flow_name
         self.environment = environment or self._detect_environment()
         self._cache = {}
+        
+        # Load .env files
+        self._load_env_files()
     
     def _detect_environment(self) -> str:
         """Detect current environment from environment variables."""
         return os.getenv("PREFECT_ENVIRONMENT", "development")
     
+    def _load_env_files(self):
+        """Load .env files in hierarchical order."""
+        # 1. Load global .env file
+        global_env_file = PROJECT_ROOT / "core" / "envs" / f".env.{self.environment}"
+        if global_env_file.exists():
+            load_dotenv(global_env_file)
+            print(f"📁 Loaded global config: {global_env_file}")
+        
+        # 2. Load flow-specific .env file (overrides global)
+        if self.flow_name:
+            flow_env_file = PROJECT_ROOT / "flows" / self.flow_name / f".env.{self.environment}"
+            if flow_env_file.exists():
+                load_dotenv(flow_env_file, override=True)  # override=True for hierarchy
+                print(f"📁 Loaded flow config: {flow_env_file}")
+    
     def get_secret(self, key: str, default: Any = None) -> Any:
         """
-        Get secret with environment and flow-specific override.
+        Get secret with .env file support and hierarchical fallback.
         
         Args:
             key: Configuration key
@@ -87,7 +108,14 @@ class ConfigManager:
         Returns:
             Secret value or default
         """
-        # Try flow-specific secret first (most specific)
+        # 1. Try .env file first (most specific)
+        env_key = f"{self.environment.upper()}_{self.flow_name.upper()}_{key.upper()}" if self.flow_name else f"{self.environment.upper()}_GLOBAL_{key.upper()}"
+        env_value = os.getenv(env_key)
+        if env_value is not None:
+            return env_value
+        
+        # 2. Try Prefect secrets (fallback)
+        # Try flow-specific secret first
         if self.flow_name:
             try:
                 secret_name = f"{self.environment}-{self.flow_name}-{key.replace('_', '-')}"
@@ -114,7 +142,7 @@ class ConfigManager:
     
     def get_variable(self, key: str, default: Any = None) -> Any:
         """
-        Get variable with environment and flow-specific override.
+        Get variable with .env file support and hierarchical fallback.
         
         Args:
             key: Configuration key
@@ -123,6 +151,13 @@ class ConfigManager:
         Returns:
             Variable value or default
         """
+        # 1. Try .env file first (most specific)
+        env_key = f"{self.environment.upper()}_{self.flow_name.upper()}_{key.upper()}" if self.flow_name else f"{self.environment.upper()}_GLOBAL_{key.upper()}"
+        env_value = os.getenv(env_key)
+        if env_value is not None:
+            return env_value
+        
+        # 2. Try Prefect variables (fallback)
         # Try flow-specific variable first
         if self.flow_name:
             try:
