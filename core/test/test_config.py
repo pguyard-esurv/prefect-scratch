@@ -4,8 +4,6 @@ from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.unit
-
 from core.config import (
     CSV_EXTENSION,
     DATA_DIR,
@@ -18,6 +16,8 @@ from core.config import (
     REPORT_PREFIX,
     SAMPLE_PRODUCTS,
 )
+
+pytestmark = pytest.mark.unit
 
 
 def test_project_root():
@@ -50,7 +50,7 @@ def test_sample_products():
     """Test sample products configuration."""
     assert isinstance(SAMPLE_PRODUCTS, list)
     assert len(SAMPLE_PRODUCTS) == 5
-    
+
     # Check that all products have required fields
     required_fields = {"product", "quantity", "price", "date"}
     for product in SAMPLE_PRODUCTS:

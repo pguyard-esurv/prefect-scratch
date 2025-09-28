@@ -25,11 +25,11 @@ from core.config import ConfigManager
 def create_customer_orders_data() -> str:
     """Create sample customer orders CSV data for processing."""
     logger = get_run_logger()
-    
+
     # Create data directory
     data_dir = Path(__file__).parent / "data"
     data_dir.mkdir(exist_ok=True)
-    
+
     # Sample customer orders data
     orders = [
         {
@@ -41,10 +41,10 @@ def create_customer_orders_data() -> str:
             "unit_price": 25.50,
             "order_date": "2024-01-15",
             "priority": "high",
-            "region": "North"
+            "region": "North",
         },
         {
-            "order_id": "ORD-002", 
+            "order_id": "ORD-002",
             "customer_id": "CUST-002",
             "customer_name": "Bob Smith",
             "product": "Standard Widget B",
@@ -52,18 +52,18 @@ def create_customer_orders_data() -> str:
             "unit_price": 15.75,
             "order_date": "2024-01-15",
             "priority": "medium",
-            "region": "South"
+            "region": "South",
         },
         {
             "order_id": "ORD-003",
-            "customer_id": "CUST-003", 
+            "customer_id": "CUST-003",
             "customer_name": "Charlie Brown",
             "product": "Budget Widget C",
             "quantity": 10,
             "unit_price": 8.99,
             "order_date": "2024-01-16",
             "priority": "low",
-            "region": "East"
+            "region": "East",
         },
         {
             "order_id": "ORD-004",
@@ -74,7 +74,7 @@ def create_customer_orders_data() -> str:
             "unit_price": 25.50,
             "order_date": "2024-01-16",
             "priority": "high",
-            "region": "West"
+            "region": "West",
         },
         {
             "order_id": "ORD-005",
@@ -85,7 +85,7 @@ def create_customer_orders_data() -> str:
             "unit_price": 15.75,
             "order_date": "2024-01-17",
             "priority": "medium",
-            "region": "North"
+            "region": "North",
         },
         {
             "order_id": "ORD-006",
@@ -96,7 +96,7 @@ def create_customer_orders_data() -> str:
             "unit_price": 8.99,
             "order_date": "2024-01-17",
             "priority": "low",
-            "region": "South"
+            "region": "South",
         },
         {
             "order_id": "ORD-007",
@@ -107,7 +107,7 @@ def create_customer_orders_data() -> str:
             "unit_price": 25.50,
             "order_date": "2024-01-18",
             "priority": "high",
-            "region": "East"
+            "region": "East",
         },
         {
             "order_id": "ORD-008",
@@ -118,19 +118,19 @@ def create_customer_orders_data() -> str:
             "unit_price": 15.75,
             "order_date": "2024-01-18",
             "priority": "medium",
-            "region": "West"
-        }
+            "region": "West",
+        },
     ]
-    
+
     # Create CSV file
     csv_file = data_dir / "customer_orders.csv"
-    
+
     with open(csv_file, "w", newline="") as f:
         fieldnames = orders[0].keys()
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(orders)
-    
+
     logger.info(f"Created customer orders data file: {csv_file}")
     return str(csv_file)
 
@@ -139,7 +139,7 @@ def create_customer_orders_data() -> str:
 def load_orders_from_csv(file_path: str) -> list[dict[str, Any]]:
     """Load customer orders from CSV file."""
     logger = get_run_logger()
-    
+
     orders = []
     with open(file_path) as f:
         reader = csv.DictReader(f)
@@ -148,7 +148,7 @@ def load_orders_from_csv(file_path: str) -> list[dict[str, Any]]:
             row["quantity"] = int(row["quantity"])
             row["unit_price"] = float(row["unit_price"])
             orders.append(row)
-    
+
     logger.info(f"Loaded {len(orders)} orders from {file_path}")
     return orders
 
@@ -157,46 +157,50 @@ def load_orders_from_csv(file_path: str) -> list[dict[str, Any]]:
 def validate_order(order: dict[str, Any]) -> dict[str, Any]:
     """
     Validate a single customer order.
-    
+
     This task demonstrates individual record processing with .map()
     """
     logger = get_run_logger()
-    
+
     order_id = order["order_id"]
     validation_result = {
         "order_id": order_id,
         "valid": True,
         "errors": [],
-        "warnings": []
+        "warnings": [],
     }
-    
+
     # Validate required fields
     if not order.get("customer_name") or order["customer_name"].strip() == "":
         validation_result["valid"] = False
         validation_result["errors"].append("Missing customer name")
-    
+
     if not order.get("product") or order["product"].strip() == "":
         validation_result["valid"] = False
         validation_result["errors"].append("Missing product name")
-    
+
     # Validate quantity
     if order.get("quantity", 0) <= 0:
         validation_result["valid"] = False
         validation_result["errors"].append("Invalid quantity")
     elif order.get("quantity", 0) > 100:
         validation_result["warnings"].append("Large quantity order")
-    
+
     # Validate price
     if order.get("unit_price", 0) <= 0:
         validation_result["valid"] = False
         validation_result["errors"].append("Invalid unit price")
-    
+
     # Validate priority
     valid_priorities = ["low", "medium", "high"]
     if order.get("priority") not in valid_priorities:
-        validation_result["warnings"].append(f"Unknown priority: {order.get('priority')}")
-    
-    logger.info(f"Validated order {order_id}: {'Valid' if validation_result['valid'] else 'Invalid'}")
+        validation_result["warnings"].append(
+            f"Unknown priority: {order.get('priority')}"
+        )
+
+    logger.info(
+        f"Validated order {order_id}: {'Valid' if validation_result['valid'] else 'Invalid'}"
+    )
     return validation_result
 
 
@@ -204,32 +208,32 @@ def validate_order(order: dict[str, Any]) -> dict[str, Any]:
 def calculate_order_totals(order: dict[str, Any]) -> dict[str, Any]:
     """
     Calculate totals for a single order.
-    
+
     This task demonstrates data transformation with .map()
     """
     logger = get_run_logger()
-    
+
     order_id = order["order_id"]
     quantity = order["quantity"]
     unit_price = order["unit_price"]
-    
+
     # Calculate totals
     subtotal = quantity * unit_price
-    
+
     # Apply regional tax rates (mock)
     tax_rates = {"North": 0.08, "South": 0.07, "East": 0.09, "West": 0.08}
     region = order.get("region", "North")
     tax_rate = tax_rates.get(region, 0.08)
     tax_amount = subtotal * tax_rate
-    
+
     # Apply priority-based discounts
     discount_rates = {"low": 0.0, "medium": 0.05, "high": 0.10}
     priority = order.get("priority", "medium")
     discount_rate = discount_rates.get(priority, 0.0)
     discount_amount = subtotal * discount_rate
-    
+
     total = subtotal + tax_amount - discount_amount
-    
+
     result = {
         "order_id": order_id,
         "subtotal": round(subtotal, 2),
@@ -237,9 +241,9 @@ def calculate_order_totals(order: dict[str, Any]) -> dict[str, Any]:
         "discount_amount": round(discount_amount, 2),
         "total": round(total, 2),
         "tax_rate": tax_rate,
-        "discount_rate": discount_rate
+        "discount_rate": discount_rate,
     }
-    
+
     logger.info(f"Calculated totals for order {order_id}: ${total:.2f}")
     return result
 
@@ -248,56 +252,61 @@ def calculate_order_totals(order: dict[str, Any]) -> dict[str, Any]:
 def check_inventory_availability(order: dict[str, Any]) -> dict[str, Any]:
     """
     Check inventory availability for a single order.
-    
+
     This task simulates an API call with .map()
     """
     logger = get_run_logger()
-    
+
     order_id = order["order_id"]
     product = order["product"]
     quantity = order["quantity"]
-    
+
     # Simulate inventory check (mock API call)
     # In real scenario, this would call an external inventory API
     import time
+
     time.sleep(0.1)  # Simulate API delay
-    
+
     # Mock inventory data
     inventory = {
         "Premium Widget A": 50,
         "Standard Widget B": 100,
-        "Budget Widget C": 200
+        "Budget Widget C": 200,
     }
-    
+
     available = inventory.get(product, 0)
     in_stock = available >= quantity
-    
+
     result = {
         "order_id": order_id,
         "product": product,
         "requested_quantity": quantity,
         "available_quantity": available,
         "in_stock": in_stock,
-        "shortage": max(0, quantity - available) if not in_stock else 0
+        "shortage": max(0, quantity - available) if not in_stock else 0,
     }
-    
+
     status = "Available" if in_stock else f"Shortage of {result['shortage']} units"
     logger.info(f"Inventory check for order {order_id}: {status}")
     return result
 
 
 @task
-def process_order_fulfillment(order: dict[str, Any], validation: dict[str, Any], 
-                             totals: dict[str, Any], inventory: dict[str, Any]) -> dict[str, Any]:
+def process_order_fulfillment(
+    order: dict[str, Any],
+    validation: dict[str, Any],
+    totals: dict[str, Any],
+    inventory: dict[str, Any],
+) -> dict[str, Any]:
     """
     Process order fulfillment for a single order.
-    
+
     This task combines results from multiple mapped operations
     """
     logger = get_run_logger()
-    
+
     order_id = order["order_id"]
-    
+
     # Determine fulfillment status
     if not validation["valid"]:
         status = "Rejected - Validation Failed"
@@ -305,7 +314,7 @@ def process_order_fulfillment(order: dict[str, Any], validation: dict[str, Any],
         status = "Pending - Insufficient Inventory"
     else:
         status = "Approved - Ready for Fulfillment"
-    
+
     result = {
         "order_id": order_id,
         "customer_name": order["customer_name"],
@@ -316,25 +325,29 @@ def process_order_fulfillment(order: dict[str, Any], validation: dict[str, Any],
         "validation_errors": validation["errors"],
         "validation_warnings": validation["warnings"],
         "inventory_shortage": inventory["shortage"],
-        "processed_at": datetime.now().isoformat()
+        "processed_at": datetime.now().isoformat(),
     }
-    
+
     logger.info(f"Processed fulfillment for order {order_id}: {status}")
     return result
 
 
 @task
-def generate_processing_summary(fulfillment_results: list[dict[str, Any]]) -> dict[str, Any]:
+def generate_processing_summary(
+    fulfillment_results: list[dict[str, Any]],
+) -> dict[str, Any]:
     """Generate summary of all processed orders."""
     logger = get_run_logger()
-    
+
     total_orders = len(fulfillment_results)
     approved_orders = len([r for r in fulfillment_results if "Approved" in r["status"]])
     rejected_orders = len([r for r in fulfillment_results if "Rejected" in r["status"]])
     pending_orders = len([r for r in fulfillment_results if "Pending" in r["status"]])
-    
-    total_revenue = sum(r["total_amount"] for r in fulfillment_results if "Approved" in r["status"])
-    
+
+    total_revenue = sum(
+        r["total_amount"] for r in fulfillment_results if "Approved" in r["status"]
+    )
+
     # Group by product
     product_summary = {}
     for result in fulfillment_results:
@@ -343,51 +356,54 @@ def generate_processing_summary(fulfillment_results: list[dict[str, Any]]) -> di
             product_summary[product] = {
                 "total_orders": 0,
                 "total_quantity": 0,
-                "total_revenue": 0
+                "total_revenue": 0,
             }
-        
+
         product_summary[product]["total_orders"] += 1
         product_summary[product]["total_quantity"] += result["quantity"]
         if "Approved" in result["status"]:
             product_summary[product]["total_revenue"] += result["total_amount"]
-    
+
     summary = {
         "total_orders": total_orders,
         "approved_orders": approved_orders,
         "rejected_orders": rejected_orders,
         "pending_orders": pending_orders,
-        "approval_rate": round(approved_orders / total_orders * 100, 2) if total_orders > 0 else 0,
+        "approval_rate": round(approved_orders / total_orders * 100, 2)
+        if total_orders > 0
+        else 0,
         "total_revenue": round(total_revenue, 2),
         "product_breakdown": product_summary,
-        "generated_at": datetime.now().isoformat()
+        "generated_at": datetime.now().isoformat(),
     }
-    
-    logger.info(f"Generated processing summary: {approved_orders}/{total_orders} orders approved")
+
+    logger.info(
+        f"Generated processing summary: {approved_orders}/{total_orders} orders approved"
+    )
     return summary
 
 
 @task
-def save_fulfillment_report(summary: dict[str, Any], fulfillment_results: list[dict[str, Any]]) -> str:
+def save_fulfillment_report(
+    summary: dict[str, Any], fulfillment_results: list[dict[str, Any]]
+) -> str:
     """Save detailed fulfillment report to JSON file."""
     logger = get_run_logger()
-    
+
     # Create output directory
     output_dir = Path(__file__).parent / "output"
     output_dir.mkdir(exist_ok=True)
-    
+
     # Generate report
-    report = {
-        "summary": summary,
-        "order_details": fulfillment_results
-    }
-    
+    report = {"summary": summary, "order_details": fulfillment_results}
+
     # Save to file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     report_file = output_dir / f"fulfillment_report_{timestamp}.json"
-    
+
     with open(report_file, "w") as f:
         json.dump(report, f, indent=2)
-    
+
     logger.info(f"Saved fulfillment report: {report_file}")
     return str(report_file)
 
@@ -395,79 +411,79 @@ def save_fulfillment_report(summary: dict[str, Any], fulfillment_results: list[d
 @flow(
     name="rpa3-concurrent-processing",
     task_runner=ConcurrentTaskRunner(),
-    description="RPA3: Concurrent data processing demo using .map() function"
+    description="RPA3: Concurrent data processing demo using .map() function",
 )
 def rpa3_workflow(max_workers: Optional[int] = None) -> dict[str, Any]:
     """
     RPA3 workflow demonstrating concurrent processing with .map().
-    
+
     This workflow shows how to:
     1. Process multiple records concurrently
     2. Validate each record independently
     3. Calculate totals for each record
     4. Check inventory for each record
     5. Combine results from parallel operations
-    
+
     Returns:
         Dictionary containing the processing summary
     """
     logger = get_run_logger()
     logger.info("Starting RPA3: Concurrent Data Processing Demo")
-    
+
     # Get configuration
     config = ConfigManager("rpa3")
     max_concurrent = max_workers or config.get_variable("max_concurrent_tasks", 10)
     timeout = config.get_variable("timeout", 60)
-    
+
     logger.info(f"Environment: {config.environment}")
     logger.info(f"Max concurrent tasks: {max_concurrent}")
     logger.info(f"Timeout: {timeout} seconds")
-    
+
     # Note: In a real implementation, you would need to recreate the task runner
     # with the new max_workers value. For this demo, we'll log the setting.
     if max_concurrent != 10:  # Default value
         logger.info(f"Concurrency limit set to {max_concurrent} (configuration-based)")
-    
+
     # Step 1: Create sample data
     logger.info("Step 1: Creating sample customer orders data")
     orders_file = create_customer_orders_data()
-    
+
     try:
         # Step 2: Load orders from CSV
         logger.info("Step 2: Loading orders from CSV")
         orders = load_orders_from_csv(orders_file)
-        
+
         # Step 3: Process orders concurrently using .map()
         logger.info(f"Step 3: Processing {len(orders)} orders concurrently")
-        
+
         # Validate all orders concurrently
         validation_results = validate_order.map(orders)
-        
+
         # Calculate totals for all orders concurrently
         totals_results = calculate_order_totals.map(orders)
-        
+
         # Check inventory for all orders concurrently
         inventory_results = check_inventory_availability.map(orders)
-        
+
         # Step 4: Combine results and process fulfillment
         logger.info("Step 4: Processing order fulfillment")
         fulfillment_results = process_order_fulfillment.map(
             orders, validation_results, totals_results, inventory_results
         )
-        
+
         # Step 5: Generate summary
         logger.info("Step 5: Generating processing summary")
         summary = generate_processing_summary(fulfillment_results)
-        
+
         # Step 6: Save report
         logger.info("Step 6: Saving fulfillment report")
         report_file = save_fulfillment_report(summary, fulfillment_results)
-        
+
         logger.info("RPA3 Workflow completed successfully")
         logger.info(f"Report saved to: {report_file}")
-        
+
         return summary
-        
+
     finally:
         # Cleanup
         try:

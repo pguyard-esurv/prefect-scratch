@@ -129,13 +129,13 @@ def rpa2_workflow() -> dict[str, Any]:
     """
     logger = get_run_logger()
     logger.info("Starting RPA2: Data Validation Workflow")
-    
+
     # Get environment-specific configuration
     validation_strict = rpa2_config.get_variable("validation_strict", "true")
     max_retries = rpa2_config.get_variable("max_retries", 3)
     timeout = rpa2_config.get_variable("timeout", 30)
     cleanup_temp_files = rpa2_config.get_variable("cleanup_temp_files", "true")
-    
+
     logger.info(f"Environment: {rpa2_config.environment}")
     logger.info(f"Validation strict mode: {validation_strict}")
     logger.info(f"Max retries: {max_retries}")

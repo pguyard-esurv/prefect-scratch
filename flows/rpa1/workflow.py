@@ -35,13 +35,13 @@ def rpa1_workflow(cleanup: bool = True) -> dict[str, Any]:
     """
     logger = get_run_logger()
     logger.info("Starting RPA1: File Processing Workflow")
-    
+
     # Get environment-specific configuration
     batch_size = rpa1_config.get_variable("batch_size", 1000)
     timeout = rpa1_config.get_variable("timeout", 60)
     output_format = rpa1_config.get_variable("output_format", "json")
     api_key = rpa1_config.get_secret("api_key", "default-key")
-    
+
     logger.info(f"Environment: {rpa1_config.environment}")
     logger.info(f"Batch size: {batch_size}")
     logger.info(f"Timeout: {timeout} seconds")

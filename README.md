@@ -62,12 +62,14 @@ A modern, modular RPA (Robotic Process Automation) solution built with Prefect 3
 ### Installation
 
 1. **Clone the repository**:
+
    ```bash
    git clone <repository-url>
    cd prefect_scratch
    ```
 
 2. **Install dependencies**:
+
    ```bash
    make install-dev
    ```
@@ -100,6 +102,7 @@ This project follows Prefect's recommended testing best practices with comprehen
 ### Test Types
 
 #### Unit Tests
+
 Test individual components with real data and minimal mocking:
 
 ```bash
@@ -113,6 +116,7 @@ uv run pytest flows/rpa2/test/ -v
 ```
 
 #### Integration Tests
+
 Test complete workflows with Prefect's test harness:
 
 ```bash
@@ -121,6 +125,7 @@ make test-integration
 ```
 
 #### Coverage Reports
+
 Generate detailed coverage reports:
 
 ```bash
@@ -129,6 +134,7 @@ make test-coverage
 ```
 
 ### Test Strategy
+
 - **Prefect Test Harness**: Uses `prefect_test_harness()` for proper test isolation
 - **Logger Management**: Uses `disable_run_logger()` instead of mocking
 - **Real Data Testing**: Tests use actual file I/O and data processing
@@ -137,6 +143,7 @@ make test-coverage
 - **Coverage Tracking**: 96% code coverage with detailed reporting
 
 ### Test Structure
+
 - **Unit Tests**: `core/test/`, `flows/*/test/test_workflow.py` - Test individual functions
 - **Integration Tests**: `flows/*/test/test_integration.py` - Test complete workflows
 - **Test Fixtures**: `conftest.py` - Prefect test harness configuration
@@ -144,7 +151,55 @@ make test-coverage
 
 📖 **For detailed testing information, see [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md)**  
 📖 **For mocking strategies, see [MOCKING_STRATEGY.md](docs/MOCKING_STRATEGY.md)**  
-📖 **For configuration management, see [CONFIGURATION_SYSTEM.md](docs/CONFIGURATION_SYSTEM.md)**
+📖 **For configuration management, see [CONFIGURATION_SYSTEM.md](docs/CONFIGURATION_SYSTEM.md)**  
+📖 **For database configuration, see [DATABASE_QUICK_START.md](docs/DATABASE_QUICK_START.md)**
+
+## 🗄️ Database Configuration
+
+This project includes a unified database management system supporting PostgreSQL and SQL Server databases.
+
+### Quick Database Setup
+
+1. **Validate your setup**:
+
+   ```bash
+   python scripts/validate_database_config.py --check-setup
+   ```
+
+2. **Create configuration**:
+
+   ```bash
+   python scripts/validate_database_config.py --create-example
+   cp core/envs/.env.development.example core/envs/.env.development
+   ```
+
+3. **Edit configuration** with your database details:
+
+   ```bash
+   # Edit core/envs/.env.development
+   DEVELOPMENT_GLOBAL_RPA_DB_CONNECTION_STRING=postgresql://user:pass@localhost:5432/db
+   DEVELOPMENT_GLOBAL_SURVEYHUB_CONNECTION_STRING=mssql+pyodbc://user:pass@localhost:1433/db?driver=ODBC+Driver+17+for+SQL+Server
+   ```
+
+4. **Validate configuration**:
+   ```bash
+   python scripts/validate_database_config.py
+   ```
+
+### Using Databases in Flows
+
+```python
+from core.database import DatabaseManager
+
+@task
+def process_data():
+    with DatabaseManager("rpa_db") as db:
+        results = db.execute_query("SELECT * FROM customers")
+        return len(results)
+```
+
+📖 **For complete database setup, see [DATABASE_QUICK_START.md](docs/DATABASE_QUICK_START.md)**  
+📖 **For detailed configuration, see [DATABASE_CONFIGURATION.md](docs/DATABASE_CONFIGURATION.md)**
 
 ## 🔧 Development
 
@@ -174,11 +229,13 @@ make activate          # Show virtual environment activation instructions
 ## 📊 Workflows
 
 ### RPA1: File Processing
+
 - **Purpose**: Process CSV sales data files
 - **Features**: Data extraction, transformation, summary calculation, report generation
 - **Output**: JSON sales reports with detailed analytics
 
 ### RPA2: Data Validation
+
 - **Purpose**: Validate user data and generate validation reports
 - **Features**: User data validation, error reporting, validation analytics
 - **Output**: JSON validation reports with issue details
@@ -186,12 +243,14 @@ make activate          # Show virtual environment activation instructions
 ## 🏗️ Architecture
 
 ### Core Principles
+
 1. **Testability**: All business logic is easily testable
 2. **Modularity**: Clear separation between different RPA workflows
 3. **Maintainability**: Clean, well-documented code
 4. **Reliability**: Comprehensive error handling and logging
 
 ### Design Patterns
+
 - **Task-Based Architecture**: Prefect tasks encapsulate business logic
 - **Pure Function Testing**: Tasks tested as pure functions with minimal mocking
 - **Configuration Management**: Centralized configuration with environment support
