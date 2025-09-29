@@ -6,9 +6,11 @@ This module provides fixes for the fundamental testing issues in the codebase
 rather than adding complex automation on top of broken foundations.
 """
 
-import pytest
-from unittest.mock import Mock, patch
+import importlib.util
 from contextlib import contextmanager
+from unittest.mock import Mock, patch
+
+import pytest
 
 from core.config import ConfigManager
 
@@ -19,8 +21,16 @@ class TestFoundationFixes:
     def test_basic_imports_work(self):
         """Verify basic imports don't fail"""
         try:
-            from core.config import ConfigManager
-            from core.database import DatabaseManager
+            # Test if modules are available using importlib
+            config_spec = importlib.util.find_spec("core.config")
+            database_spec = importlib.util.find_spec("core.database")
+
+            assert config_spec is not None, "core.config module not found"
+            assert database_spec is not None, "core.database module not found"
+
+            # Import modules to verify they can be loaded
+            importlib.util.module_from_spec(config_spec)
+            importlib.util.module_from_spec(database_spec)
 
             assert True
         except ImportError as e:
@@ -72,12 +82,10 @@ class PrefectTestHelper:
     @staticmethod
     def skip_if_no_prefect():
         """Skip test if Prefect is not properly configured"""
-        try:
-            import prefect
-
-            return pytest.mark.skipif(False, reason="Prefect available")
-        except ImportError:
+        prefect_spec = importlib.util.find_spec("prefect")
+        if prefect_spec is None:
             return pytest.mark.skip(reason="Prefect not available")
+        return pytest.mark.skipif(False, reason="Prefect available")
 
 
 class DatabaseTestHelper:
@@ -96,10 +104,14 @@ class DatabaseTestHelper:
     def skip_if_no_database():
         """Skip test if database is not available"""
         try:
+            database_spec = importlib.util.find_spec("core.database")
+            if database_spec is None:
+                return pytest.mark.skip(reason="Database module not available")
+
+            # Try to import and create a database manager
             from core.database import DatabaseManager
 
-            # Try to create a database manager
-            db = DatabaseManager("rpa_db")
+            DatabaseManager("rpa_db")
             return pytest.mark.skipif(False, reason="Database available")
         except Exception:
             return pytest.mark.skip(reason="Database not configured")

@@ -80,8 +80,8 @@ def run_basic_functionality_check():
 
     try:
         # Test imports
-        from core.test.test_automation_pipeline import AutomationPipeline, TrendAnalyzer
         from core.config import ConfigManager
+        from core.test.test_automation_pipeline import AutomationPipeline
 
         print("✅ Core imports successful")
 

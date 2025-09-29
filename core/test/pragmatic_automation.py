@@ -10,7 +10,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any
 
 
 class PragmaticTestRunner:
@@ -20,7 +20,7 @@ class PragmaticTestRunner:
         self.project_root = Path(__file__).parent.parent.parent
         self.results = {}
 
-    def run_foundation_tests(self) -> Dict[str, Any]:
+    def run_foundation_tests(self) -> dict[str, Any]:
         """Run basic foundation tests to verify core functionality"""
         print("🔍 Running foundation tests...")
 
@@ -55,7 +55,7 @@ class PragmaticTestRunner:
         except Exception as e:
             return {"status": "error", "output": "", "errors": str(e), "duration": 0}
 
-    def run_core_unit_tests(self) -> Dict[str, Any]:
+    def run_core_unit_tests(self) -> dict[str, Any]:
         """Run only the core unit tests that are likely to work"""
         print("🧪 Running core unit tests...")
 
@@ -94,7 +94,7 @@ class PragmaticTestRunner:
         except Exception as e:
             return {"status": "error", "output": "", "errors": str(e), "duration": 0}
 
-    def run_import_validation(self) -> Dict[str, Any]:
+    def run_import_validation(self) -> dict[str, Any]:
         """Validate that core imports work correctly"""
         print("📦 Validating imports...")
 
@@ -142,32 +142,32 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest pytest-timeout
-    
+
     - name: Run foundation tests
       run: |
         python core/test/pragmatic_automation.py
-    
+
     - name: Run core unit tests (if foundation passes)
       run: |
         python -m pytest core/test/test_automation_pipeline_simple.py -v --timeout=30
       continue-on-error: true
 """
 
-    def run_all_pragmatic_tests(self) -> Dict[str, Any]:
+    def run_all_pragmatic_tests(self) -> dict[str, Any]:
         """Run all pragmatic tests in order"""
         print("🚀 Running Pragmatic Test Suite")
         print("=" * 50)

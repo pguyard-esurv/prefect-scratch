@@ -23,14 +23,14 @@ def validate_task_14_deliverables():
     # 1. Automated test execution pipeline with multiple test categories
     print("1️⃣  Automated test execution pipeline with multiple test categories")
     try:
-        from core.test.test_automation_pipeline import AutomationPipeline
         from core.config import ConfigManager
+        from core.test.test_automation_pipeline import AutomationPipeline
 
         config_manager = ConfigManager()
         pipeline = AutomationPipeline({}, config_manager)
 
         categories = len(pipeline.test_categories)
-        print(f"   ✅ AutomationPipeline class implemented")
+        print("   ✅ AutomationPipeline class implemented")
         print(f"   ✅ {categories} test categories configured")
         print(f"   ✅ Categories: {list(pipeline.test_categories.keys())}")
         deliverables.append(
@@ -48,10 +48,10 @@ def validate_task_14_deliverables():
     try:
         from core.test.test_automation_pipeline import ChaosTestEngine
 
-        chaos_engine = ChaosTestEngine({})
+        ChaosTestEngine({})
         scenarios = len(pipeline.chaos_scenarios)
 
-        print(f"   ✅ ChaosTestEngine class implemented")
+        print("   ✅ ChaosTestEngine class implemented")
         print(f"   ✅ {scenarios} chaos scenarios configured")
         print(f"   ✅ Scenarios: {[s.name for s in pipeline.chaos_scenarios]}")
         deliverables.append(("Chaos Testing", True, f"{scenarios} scenarios"))
@@ -89,16 +89,17 @@ def validate_task_14_deliverables():
     # 4. Test result reporting and trend analysis
     print("4️⃣  Test result reporting and trend analysis")
     try:
-        from core.test.test_automation_pipeline import TrendAnalyzer
         import tempfile
+
+        from core.test.test_automation_pipeline import TrendAnalyzer
 
         with tempfile.TemporaryDirectory() as temp_dir:
             analyzer = TrendAnalyzer(temp_dir)
             trends = analyzer.analyze_trends(days_back=1)
 
-            print(f"   ✅ TrendAnalyzer class implemented")
+            print("   ✅ TrendAnalyzer class implemented")
             print(f"   ✅ Trend analysis working: {type(trends).__name__}")
-            print(f"   ✅ Report formats: JSON, HTML, Summary")
+            print("   ✅ Report formats: JSON, HTML, Summary")
             deliverables.append(("Test Reporting", True, "Multiple formats"))
 
     except Exception as e:
@@ -120,7 +121,7 @@ def validate_task_14_deliverables():
 
         print(f"   ✅ Test files created: {len(existing_files)}/{len(test_files)}")
         print(f"   ✅ Files: {existing_files}")
-        print(f"   ✅ Validation framework implemented")
+        print("   ✅ Validation framework implemented")
         deliverables.append(
             ("End-to-End Validation", True, f"{len(existing_files)} test files")
         )
@@ -144,12 +145,11 @@ def run_isolated_functionality_test():
     # Test 1: Basic imports
     print("Test 1: Core imports")
     try:
+        from core.config import ConfigManager
         from core.test.test_automation_pipeline import (
             AutomationPipeline,
             TrendAnalyzer,
-            ChaosTestEngine,
         )
-        from core.config import ConfigManager
 
         print("   ✅ All core classes import successfully")
         tests.append(("Core Imports", True))
@@ -191,7 +191,7 @@ def run_isolated_functionality_test():
 
         with tempfile.TemporaryDirectory() as temp_dir:
             analyzer = TrendAnalyzer(temp_dir)
-            trends = analyzer.analyze_trends(days_back=1)
+            analyzer.analyze_trends(days_back=1)
             print("   ✅ Trend analyzer working")
             tests.append(("Trend Analysis", True))
     except Exception as e:
@@ -236,7 +236,7 @@ def generate_final_report(deliverables, functionality_tests):
     functionality_success = passed_tests == total_tests
     overall_success = deliverable_success and functionality_success
 
-    print(f"\n🎯 OVERALL ASSESSMENT:")
+    print("\n🎯 OVERALL ASSESSMENT:")
     if overall_success:
         print("   🎉 TASK 14 SUCCESSFULLY COMPLETED!")
         print("   ✅ All requirements met")
@@ -252,7 +252,7 @@ def generate_final_report(deliverables, functionality_tests):
             print(f"   - {total_tests - passed_tests} functionality tests failed")
 
     # Recommendations
-    print(f"\n💡 RECOMMENDATIONS:")
+    print("\n💡 RECOMMENDATIONS:")
     if overall_success:
         print("   ✅ Use isolated test runner: python run_isolated_tests.py")
         print(

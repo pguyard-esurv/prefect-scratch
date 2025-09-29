@@ -1,6 +1,7 @@
 #!/bin/bash
 # Comprehensive build script for all container images
 # Builds base image and all flow images with proper dependency management
+# Includes build automation, caching optimization, and security scanning
 
 set -euo pipefail
 
@@ -14,6 +15,13 @@ BUILD_FLOWS="${BUILD_FLOWS:-true}"
 FORCE_REBUILD="${FORCE_REBUILD:-false}"
 PARALLEL_BUILD="${PARALLEL_BUILD:-false}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
+
+# New automation features
+SELECTIVE_BUILD="${SELECTIVE_BUILD:-false}"
+ENABLE_CACHING="${ENABLE_CACHING:-true}"
+SECURITY_SCAN="${SECURITY_SCAN:-false}"
+PERFORMANCE_MONITOR="${PERFORMANCE_MONITOR:-false}"
+GENERATE_REPORT="${GENERATE_REPORT:-false}"
 
 # Logging function
 log() {
@@ -239,6 +247,76 @@ display_summary() {
     log "============="
 }
 
+# Function to setup build optimization
+setup_build_optimization() {
+    if [[ "$ENABLE_CACHING" == "true" ]]; then
+        log "Setting up build cache optimization..."
+        "$SCRIPT_DIR/build_cache_manager.sh" --setup >/dev/null 2>&1 || {
+            log "Warning: Failed to setup build cache optimization"
+        }
+    fi
+}
+
+# Function to run selective build if enabled
+run_selective_build() {
+    if [[ "$SELECTIVE_BUILD" == "true" ]]; then
+        log "Running selective build based on change detection..."
+        
+        local selective_args=("--tag" "$IMAGE_TAG")
+        
+        if [[ "$FORCE_REBUILD" == "true" ]]; then
+            selective_args+=("--force")
+        fi
+        
+        if "$SCRIPT_DIR/selective_rebuild.sh" "${selective_args[@]}"; then
+            log "Selective build completed successfully"
+            return 0
+        else
+            log "Selective build failed, falling back to full build"
+            return 1
+        fi
+    fi
+    
+    return 1  # Not using selective build
+}
+
+# Function to run security scanning
+run_security_scan() {
+    if [[ "$SECURITY_SCAN" == "true" ]]; then
+        log "Running security scans on built images..."
+        
+        if "$SCRIPT_DIR/security_scanner.sh" --all --tag "$IMAGE_TAG" --no-report; then
+            log "Security scans passed"
+        else
+            log "Warning: Security scans failed or found issues"
+        fi
+    fi
+}
+
+# Function to run performance monitoring
+run_performance_monitoring() {
+    if [[ "$PERFORMANCE_MONITOR" == "true" ]]; then
+        log "Analyzing build performance..."
+        
+        python3 "$SCRIPT_DIR/build_performance_monitor.py" --action analyze --days 7 || {
+            log "Warning: Performance analysis failed"
+        }
+    fi
+}
+
+# Function to generate build report
+generate_build_report() {
+    if [[ "$GENERATE_REPORT" == "true" ]]; then
+        log "Generating build report..."
+        
+        local report_file="${PROJECT_ROOT}/.build_cache/build_report_$(date +%Y%m%d_%H%M%S).md"
+        
+        python3 "$SCRIPT_DIR/build_performance_monitor.py" --action report --output "$report_file" || {
+            log "Warning: Failed to generate build report"
+        }
+    fi
+}
+
 # Main execution
 main() {
     # Parse command line arguments
@@ -260,6 +338,26 @@ main() {
                 PARALLEL_BUILD="true"
                 shift
                 ;;
+            --selective)
+                SELECTIVE_BUILD="true"
+                shift
+                ;;
+            --no-cache)
+                ENABLE_CACHING="false"
+                shift
+                ;;
+            --security-scan)
+                SECURITY_SCAN="true"
+                shift
+                ;;
+            --monitor)
+                PERFORMANCE_MONITOR="true"
+                shift
+                ;;
+            --report)
+                GENERATE_REPORT="true"
+                shift
+                ;;
             --tag)
                 IMAGE_TAG="$2"
                 shift 2
@@ -268,28 +366,41 @@ main() {
                 cat << EOF
 Usage: $0 [OPTIONS]
 
-Build all container images (base + flows) with proper dependency management.
+Build all container images (base + flows) with automation and optimization features.
 
-Options:
+Build Options:
     --no-base       Skip building base image
     --no-flows      Skip building flow images
     --force         Force rebuild (remove existing images first)
     --parallel      Build flow images in parallel
     --tag TAG       Tag for all images (default: latest)
+
+Automation Options:
+    --selective     Use selective rebuild based on change detection
+    --no-cache      Disable build cache optimization
+    --security-scan Run security scans on built images
+    --monitor       Enable build performance monitoring
+    --report        Generate comprehensive build report
+
     --help          Show this help message
 
 Environment Variables:
-    BUILD_BASE      Build base image (default: true)
-    BUILD_FLOWS     Build flow images (default: true)
-    FORCE_REBUILD   Force rebuild existing images (default: false)
-    PARALLEL_BUILD  Build flows in parallel (default: false)
-    IMAGE_TAG       Tag for images (default: latest)
+    BUILD_BASE          Build base image (default: true)
+    BUILD_FLOWS         Build flow images (default: true)
+    FORCE_REBUILD       Force rebuild existing images (default: false)
+    PARALLEL_BUILD      Build flows in parallel (default: false)
+    IMAGE_TAG           Tag for images (default: latest)
+    SELECTIVE_BUILD     Use selective rebuild (default: false)
+    ENABLE_CACHING      Enable build caching (default: true)
+    SECURITY_SCAN       Run security scans (default: false)
+    PERFORMANCE_MONITOR Enable performance monitoring (default: false)
+    GENERATE_REPORT     Generate build report (default: false)
 
 Examples:
-    $0                          # Build all images with defaults
-    $0 --force --parallel       # Force rebuild all images in parallel
-    $0 --no-base --tag v1.0.0   # Build only flows with specific tag
-    $0 --no-flows               # Build only base image
+    $0                                    # Build all images with defaults
+    $0 --force --parallel --security-scan # Force rebuild with security scanning
+    $0 --selective --monitor --report     # Selective build with monitoring
+    $0 --no-base --tag v1.0.0             # Build only flows with specific tag
 
 EOF
                 exit 0
@@ -303,19 +414,29 @@ EOF
     local build_start_time
     build_start_time=$(date +%s)
     
-    log "Starting comprehensive build process..."
+    log "Starting comprehensive build process with automation features..."
     log "Configuration: base=$BUILD_BASE, flows=$BUILD_FLOWS, force=$FORCE_REBUILD, parallel=$PARALLEL_BUILD, tag=$IMAGE_TAG"
+    log "Automation: selective=$SELECTIVE_BUILD, caching=$ENABLE_CACHING, security=$SECURITY_SCAN, monitor=$PERFORMANCE_MONITOR"
     
-    # Pre-build checks
+    # Pre-build setup
     check_docker
-    cleanup_images
+    setup_build_optimization
     
-    # Build process
-    build_base_image
-    build_flow_images
+    # Try selective build first if enabled
+    if ! run_selective_build; then
+        # Fall back to traditional build process
+        cleanup_images
+        build_base_image
+        build_flow_images
+    fi
     
     # Post-build verification
     verify_images
+    
+    # Post-build automation
+    run_security_scan
+    run_performance_monitoring
+    generate_build_report
     
     local build_end_time
     build_end_time=$(date +%s)

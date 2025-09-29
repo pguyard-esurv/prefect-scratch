@@ -6,8 +6,9 @@ Basic unit tests that verify core functionality without complex async operations
 or external dependencies that might cause hanging.
 """
 
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 from core.config import ConfigManager
 from core.test.test_automation_pipeline import AutomationPipeline, TrendAnalyzer
@@ -56,7 +57,7 @@ class TestAutomationPipelineBasic:
             assert category in pipeline.test_categories
 
         # Check category structure
-        for category_name, category in pipeline.test_categories.items():
+        for _category_name, category in pipeline.test_categories.items():
             assert hasattr(category, "name")
             assert hasattr(category, "description")
             assert hasattr(category, "test_files")
