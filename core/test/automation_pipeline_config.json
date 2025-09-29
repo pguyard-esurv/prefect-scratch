@@ -1,0 +1,295 @@
+{
+  "pipeline_config": {
+    "name": "Container Testing Automation Pipeline",
+    "version": "1.0.0",
+    "description": "Comprehensive test automation pipeline with chaos testing and CI/CD support"
+  },
+  
+  "test_categories": {
+    "unit": {
+      "enabled": true,
+      "timeout_seconds": 120,
+      "parallel_workers": 4,
+      "critical": true,
+      "markers": ["unit"],
+      "coverage_required": true,
+      "min_coverage_percent": 80
+    },
+    "integration": {
+      "enabled": true,
+      "timeout_seconds": 300,
+      "parallel_workers": 2,
+      "critical": true,
+      "markers": ["integration"],
+      "requires_database": true
+    },
+    "container": {
+      "enabled": true,
+      "timeout_seconds": 600,
+      "parallel_workers": 2,
+      "critical": true,
+      "markers": ["container"],
+      "requires_docker": true
+    },
+    "distributed": {
+      "enabled": true,
+      "timeout_seconds": 900,
+      "parallel_workers": 1,
+      "critical": true,
+      "markers": ["distributed"],
+      "requires_database": true
+    },
+    "performance": {
+      "enabled": true,
+      "timeout_seconds": 1200,
+      "parallel_workers": 1,
+      "critical": false,
+      "markers": ["performance"],
+      "resource_intensive": true
+    },
+    "security": {
+      "enabled": true,
+      "timeout_seconds": 300,
+      "parallel_workers": 2,
+      "critical": false,
+      "markers": ["security"]
+    },
+    "end_to_end": {
+      "enabled": true,
+      "timeout_seconds": 1800,
+      "parallel_workers": 1,
+      "critical": false,
+      "markers": ["e2e"],
+      "requires_full_environment": true
+    }
+  },
+  
+  "chaos_testing": {
+    "enabled": true,
+    "scenarios": {
+      "container_crash_recovery": {
+        "enabled": true,
+        "failure_probability": 1.0,
+        "duration_seconds": 30,
+        "recovery_timeout_seconds": 60,
+        "expected_behavior": "graceful_degradation"
+      },
+      "database_connection_loss": {
+        "enabled": true,
+        "failure_probability": 1.0,
+        "duration_seconds": 45,
+        "recovery_timeout_seconds": 90,
+        "expected_behavior": "retry_with_backoff"
+      },
+      "network_partition_resilience": {
+        "enabled": true,
+        "failure_probability": 1.0,
+        "duration_seconds": 60,
+        "recovery_timeout_seconds": 120,
+        "expected_behavior": "graceful_degradation"
+      },
+      "resource_exhaustion_handling": {
+        "enabled": true,
+        "failure_probability": 1.0,
+        "duration_seconds": 90,
+        "recovery_timeout_seconds": 180,
+        "expected_behavior": "backpressure_control"
+      },
+      "random_failure_combinations": {
+        "enabled": true,
+        "failure_probability": 0.7,
+        "duration_seconds": 120,
+        "recovery_timeout_seconds": 240,
+        "expected_behavior": "adaptive_recovery"
+      }
+    },
+    "failure_injection": {
+      "container_crash": {
+        "method": "process_termination",
+        "recovery_validation": "health_check"
+      },
+      "network_partition": {
+        "method": "connection_blocking",
+        "recovery_validation": "connectivity_test"
+      },
+      "database_failure": {
+        "method": "connection_simulation",
+        "recovery_validation": "query_execution"
+      },
+      "resource_exhaustion": {
+        "method": "resource_simulation",
+        "recovery_validation": "performance_metrics"
+      }
+    }
+  },
+  
+  "execution_modes": {
+    "quick": {
+      "description": "Fast feedback with unit and basic integration tests",
+      "include_categories": ["unit", "integration"],
+      "include_chaos_tests": false,
+      "include_performance_tests": false,
+      "fail_fast": true,
+      "max_duration_minutes": 10
+    },
+    "full": {
+      "description": "Complete pipeline with all test categories and chaos testing",
+      "include_categories": ["unit", "integration", "container", "distributed", "performance", "security", "end_to_end"],
+      "include_chaos_tests": true,
+      "include_performance_tests": true,
+      "fail_fast": false,
+      "max_duration_minutes": 60
+    },
+    "chaos": {
+      "description": "Focus on chaos testing and resilience validation",
+      "include_categories": ["unit", "integration"],
+      "include_chaos_tests": true,
+      "include_performance_tests": false,
+      "fail_fast": false,
+      "max_duration_minutes": 30
+    },
+    "performance": {
+      "description": "Performance testing and benchmarking",
+      "include_categories": ["unit", "performance"],
+      "include_chaos_tests": false,
+      "include_performance_tests": true,
+      "fail_fast": false,
+      "max_duration_minutes": 45
+    },
+    "ci": {
+      "description": "Optimized for CI/CD environments",
+      "include_categories": ["unit", "integration", "container"],
+      "include_chaos_tests": true,
+      "include_performance_tests": false,
+      "fail_fast": true,
+      "max_duration_minutes": 20,
+      "parallel_optimization": true
+    }
+  },
+  
+  "reporting": {
+    "formats": {
+      "json": {
+        "enabled": true,
+        "include_detailed_results": true,
+        "include_performance_metrics": true,
+        "include_trend_data": true
+      },
+      "html": {
+        "enabled": true,
+        "include_charts": true,
+        "include_recommendations": true,
+        "responsive_design": true
+      },
+      "summary": {
+        "enabled": true,
+        "include_recommendations": true,
+        "include_trend_summary": true
+      },
+      "junit": {
+        "enabled": false,
+        "for_ci_integration": true
+      }
+    },
+    "trend_analysis": {
+      "enabled": true,
+      "default_days_back": 30,
+      "store_results": true,
+      "generate_recommendations": true
+    },
+    "notifications": {
+      "enabled": false,
+      "email": {
+        "enabled": false,
+        "recipients": [],
+        "on_failure_only": true
+      },
+      "slack": {
+        "enabled": false,
+        "webhook_url": "",
+        "channel": "#testing"
+      }
+    }
+  },
+  
+  "ci_cd_integration": {
+    "github_actions": {
+      "workflow_name": "Container Testing Pipeline",
+      "triggers": ["push", "pull_request", "schedule"],
+      "schedule_cron": "0 2 * * *",
+      "parallel_jobs": true,
+      "cache_dependencies": true,
+      "upload_artifacts": true
+    },
+    "gitlab_ci": {
+      "stages": ["test", "chaos", "report"],
+      "parallel_jobs": true,
+      "cache_dependencies": true,
+      "artifacts_expire": "1 week"
+    },
+    "jenkins": {
+      "pipeline_type": "declarative",
+      "parallel_stages": true,
+      "post_actions": ["archive", "notify"],
+      "cleanup_workspace": true
+    }
+  },
+  
+  "performance_thresholds": {
+    "test_execution": {
+      "max_unit_test_duration_seconds": 120,
+      "max_integration_test_duration_seconds": 300,
+      "max_chaos_test_duration_seconds": 600,
+      "max_total_pipeline_duration_minutes": 60
+    },
+    "system_resources": {
+      "max_cpu_usage_percent": 90,
+      "max_memory_usage_percent": 85,
+      "max_disk_usage_percent": 80
+    },
+    "test_quality": {
+      "min_success_rate_percent": 95,
+      "min_chaos_success_rate_percent": 80,
+      "min_code_coverage_percent": 80
+    }
+  },
+  
+  "environment_requirements": {
+    "python_version": ">=3.11",
+    "required_packages": [
+      "pytest>=7.0.0",
+      "pytest-cov>=4.0.0",
+      "pytest-xdist>=3.0.0",
+      "pytest-timeout>=2.0.0",
+      "psutil>=5.9.0",
+      "asyncio"
+    ],
+    "optional_packages": [
+      "docker>=6.0.0",
+      "kubernetes>=25.0.0"
+    ],
+    "system_requirements": {
+      "min_memory_gb": 4,
+      "min_disk_space_gb": 10,
+      "docker_required": false,
+      "database_required": true
+    }
+  },
+  
+  "validation_rules": {
+    "test_naming": {
+      "pattern": "test_*.py",
+      "exclude_patterns": ["*_backup.py", "*_old.py"]
+    },
+    "test_structure": {
+      "require_docstrings": true,
+      "require_assertions": true,
+      "max_test_duration_seconds": 30
+    },
+    "chaos_testing": {
+      "require_recovery_validation": true,
+      "require_behavior_verification": true,
+      "max_failure_duration_seconds": 300
+    }
+  }
+}

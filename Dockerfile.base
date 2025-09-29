@@ -1,0 +1,60 @@
+# Base container image for RPA distributed processing system
+# Multi-stage build for optimized image size and security
+
+FROM python:3.11-slim as base
+
+# Set environment variables for Python
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    curl \
+    wget \
+    git \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install uv for fast Python package management
+RUN pip install uv
+
+# Create non-root user for security
+RUN groupadd --gid 1000 rpauser && \
+    useradd --uid 1000 --gid rpauser --shell /bin/bash --create-home rpauser
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files first for better caching
+COPY pyproject.toml uv.lock ./
+
+# Install Python dependencies using uv
+RUN uv sync --frozen --no-dev
+
+# Copy core modules (stable components)
+COPY core/ ./core/
+COPY conftest.py ./
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/logs /app/data /app/output && \
+    chown -R rpauser:rpauser /app
+
+# Add health check script
+COPY scripts/health_check.py ./scripts/
+RUN chmod +x ./scripts/health_check.py
+
+# Switch to non-root user
+USER rpauser
+
+# Health check configuration
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python scripts/health_check.py || exit 1
+
+# Default command (to be overridden by flow images)
+CMD ["python", "-c", "print('Base image ready')"]

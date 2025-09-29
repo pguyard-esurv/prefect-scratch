@@ -1,0 +1,36 @@
+# RPA1 Flow Container Image
+# Built from base image with flow-specific configuration
+
+ARG BASE_IMAGE=rpa-base:latest
+FROM ${BASE_IMAGE}
+
+# Set flow-specific metadata
+LABEL flow.name="rpa1" \
+      flow.description="RPA1: File processing and data transformation workflow" \
+      flow.version="1.0.0"
+
+# Set flow-specific environment variables
+ENV FLOW_NAME=rpa1 \
+    FLOW_TYPE=file_processing \
+    PREFECT_FLOW_NAME=rpa1-file-processing
+
+# Copy flow-specific code
+COPY flows/rpa1/ ./flows/rpa1/
+
+# Copy flow-specific startup script
+COPY scripts/flow_startup.sh ./scripts/
+RUN chmod +x ./scripts/flow_startup.sh
+
+# Create flow-specific directories with proper permissions
+RUN mkdir -p /app/flows/rpa1/data /app/flows/rpa1/output && \
+    chown -R rpauser:rpauser /app/flows/rpa1
+
+# Flow-specific health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD python scripts/health_check.py --flow=rpa1 || exit 1
+
+# Set working directory to flow
+WORKDIR /app/flows/rpa1
+
+# Default command runs the flow startup script
+CMD ["../../scripts/flow_startup.sh", "rpa1"]

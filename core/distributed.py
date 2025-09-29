@@ -34,7 +34,7 @@ class DistributedProcessor:
         self,
         rpa_db_manager: DatabaseManager,
         source_db_manager: Optional[DatabaseManager] = None,
-        config_manager: Optional[ConfigManager] = None
+        config_manager: Optional[ConfigManager] = None,
     ):
         """
         Initialize DistributedProcessor with DatabaseManager instances and configuration.
@@ -55,8 +55,12 @@ class DistributedProcessor:
         if not isinstance(rpa_db_manager, DatabaseManager):
             raise TypeError("rpa_db_manager must be a DatabaseManager instance")
 
-        if source_db_manager is not None and not isinstance(source_db_manager, DatabaseManager):
-            raise TypeError("source_db_manager must be a DatabaseManager instance or None")
+        if source_db_manager is not None and not isinstance(
+            source_db_manager, DatabaseManager
+        ):
+            raise TypeError(
+                "source_db_manager must be a DatabaseManager instance or None"
+            )
 
         self.rpa_db = rpa_db_manager
         self.source_db = source_db_manager
@@ -68,7 +72,9 @@ class DistributedProcessor:
         try:
             self.config = self.config_manager.get_distributed_config()
         except (ValueError, RuntimeError) as e:
-            raise RuntimeError(f"Failed to load distributed processing configuration: {e}") from e
+            raise RuntimeError(
+                f"Failed to load distributed processing configuration: {e}"
+            ) from e
 
         # Use DatabaseManager's logger for consistency
         self.logger = self.rpa_db.logger
@@ -99,7 +105,7 @@ class DistributedProcessor:
             hostname = socket.gethostname()
 
             # Generate UUID and take first 8 characters for brevity
-            uuid_prefix = str(uuid.uuid4()).replace('-', '')[:8]
+            uuid_prefix = str(uuid.uuid4()).replace("-", "")[:8]
 
             # Combine hostname and UUID prefix
             instance_id = f"{hostname}-{uuid_prefix}"
@@ -122,7 +128,9 @@ class DistributedProcessor:
         """Get the database name from the rpa_db manager."""
         return self.rpa_db.database_name
 
-    def claim_records_batch(self, flow_name: str, batch_size: int) -> list[dict[str, Any]]:
+    def claim_records_batch(
+        self, flow_name: str, batch_size: int
+    ) -> list[dict[str, Any]]:
         """
         Claim a batch of pending records atomically for processing.
 
@@ -180,9 +188,9 @@ class DistributedProcessor:
 
             # Execute the claim query with parameters
             query_params = {
-                'flow_name': flow_name,
-                'batch_size': batch_size,
-                'instance_id': self.instance_id
+                "flow_name": flow_name,
+                "batch_size": batch_size,
+                "instance_id": self.instance_id,
             }
 
             results = self.rpa_db.execute_query(claim_query, query_params)
@@ -199,10 +207,10 @@ class DistributedProcessor:
             claimed_records = []
             for row in results:
                 record = {
-                    'id': row[0],
-                    'payload': row[1],  # JSONB field
-                    'retry_count': row[2],
-                    'created_at': row[3]
+                    "id": row[0],
+                    "payload": row[1],  # JSONB field
+                    "retry_count": row[2],
+                    "created_at": row[3],
                 }
                 claimed_records.append(record)
 
@@ -267,14 +275,14 @@ class DistributedProcessor:
 
             # Execute the update query
             query_params = {
-                'record_id': record_id,
-                'result': result,
-                'instance_id': self.instance_id
+                "record_id": record_id,
+                "result": result,
+                "instance_id": self.instance_id,
             }
 
             rows_affected = self.rpa_db.execute_query(
                 update_query, query_params, return_count=True
-                )
+            )
 
             # Check if record was found and updated
             if rows_affected == 0:
@@ -347,14 +355,14 @@ class DistributedProcessor:
 
             # Execute the update query
             query_params = {
-                'record_id': record_id,
-                'error_message': error_message.strip(),
-                'instance_id': self.instance_id
+                "record_id": record_id,
+                "error_message": error_message.strip(),
+                "instance_id": self.instance_id,
             }
 
             rows_affected = self.rpa_db.execute_query(
                 update_query, query_params, return_count=True
-                )
+            )
 
             # Check if record was found and updated
             if rows_affected == 0:
@@ -383,9 +391,7 @@ class DistributedProcessor:
             raise RuntimeError(error_msg) from e
 
     def add_records_to_queue(
-        self,
-        flow_name: str,
-        records: list[dict[str, Any]]
+        self, flow_name: str, records: list[dict[str, Any]]
     ) -> int:
         """
         Add new records to the processing queue with pending status.
@@ -424,10 +430,12 @@ class DistributedProcessor:
             if not isinstance(record, dict):
                 raise ValueError(f"Record at index {i} must be a dictionary")
 
-            if 'payload' not in record:
-                raise ValueError(f"Record at index {i} missing required 'payload' field")
+            if "payload" not in record:
+                raise ValueError(
+                    f"Record at index {i} missing required 'payload' field"
+                )
 
-            if not isinstance(record['payload'], dict):
+            if not isinstance(record["payload"], dict):
                 raise ValueError(f"Record at index {i} 'payload' must be a dictionary")
 
         self.logger.info(
@@ -443,8 +451,8 @@ class DistributedProcessor:
                     VALUES (:flow_name, :payload, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 """  # noqa: E501
                 query_params = {
-                    'flow_name': flow_name,
-                    'payload': records[0]['payload']
+                    "flow_name": flow_name,
+                    "payload": records[0]["payload"],
                 }
                 self.rpa_db.execute_query(insert_query, query_params)
                 inserted_count = 1
@@ -452,17 +460,17 @@ class DistributedProcessor:
             else:
                 # Batch insertion using VALUES clause
                 values_placeholders = []
-                query_params = {'flow_name': flow_name}
+                query_params = {"flow_name": flow_name}
 
                 for i, record in enumerate(records):
                     values_placeholders.append(
                         f"(:flow_name, :payload_{i}, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
                     )
-                    query_params[f'payload_{i}'] = record['payload']
+                    query_params[f"payload_{i}"] = record["payload"]
 
                 insert_query = f"""
                     INSERT INTO processing_queue (flow_name, payload, status, created_at, updated_at)
-                    VALUES {', '.join(values_placeholders)}
+                    VALUES {", ".join(values_placeholders)}
                 """
 
                 self.rpa_db.execute_query(insert_query, query_params)
@@ -475,9 +483,7 @@ class DistributedProcessor:
             return inserted_count
 
         except Exception as e:
-            error_msg = (
-                f"Failed to add {len(records)} records to queue for flow '{flow_name}': {e}"
-            )
+            error_msg = f"Failed to add {len(records)} records to queue for flow '{flow_name}': {e}"
             self.logger.error(error_msg)
             raise RuntimeError(error_msg) from e
 
@@ -514,12 +520,12 @@ class DistributedProcessor:
             status = processor.get_queue_status()
         """
         # Validate input parameters
-        if flow_name is not None and (not isinstance(flow_name, str) or not flow_name.strip()):
+        if flow_name is not None and (
+            not isinstance(flow_name, str) or not flow_name.strip()
+        ):
             raise ValueError("flow_name must be a non-empty string or None")
 
-        self.logger.debug(
-            f"Getting queue status for flow: {flow_name or 'all flows'}"
-        )
+        self.logger.debug(f"Getting queue status for flow: {flow_name or 'all flows'}")
 
         try:
             if flow_name:
@@ -530,7 +536,7 @@ class DistributedProcessor:
                     WHERE flow_name = :flow_name
                     GROUP BY status
                 """
-                query_params = {'flow_name': flow_name}
+                query_params = {"flow_name": flow_name}
 
             else:
                 # Get system-wide status
@@ -544,12 +550,7 @@ class DistributedProcessor:
             results = self.rpa_db.execute_query(status_query, query_params)
 
             # Initialize status counts
-            status_counts = {
-                'pending': 0,
-                'processing': 0,
-                'completed': 0,
-                'failed': 0
-            }
+            status_counts = {"pending": 0, "processing": 0, "completed": 0, "failed": 0}
 
             # Process query results
             for row in results:
@@ -563,12 +564,12 @@ class DistributedProcessor:
 
             # Build response
             queue_status = {
-                'total_records': total_records,
-                'pending_records': status_counts['pending'],
-                'processing_records': status_counts['processing'],
-                'completed_records': status_counts['completed'],
-                'failed_records': status_counts['failed'],
-                'flow_name': flow_name
+                "total_records": total_records,
+                "pending_records": status_counts["pending"],
+                "processing_records": status_counts["processing"],
+                "completed_records": status_counts["completed"],
+                "failed_records": status_counts["failed"],
+                "flow_name": flow_name,
             }
 
             # If no specific flow requested, add breakdown by flow
@@ -589,17 +590,17 @@ class DistributedProcessor:
 
                     if flow not in by_flow:
                         by_flow[flow] = {
-                            'pending': 0,
-                            'processing': 0,
-                            'completed': 0,
-                            'failed': 0,
-                            'total': 0
+                            "pending": 0,
+                            "processing": 0,
+                            "completed": 0,
+                            "failed": 0,
+                            "total": 0,
                         }
 
                     by_flow[flow][status] = count
-                    by_flow[flow]['total'] += count
+                    by_flow[flow]["total"] += count
 
-                queue_status['by_flow'] = by_flow
+                queue_status["by_flow"] = by_flow
 
             self.logger.debug(
                 f"Queue status retrieved: {total_records} total records "
@@ -660,7 +661,9 @@ class DistributedProcessor:
             """
 
             # Execute the cleanup query
-            rows_affected = self.rpa_db.execute_query(cleanup_query, {}, return_count=True)
+            rows_affected = self.rpa_db.execute_query(
+                cleanup_query, {}, return_count=True
+            )
 
             if rows_affected > 0:
                 self.logger.warning(
@@ -675,9 +678,7 @@ class DistributedProcessor:
             return rows_affected
 
         except Exception as e:
-            error_msg = (
-                f"Failed to cleanup orphaned records with timeout {timeout_hours} hours: {e}"
-            )
+            error_msg = f"Failed to cleanup orphaned records with timeout {timeout_hours} hours: {e}"
             self.logger.error(error_msg)
             raise RuntimeError(error_msg) from e
 
@@ -728,10 +729,7 @@ class DistributedProcessor:
                 WHERE flow_name = :flow_name AND status = 'failed'
             """
 
-            count_params = {
-                'flow_name': flow_name,
-                'max_retries': max_retries
-            }
+            count_params = {"flow_name": flow_name, "max_retries": max_retries}
 
             count_results = self.rpa_db.execute_query(count_query, count_params)
 
@@ -761,12 +759,11 @@ class DistributedProcessor:
                       AND retry_count < :max_retries
                 """
 
-                reset_params = {
-                    'flow_name': flow_name,
-                    'max_retries': max_retries
-                }
+                reset_params = {"flow_name": flow_name, "max_retries": max_retries}
 
-                rows_affected = self.rpa_db.execute_query(reset_query, reset_params, return_count=True)
+                rows_affected = self.rpa_db.execute_query(
+                    reset_query, reset_params, return_count=True
+                )
 
                 self.logger.info(
                     f"Successfully reset {rows_affected} failed records to pending "
@@ -854,9 +851,11 @@ class DistributedProcessor:
                     "instance_id": self.instance_id,
                     "hostname": socket.gethostname(),
                     "rpa_db_name": self.rpa_db.database_name,
-                    "source_db_name": self.source_db.database_name if self.source_db else None
+                    "source_db_name": self.source_db.database_name
+                    if self.source_db
+                    else None,
                 },
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             # Check rpa_db health (required database)
@@ -868,7 +867,9 @@ class DistributedProcessor:
                 # If rpa_db is unhealthy, entire system is unhealthy
                 if rpa_db_health.get("status") == "unhealthy":
                     health_status["status"] = "unhealthy"
-                    health_status["error"] = f"RPA database unhealthy: {rpa_db_health.get('error', 'Unknown error')}"
+                    health_status["error"] = (
+                        f"RPA database unhealthy: {rpa_db_health.get('error', 'Unknown error')}"
+                    )
                 elif rpa_db_health.get("status") == "degraded":
                     health_status["status"] = "degraded"
 
@@ -877,7 +878,7 @@ class DistributedProcessor:
                 health_status["databases"]["rpa_db"] = {
                     "status": "unhealthy",
                     "connection": False,
-                    "error": str(e)
+                    "error": str(e),
                 }
                 health_status["status"] = "unhealthy"
                 health_status["error"] = f"RPA database health check failed: {e}"
@@ -902,7 +903,7 @@ class DistributedProcessor:
                     health_status["databases"]["source_db"] = {
                         "status": "unhealthy",
                         "connection": False,
-                        "error": str(e)
+                        "error": str(e),
                     }
                     # Source DB failure only causes degraded status
                     if health_status["status"] == "healthy":
@@ -918,7 +919,7 @@ class DistributedProcessor:
                         "processing_records": queue_status["processing_records"],
                         "completed_records": queue_status["completed_records"],
                         "failed_records": queue_status["failed_records"],
-                        "total_records": queue_status["total_records"]
+                        "total_records": queue_status["total_records"],
                     }
 
                 except Exception as e:
@@ -929,7 +930,7 @@ class DistributedProcessor:
                         "completed_records": -1,
                         "failed_records": -1,
                         "total_records": -1,
-                        "error": str(e)
+                        "error": str(e),
                     }
                     # Queue status failure causes degraded status if not already unhealthy
                     if health_status["status"] == "healthy":
@@ -942,7 +943,7 @@ class DistributedProcessor:
                     "completed_records": -1,
                     "failed_records": -1,
                     "total_records": -1,
-                    "error": "Database connection unavailable"
+                    "error": "Database connection unavailable",
                 }
 
             # Log health check result
@@ -952,7 +953,9 @@ class DistributedProcessor:
             elif status == "degraded":
                 self.logger.warning(f"Health check completed: {status}")
             else:
-                self.logger.error(f"Health check completed: {status} - {health_status.get('error', 'Unknown error')}")
+                self.logger.error(
+                    f"Health check completed: {status} - {health_status.get('error', 'Unknown error')}"
+                )
 
             return health_status
 
@@ -968,10 +971,12 @@ class DistributedProcessor:
                 "instance_info": {
                     "instance_id": self.instance_id,
                     "hostname": "unknown",
-                    "rpa_db_name": getattr(self.rpa_db, 'database_name', 'unknown'),
-                    "source_db_name": getattr(self.source_db, 'database_name', None) if self.source_db else None
+                    "rpa_db_name": getattr(self.rpa_db, "database_name", "unknown"),
+                    "source_db_name": getattr(self.source_db, "database_name", None)
+                    if self.source_db
+                    else None,
                 },
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
     def process_survey_logic(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -1011,16 +1016,18 @@ class DistributedProcessor:
         if not isinstance(payload, dict):
             raise ValueError("payload must be a dictionary")
 
-        if 'survey_id' not in payload:
+        if "survey_id" not in payload:
             raise ValueError("payload must contain 'survey_id' field")
 
-        survey_id = payload['survey_id']
+        survey_id = payload["survey_id"]
         if not isinstance(survey_id, str) or not survey_id.strip():
             raise ValueError("survey_id must be a non-empty string")
 
         # Check if source database is configured
         if self.source_db is None:
-            raise TypeError("source_db_manager is required for multi-database processing")
+            raise TypeError(
+                "source_db_manager is required for multi-database processing"
+            )
 
         self.logger.info(f"Processing survey {survey_id} using multi-database pattern")
 
@@ -1046,11 +1053,13 @@ class DistributedProcessor:
             processing_duration_ms = int((end_time - start_time) * 1000)
 
             # Add metadata to result
-            processed_result.update({
-                "processed_at": datetime.now(timezone.utc),
-                "processing_duration_ms": processing_duration_ms,
-                "source": "multi_database_processor"
-            })
+            processed_result.update(
+                {
+                    "processed_at": datetime.now(timezone.utc),
+                    "processing_duration_ms": processing_duration_ms,
+                    "source": "multi_database_processor",
+                }
+            )
 
             self.logger.info(
                 f"Successfully processed survey {survey_id} in {processing_duration_ms}ms"
@@ -1106,7 +1115,7 @@ class DistributedProcessor:
                 "customer_id": survey_row[1],
                 "response_data": survey_row[2],  # Assuming JSON/JSONB field
                 "submitted_at": survey_row[3],
-                "survey_type": survey_row[4]
+                "survey_type": survey_row[4],
             }
 
             self.logger.debug(f"Retrieved survey data for {survey_id}: {survey_data}")
@@ -1122,9 +1131,7 @@ class DistributedProcessor:
             raise RuntimeError(error_msg) from e
 
     def _transform_survey_data(
-        self,
-        survey_data: dict[str, Any],
-        payload: dict[str, Any]
+        self, survey_data: dict[str, Any], payload: dict[str, Any]
     ) -> dict[str, Any]:
         """
         Transform survey data with business logic processing.
@@ -1152,10 +1159,14 @@ class DistributedProcessor:
             self.logger.debug(f"Transforming survey data for {survey_id}")
 
             # Business logic: Calculate satisfaction score
-            satisfaction_score = self._calculate_satisfaction_score(response_data, survey_type)
+            satisfaction_score = self._calculate_satisfaction_score(
+                response_data, survey_type
+            )
 
             # Business logic: Determine processing status
-            processing_status = "completed" if satisfaction_score is not None else "failed"
+            processing_status = (
+                "completed" if satisfaction_score is not None else "failed"
+            )
 
             # Create processed result
             processed_result = {
@@ -1164,7 +1175,9 @@ class DistributedProcessor:
                 "satisfaction_score": satisfaction_score,
                 "survey_type": survey_type,
                 "processing_status": processing_status,
-                "flow_run_id": payload.get("flow_run_id", f"distributed-{self.instance_id}")
+                "flow_run_id": payload.get(
+                    "flow_run_id", f"distributed-{self.instance_id}"
+                ),
             }
 
             # Add customer name if available in payload or derive from customer_id
@@ -1187,9 +1200,7 @@ class DistributedProcessor:
             raise ValueError(error_msg) from e
 
     def _calculate_satisfaction_score(
-        self,
-        response_data: dict[str, Any],
-        survey_type: str
+        self, response_data: dict[str, Any], survey_type: str
     ) -> Optional[float]:
         """
         Calculate satisfaction score based on survey responses.
@@ -1227,10 +1238,14 @@ class DistributedProcessor:
             elif survey_type == "Product Feedback":
                 # Product feedback scoring
                 product_rating = response_data.get("product_rating", 5.0)
-                recommendation_score = response_data.get("recommendation_likelihood", 5.0)
+                recommendation_score = response_data.get(
+                    "recommendation_likelihood", 5.0
+                )
 
                 # Weighted average: 70% product rating, 30% recommendation
-                return (float(product_rating) * 0.7) + (float(recommendation_score) * 0.3)
+                return (float(product_rating) * 0.7) + (
+                    float(recommendation_score) * 0.3
+                )
 
             elif survey_type == "Market Research":
                 # Market research scoring (simpler approach)
@@ -1244,7 +1259,9 @@ class DistributedProcessor:
                     if isinstance(value, (int, float)) and 0 <= value <= 10:
                         numeric_values.append(float(value))
 
-                return sum(numeric_values) / len(numeric_values) if numeric_values else 5.0
+                return (
+                    sum(numeric_values) / len(numeric_values) if numeric_values else 5.0
+                )
 
         except Exception as e:
             self.logger.warning(f"Failed to calculate satisfaction score: {e}")
@@ -1280,8 +1297,10 @@ class DistributedProcessor:
                 "survey_type": processed_result["survey_type"],
                 "processing_status": processed_result["processing_status"],
                 "processed_at": processed_result.get("processed_at"),
-                "processing_duration_ms": processed_result.get("processing_duration_ms"),
-                "flow_run_id": processed_result["flow_run_id"]
+                "processing_duration_ms": processed_result.get(
+                    "processing_duration_ms"
+                ),
+                "flow_run_id": processed_result["flow_run_id"],
             }
 
             self.logger.debug(
@@ -1297,9 +1316,7 @@ class DistributedProcessor:
             )
 
         except Exception as e:
-            error_msg = (
-                f"Failed to store survey results for {processed_result.get('survey_id', 'unknown')}: {e}"
-            )
+            error_msg = f"Failed to store survey results for {processed_result.get('survey_id', 'unknown')}: {e}"
             self.logger.error(error_msg)
             raise RuntimeError(error_msg) from e
 
@@ -1311,7 +1328,7 @@ class DistributedProcessor:
         batch_size: int,
         max_attempts: int = 3,
         min_wait: float = 1.0,
-        max_wait: float = 10.0
+        max_wait: float = 10.0,
     ) -> list[dict[str, Any]]:
         """
         Claim a batch of pending records atomically with automatic retry for transient failures.
@@ -1339,9 +1356,7 @@ class DistributedProcessor:
             records = processor.claim_records_batch_with_retry("survey_processor", 10)
         """
         retry_decorator = _create_retry_decorator(
-            max_attempts=max_attempts,
-            min_wait=min_wait,
-            max_wait=max_wait
+            max_attempts=max_attempts, min_wait=min_wait, max_wait=max_wait
         )
 
         @retry_decorator
@@ -1368,7 +1383,7 @@ class DistributedProcessor:
         result: dict[str, Any],
         max_attempts: int = 3,
         min_wait: float = 1.0,
-        max_wait: float = 10.0
+        max_wait: float = 10.0,
     ) -> None:
         """
         Mark a record as completed with automatic retry for transient failures.
@@ -1394,9 +1409,7 @@ class DistributedProcessor:
             processor.mark_record_completed_with_retry(record_id, result)
         """
         retry_decorator = _create_retry_decorator(
-            max_attempts=max_attempts,
-            min_wait=min_wait,
-            max_wait=max_wait
+            max_attempts=max_attempts, min_wait=min_wait, max_wait=max_wait
         )
 
         @retry_decorator
@@ -1423,7 +1436,7 @@ class DistributedProcessor:
         error_message: str,
         max_attempts: int = 3,
         min_wait: float = 1.0,
-        max_wait: float = 10.0
+        max_wait: float = 10.0,
     ) -> None:
         """
         Mark a record as failed with automatic retry for transient failures.
@@ -1448,9 +1461,7 @@ class DistributedProcessor:
             processor.mark_record_failed_with_retry(record_id, "Invalid survey data format")
         """
         retry_decorator = _create_retry_decorator(
-            max_attempts=max_attempts,
-            min_wait=min_wait,
-            max_wait=max_wait
+            max_attempts=max_attempts, min_wait=min_wait, max_wait=max_wait
         )
 
         @retry_decorator
@@ -1476,7 +1487,7 @@ class DistributedProcessor:
         timeout_hours: int = 1,
         max_attempts: int = 3,
         min_wait: float = 1.0,
-        max_wait: float = 10.0
+        max_wait: float = 10.0,
     ) -> int:
         """
         Reset stuck processing records with automatic retry for transient failures.
@@ -1504,9 +1515,7 @@ class DistributedProcessor:
             cleaned_count = processor.cleanup_orphaned_records_with_retry(timeout_hours=2)
         """
         retry_decorator = _create_retry_decorator(
-            max_attempts=max_attempts,
-            min_wait=min_wait,
-            max_wait=max_wait
+            max_attempts=max_attempts, min_wait=min_wait, max_wait=max_wait
         )
 
         @retry_decorator
@@ -1533,7 +1542,7 @@ class DistributedProcessor:
         max_retries: int = 3,
         max_attempts: int = 3,
         min_wait: float = 1.0,
-        max_wait: float = 10.0
+        max_wait: float = 10.0,
     ) -> int:
         """
         Reset failed records to pending status with automatic retry for transient failures.
@@ -1561,9 +1570,7 @@ class DistributedProcessor:
             reset_count = processor.reset_failed_records_with_retry("survey_processor", max_retries=5)
         """
         retry_decorator = _create_retry_decorator(
-            max_attempts=max_attempts,
-            min_wait=min_wait,
-            max_wait=max_wait
+            max_attempts=max_attempts, min_wait=min_wait, max_wait=max_wait
         )
 
         @retry_decorator

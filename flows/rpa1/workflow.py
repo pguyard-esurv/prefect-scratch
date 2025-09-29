@@ -21,6 +21,7 @@ from core.tasks import (
 try:
     from core.database import DatabaseManager
     from core.distributed import DistributedProcessor
+
     DISTRIBUTED_AVAILABLE = True
 except ImportError:
     DISTRIBUTED_AVAILABLE = False
@@ -34,7 +35,7 @@ except ImportError:
 def rpa1_workflow(
     cleanup: bool = True,
     use_distributed: Optional[bool] = None,
-    batch_size: Optional[int] = None
+    batch_size: Optional[int] = None,
 ) -> dict[str, Any]:
     """
     RPA1 workflow that processes sales data files.
@@ -57,25 +58,38 @@ def rpa1_workflow(
     api_key = rpa1_config.get_secret("api_key", "default-key")
 
     # Distributed processing configuration
-    config_use_distributed = rpa1_config.get_variable("use_distributed_processing", "false").lower() == "true"
-    config_distributed_batch_size = int(rpa1_config.get_variable("distributed_batch_size", 10))
+    config_use_distributed = (
+        rpa1_config.get_variable("use_distributed_processing", "false").lower()
+        == "true"
+    )
+    config_distributed_batch_size = int(
+        rpa1_config.get_variable("distributed_batch_size", 10)
+    )
 
     # Override with parameters if provided
-    final_use_distributed = use_distributed if use_distributed is not None else config_use_distributed
-    final_batch_size = batch_size if batch_size is not None else config_distributed_batch_size
+    final_use_distributed = (
+        use_distributed if use_distributed is not None else config_use_distributed
+    )
+    final_batch_size = (
+        batch_size if batch_size is not None else config_distributed_batch_size
+    )
 
     logger.info(f"Environment: {rpa1_config.environment}")
     logger.info(f"Processing batch size: {config_batch_size}")
     logger.info(f"Timeout: {timeout} seconds")
     logger.info(f"Output format: {output_format}")
     logger.info(f"API key configured: {'Yes' if api_key else 'No'}")
-    logger.info(f"Distributed processing: {'Enabled' if final_use_distributed else 'Disabled'}")
+    logger.info(
+        f"Distributed processing: {'Enabled' if final_use_distributed else 'Disabled'}"
+    )
     if final_use_distributed:
         logger.info(f"Distributed batch size: {final_batch_size}")
 
     # Check distributed processing availability
     if final_use_distributed and not DISTRIBUTED_AVAILABLE:
-        logger.warning("Distributed processing requested but not available. Falling back to standard processing.")
+        logger.warning(
+            "Distributed processing requested but not available. Falling back to standard processing."
+        )
         final_use_distributed = False
 
     # Choose processing mode
@@ -114,7 +128,9 @@ def _run_standard_rpa1_workflow(cleanup: bool, logger) -> dict[str, Any]:
             cleanup_temp_files(sample_file)
 
 
-def _run_distributed_rpa1_workflow(batch_size: int, cleanup: bool, logger) -> dict[str, Any]:
+def _run_distributed_rpa1_workflow(
+    batch_size: int, cleanup: bool, logger
+) -> dict[str, Any]:
     """Run the distributed RPA1 workflow."""
     logger.info("Running distributed RPA1 workflow")
 
@@ -138,7 +154,7 @@ def _run_distributed_rpa1_workflow(batch_size: int, cleanup: bool, logger) -> di
         return {
             "flow_name": flow_name,
             "records_processed": 0,
-            "message": "No records to process"
+            "message": "No records to process",
         }
 
     # Process records using .map()
@@ -154,10 +170,12 @@ def _run_distributed_rpa1_workflow(batch_size: int, cleanup: bool, logger) -> di
         "records_completed": completed_count,
         "records_failed": failed_count,
         "success_rate": (completed_count / len(records) * 100) if records else 0,
-        "processor_instance": processor.instance_id
+        "processor_instance": processor.instance_id,
     }
 
-    logger.info(f"Distributed RPA1 workflow completed: {completed_count}/{len(records)} successful")
+    logger.info(
+        f"Distributed RPA1 workflow completed: {completed_count}/{len(records)} successful"
+    )
     return summary
 
 
@@ -165,8 +183,8 @@ def _run_distributed_rpa1_workflow(batch_size: int, cleanup: bool, logger) -> di
 def process_rpa1_record(record: dict[str, Any], cleanup: bool = True) -> dict[str, Any]:
     """Process individual RPA1 record with distributed processing."""
     logger = get_run_logger()
-    record_id = record['id']
-    record['payload']
+    record_id = record["id"]
+    record["payload"]
 
     logger.info(f"Processing RPA1 record {record_id}")
 
@@ -192,7 +210,7 @@ def process_rpa1_record(record: dict[str, Any], cleanup: bool = True) -> dict[st
             result = {
                 "summary": summary,
                 "processed_at": logger.extra.get("timestamp", "unknown"),
-                "file_processed": str(sample_file)
+                "file_processed": str(sample_file),
             }
 
             # Mark as completed

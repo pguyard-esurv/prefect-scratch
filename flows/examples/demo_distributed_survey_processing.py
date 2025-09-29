@@ -34,12 +34,13 @@ def mock_logger():
 
 def demo_survey_record_preparation():
     """Demonstrate survey record preparation functionality."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DEMO: Survey Record Preparation")
-    print("="*60)
+    print("=" * 60)
 
     # Mock the Prefect logger
     import flows.examples.distributed_survey_processing as dsp
+
     original_get_run_logger = dsp.get_run_logger
     dsp.get_run_logger = mock_logger
 
@@ -56,15 +57,18 @@ def demo_survey_record_preparation():
             print(f"  Customer: {payload['customer_name']} ({payload['customer_id']})")
             print(f"  Type: {payload['survey_type']}")
             print(f"  Priority: {payload['priority']}")
-            print(f"  Satisfaction: {payload['response_data']['overall_satisfaction']}/10")
-            print(f"  NPS Score: {payload['response_data']['likelihood_to_recommend']}/10")
+            print(
+                f"  Satisfaction: {payload['response_data']['overall_satisfaction']}/10"
+            )
+            print(
+                f"  NPS Score: {payload['response_data']['likelihood_to_recommend']}/10"
+            )
 
         # Test custom priority distribution
         print("\n2. Testing custom priority distribution (80% high priority)...")
         priority_dist = {"high": 0.8, "normal": 0.15, "low": 0.05}
         high_priority_records = prepare_survey_records_for_queue(
-            survey_count=10,
-            priority_distribution=priority_dist
+            survey_count=10, priority_distribution=priority_dist
         )
 
         priorities = [r["payload"]["priority"] for r in high_priority_records]
@@ -78,12 +82,13 @@ def demo_survey_record_preparation():
 
 def demo_business_logic_processing():
     """Demonstrate survey business logic processing."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DEMO: Business Logic Processing")
-    print("="*60)
+    print("=" * 60)
 
     # Mock the dependencies
     import flows.examples.distributed_survey_processing as dsp
+
     original_get_run_logger = dsp.get_run_logger
     original_rpa_db = dsp.rpa_db_manager
     original_source_db = dsp.source_db_manager
@@ -108,9 +113,9 @@ def demo_business_logic_processing():
                         "likelihood_to_recommend": 10,
                         "service_rating": 5,
                         "product_rating": 5,
-                        "comments": "Excellent service and product quality!"
-                    }
-                }
+                        "comments": "Excellent service and product quality!",
+                    },
+                },
             },
             {
                 "name": "Medium Satisfaction Customer",
@@ -125,9 +130,9 @@ def demo_business_logic_processing():
                         "likelihood_to_recommend": 6,
                         "service_rating": 3,
                         "product_rating": 4,
-                        "comments": "Good product, but service could be better."
-                    }
-                }
+                        "comments": "Good product, but service could be better.",
+                    },
+                },
             },
             {
                 "name": "Low Satisfaction Customer",
@@ -142,10 +147,10 @@ def demo_business_logic_processing():
                         "likelihood_to_recommend": 2,
                         "service_rating": 2,
                         "product_rating": 1,
-                        "comments": "Very disappointed with both service and product."
-                    }
-                }
-            }
+                        "comments": "Very disappointed with both service and product.",
+                    },
+                },
+            },
         ]
 
         for i, test_case in enumerate(test_cases, 1):
@@ -168,7 +173,9 @@ def demo_business_logic_processing():
                 # Show the scoring breakdown
                 print("\nScoring Breakdown:")
                 print(f"  Overall Satisfaction: {metrics['overall_satisfaction']}/10")
-                print(f"  Likelihood to Recommend: {metrics['likelihood_to_recommend']}/10")
+                print(
+                    f"  Likelihood to Recommend: {metrics['likelihood_to_recommend']}/10"
+                )
                 print(f"  Service Rating: {metrics['service_rating']}/5")
                 print(f"  Product Rating: {metrics['product_rating']}/5")
 
@@ -184,12 +191,13 @@ def demo_business_logic_processing():
 
 def demo_error_handling():
     """Demonstrate error handling in business logic."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DEMO: Error Handling")
-    print("="*60)
+    print("=" * 60)
 
     # Mock the dependencies
     import flows.examples.distributed_survey_processing as dsp
+
     original_get_run_logger = dsp.get_run_logger
     original_rpa_db = dsp.rpa_db_manager
 
@@ -205,7 +213,7 @@ def demo_error_handling():
                     "survey_id": "ERROR-001",
                     # Missing customer_id, survey_type, response_data
                 },
-                "expected_error": "Missing required fields"
+                "expected_error": "Missing required fields",
             },
             {
                 "name": "Invalid Response Data Type",
@@ -213,9 +221,9 @@ def demo_error_handling():
                     "survey_id": "ERROR-002",
                     "customer_id": "CUST-ERROR-002",
                     "survey_type": "Error Test",
-                    "response_data": "not_a_dict"  # Should be dict
+                    "response_data": "not_a_dict",  # Should be dict
                 },
-                "expected_error": "response_data must be a dictionary"
+                "expected_error": "response_data must be a dictionary",
             },
             {
                 "name": "Missing Response Fields",
@@ -226,10 +234,10 @@ def demo_error_handling():
                     "response_data": {
                         "overall_satisfaction": 8
                         # Missing likelihood_to_recommend
-                    }
+                    },
                 },
-                "expected_error": "Missing required response fields"
-            }
+                "expected_error": "Missing required response fields",
+            },
         ]
 
         for i, test_case in enumerate(error_test_cases, 1):
@@ -251,17 +259,16 @@ def demo_error_handling():
         print("-" * 40)
 
         # Mock database to raise an exception
-        dsp.rpa_db_manager.execute_query.side_effect = Exception("Database connection failed")
+        dsp.rpa_db_manager.execute_query.side_effect = Exception(
+            "Database connection failed"
+        )
 
         test_payload = {
             "survey_id": "ERROR-004",
             "customer_id": "CUST-ERROR-004",
             "customer_name": "DB Error Test",
             "survey_type": "Error Test",
-            "response_data": {
-                "overall_satisfaction": 7,
-                "likelihood_to_recommend": 8
-            }
+            "response_data": {"overall_satisfaction": 7, "likelihood_to_recommend": 8},
         }
 
         try:
@@ -283,12 +290,13 @@ def demo_error_handling():
 
 def demo_nps_scoring():
     """Demonstrate NPS (Net Promoter Score) category calculation."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DEMO: NPS Category Calculation")
-    print("="*60)
+    print("=" * 60)
 
     # Mock the dependencies
     import flows.examples.distributed_survey_processing as dsp
+
     original_get_run_logger = dsp.get_run_logger
     original_rpa_db = dsp.rpa_db_manager
 
@@ -297,19 +305,42 @@ def demo_nps_scoring():
 
     try:
         nps_test_cases = [
-            {"score": 10, "expected": "promoter", "description": "Extremely likely to recommend"},
-            {"score": 9, "expected": "promoter", "description": "Very likely to recommend"},
-            {"score": 8, "expected": "passive", "description": "Somewhat likely to recommend"},
+            {
+                "score": 10,
+                "expected": "promoter",
+                "description": "Extremely likely to recommend",
+            },
+            {
+                "score": 9,
+                "expected": "promoter",
+                "description": "Very likely to recommend",
+            },
+            {
+                "score": 8,
+                "expected": "passive",
+                "description": "Somewhat likely to recommend",
+            },
             {"score": 7, "expected": "passive", "description": "Neutral"},
-            {"score": 6, "expected": "detractor", "description": "Unlikely to recommend"},
-            {"score": 5, "expected": "detractor", "description": "Very unlikely to recommend"},
-            {"score": 1, "expected": "detractor", "description": "Extremely unlikely to recommend"}
+            {
+                "score": 6,
+                "expected": "detractor",
+                "description": "Unlikely to recommend",
+            },
+            {
+                "score": 5,
+                "expected": "detractor",
+                "description": "Very unlikely to recommend",
+            },
+            {
+                "score": 1,
+                "expected": "detractor",
+                "description": "Extremely unlikely to recommend",
+            },
         ]
 
         print("\nNPS Category Mapping:")
         print(
-            "Promoters (9-10): Loyal enthusiasts who will keep buying and "
-            "refer others"
+            "Promoters (9-10): Loyal enthusiasts who will keep buying and refer others"
         )
         print("Passives (7-8): Satisfied but unenthusiastic customers")
         print("Detractors (0-6): Unhappy customers who can damage your brand")
@@ -324,18 +355,20 @@ def demo_nps_scoring():
                     "overall_satisfaction": 8,  # Keep constant
                     "likelihood_to_recommend": test_case["score"],
                     "service_rating": 4,
-                    "product_rating": 4
-                }
+                    "product_rating": 4,
+                },
             }
 
             result = process_survey_business_logic(payload)
             metrics = result["satisfaction_metrics"]
 
-            print(f"\nNPS Score {test_case['score']}/10: {test_case['expected'].upper()}")
+            print(
+                f"\nNPS Score {test_case['score']}/10: {test_case['expected'].upper()}"
+            )
             print(f"  Description: {test_case['description']}")
             print(f"  Calculated Category: {metrics['nps_category']}")
 
-            if metrics['nps_category'] == test_case['expected']:
+            if metrics["nps_category"] == test_case["expected"]:
                 print("  ✓ Correct NPS category")
             else:
                 print("  ✗ Incorrect NPS category")
@@ -359,9 +392,9 @@ def main():
         demo_nps_scoring()
         demo_error_handling()
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("DEMONSTRATION COMPLETED SUCCESSFULLY")
-        print("="*60)
+        print("=" * 60)
         print("\nKey Features Demonstrated:")
         print("✓ Survey record preparation with configurable priority distribution")
         print("✓ Comprehensive business logic with satisfaction scoring")
@@ -379,6 +412,7 @@ def main():
     except Exception as e:
         print(f"\nDemonstration failed: {e}")
         import traceback
+
         traceback.print_exc()
 
 

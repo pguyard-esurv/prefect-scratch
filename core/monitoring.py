@@ -26,7 +26,9 @@ def _get_logger():
         logger = logging.getLogger(__name__)
         if not logger.handlers:
             handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            formatter = logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            )
             handler.setFormatter(formatter)
             logger.addHandler(handler)
             logger.setLevel(logging.INFO)
@@ -35,8 +37,7 @@ def _get_logger():
 
 @task(name="distributed-queue-monitoring")
 def distributed_queue_monitoring(
-    flow_names: Optional[list[str]] = None,
-    include_detailed_metrics: bool = True
+    flow_names: Optional[list[str]] = None, include_detailed_metrics: bool = True
 ) -> dict[str, Any]:
     """
     Monitor distributed processing queue status and metrics.
@@ -70,7 +71,7 @@ def distributed_queue_monitoring(
             "flow_specific_metrics": {},
             "queue_health_assessment": {},
             "operational_alerts": [],
-            "recommendations": []
+            "recommendations": [],
         }
 
         # Get overall queue status
@@ -90,15 +91,21 @@ def distributed_queue_monitoring(
                 monitoring_data["flow_specific_metrics"][flow_name] = flow_status
 
         # Assess queue health and generate alerts
-        queue_assessment = _assess_queue_health(overall_status, monitoring_data["flow_specific_metrics"])
+        queue_assessment = _assess_queue_health(
+            overall_status, monitoring_data["flow_specific_metrics"]
+        )
         monitoring_data["queue_health_assessment"] = queue_assessment
 
         # Generate operational alerts
-        alerts = _generate_queue_alerts(overall_status, monitoring_data["flow_specific_metrics"])
+        alerts = _generate_queue_alerts(
+            overall_status, monitoring_data["flow_specific_metrics"]
+        )
         monitoring_data["operational_alerts"] = alerts
 
         # Generate recommendations
-        recommendations = _generate_queue_recommendations(overall_status, queue_assessment)
+        recommendations = _generate_queue_recommendations(
+            overall_status, queue_assessment
+        )
         monitoring_data["recommendations"] = recommendations
 
         # Log summary
@@ -127,7 +134,7 @@ def distributed_queue_monitoring(
 def distributed_processing_diagnostics(
     flow_name: Optional[str] = None,
     include_orphaned_analysis: bool = True,
-    include_performance_analysis: bool = True
+    include_performance_analysis: bool = True,
 ) -> dict[str, Any]:
     """
     Perform comprehensive diagnostics for distributed processing issues.
@@ -148,7 +155,9 @@ def distributed_processing_diagnostics(
     """
     logger = _get_logger()
 
-    logger.info(f"Starting distributed processing diagnostics for flow: {flow_name or 'all flows'}")
+    logger.info(
+        f"Starting distributed processing diagnostics for flow: {flow_name or 'all flows'}"
+    )
 
     try:
         # Initialize components
@@ -165,7 +174,7 @@ def distributed_processing_diagnostics(
             "performance_analysis": {},
             "database_diagnostics": {},
             "issues_found": [],
-            "recommendations": []
+            "recommendations": [],
         }
 
         # System health check
@@ -218,7 +227,9 @@ def distributed_processing_diagnostics(
         # Log diagnostic summary
         issues_count = len(diagnostics["issues_found"])
         if issues_count > 0:
-            logger.warning(f"Diagnostics found {issues_count} issues requiring attention")
+            logger.warning(
+                f"Diagnostics found {issues_count} issues requiring attention"
+            )
             for issue in diagnostics["issues_found"]:
                 logger.warning(f"  - {issue}")
         else:
@@ -236,7 +247,7 @@ def distributed_processing_diagnostics(
 def processing_performance_monitoring(
     flow_names: Optional[list[str]] = None,
     time_window_hours: int = 24,
-    include_error_analysis: bool = True
+    include_error_analysis: bool = True,
 ) -> dict[str, Any]:
     """
     Monitor processing performance and error rates for distributed flows.
@@ -257,7 +268,9 @@ def processing_performance_monitoring(
     """
     logger = _get_logger()
 
-    logger.info(f"Starting processing performance monitoring (window: {time_window_hours}h)")
+    logger.info(
+        f"Starting processing performance monitoring (window: {time_window_hours}h)"
+    )
 
     try:
         # Initialize components
@@ -273,7 +286,7 @@ def processing_performance_monitoring(
             "error_analysis": {},
             "performance_trends": {},
             "alerts": [],
-            "recommendations": []
+            "recommendations": [],
         }
 
         # Calculate time window
@@ -282,7 +295,9 @@ def processing_performance_monitoring(
 
         # Get overall performance metrics
         logger.info("Calculating overall performance metrics")
-        overall_metrics = _calculate_performance_metrics(processor, None, start_time, end_time)
+        overall_metrics = _calculate_performance_metrics(
+            processor, None, start_time, end_time
+        )
         performance_data["overall_metrics"] = overall_metrics
 
         # Get flow-specific metrics
@@ -295,22 +310,30 @@ def processing_performance_monitoring(
 
         logger.info(f"Analyzing performance for {len(target_flows)} flows")
         for flow_name in target_flows:
-            flow_metrics = _calculate_performance_metrics(processor, flow_name, start_time, end_time)
+            flow_metrics = _calculate_performance_metrics(
+                processor, flow_name, start_time, end_time
+            )
             performance_data["flow_specific_metrics"][flow_name] = flow_metrics
 
         # Error analysis
         if include_error_analysis:
             logger.info("Performing error analysis")
-            error_analysis = _analyze_processing_errors(processor, target_flows, start_time, end_time)
+            error_analysis = _analyze_processing_errors(
+                processor, target_flows, start_time, end_time
+            )
             performance_data["error_analysis"] = error_analysis
 
         # Performance trend analysis
         logger.info("Analyzing performance trends")
-        trend_analysis = _analyze_performance_trends(processor, target_flows, start_time, end_time)
+        trend_analysis = _analyze_performance_trends(
+            processor, target_flows, start_time, end_time
+        )
         performance_data["performance_trends"] = trend_analysis
 
         # Generate performance alerts
-        alerts = _generate_performance_alerts(overall_metrics, performance_data["flow_specific_metrics"])
+        alerts = _generate_performance_alerts(
+            overall_metrics, performance_data["flow_specific_metrics"]
+        )
         performance_data["alerts"] = alerts
 
         # Generate recommendations
@@ -346,7 +369,7 @@ def distributed_system_maintenance(
     reset_failed_records: bool = False,
     orphaned_timeout_hours: int = 2,
     max_retries: int = 3,
-    dry_run: bool = False
+    dry_run: bool = False,
 ) -> dict[str, Any]:
     """
     Perform maintenance operations on the distributed processing system.
@@ -385,7 +408,7 @@ def distributed_system_maintenance(
             "reset_results": {},
             "before_status": {},
             "after_status": {},
-            "recommendations": []
+            "recommendations": [],
         }
 
         # Get initial queue status
@@ -395,28 +418,36 @@ def distributed_system_maintenance(
 
         # Orphaned records cleanup
         if cleanup_orphaned_records:
-            logger.info(f"Cleaning up orphaned records (timeout: {orphaned_timeout_hours}h)")
+            logger.info(
+                f"Cleaning up orphaned records (timeout: {orphaned_timeout_hours}h)"
+            )
 
             if dry_run:
                 # Simulate cleanup by counting orphaned records
-                orphaned_count = _count_orphaned_records(processor, orphaned_timeout_hours)
+                orphaned_count = _count_orphaned_records(
+                    processor, orphaned_timeout_hours
+                )
                 maintenance_results["cleanup_results"] = {
                     "operation": "cleanup_orphaned_records",
                     "dry_run": True,
                     "orphaned_records_found": orphaned_count,
                     "records_cleaned": 0,
-                    "message": f"Would clean up {orphaned_count} orphaned records"
+                    "message": f"Would clean up {orphaned_count} orphaned records",
                 }
             else:
-                cleaned_count = processor.cleanup_orphaned_records(orphaned_timeout_hours)
+                cleaned_count = processor.cleanup_orphaned_records(
+                    orphaned_timeout_hours
+                )
                 maintenance_results["cleanup_results"] = {
                     "operation": "cleanup_orphaned_records",
                     "dry_run": False,
                     "records_cleaned": cleaned_count,
-                    "timeout_hours": orphaned_timeout_hours
+                    "timeout_hours": orphaned_timeout_hours,
                 }
 
-            maintenance_results["operations_performed"].append("cleanup_orphaned_records")
+            maintenance_results["operations_performed"].append(
+                "cleanup_orphaned_records"
+            )
 
         # Failed records reset
         if reset_failed_records:
@@ -436,19 +467,21 @@ def distributed_system_maintenance(
             for flow_name in flows_with_failures:
                 if dry_run:
                     # Count failed records that would be reset
-                    failed_count = _count_resettable_failed_records(processor, flow_name, max_retries)
+                    failed_count = _count_resettable_failed_records(
+                        processor, flow_name, max_retries
+                    )
                     reset_results[flow_name] = {
                         "dry_run": True,
                         "failed_records_found": failed_count,
                         "records_reset": 0,
-                        "message": f"Would reset {failed_count} failed records"
+                        "message": f"Would reset {failed_count} failed records",
                     }
                 else:
                     reset_count = processor.reset_failed_records(flow_name, max_retries)
                     reset_results[flow_name] = {
                         "dry_run": False,
                         "records_reset": reset_count,
-                        "max_retries": max_retries
+                        "max_retries": max_retries,
                     }
                     total_reset += reset_count
 
@@ -456,7 +489,7 @@ def distributed_system_maintenance(
                 "operation": "reset_failed_records",
                 "flows_processed": flows_with_failures,
                 "flow_results": reset_results,
-                "total_records_reset": total_reset
+                "total_records_reset": total_reset,
             }
 
             maintenance_results["operations_performed"].append("reset_failed_records")
@@ -475,16 +508,24 @@ def distributed_system_maintenance(
         # Log maintenance summary
         operations_count = len(maintenance_results["operations_performed"])
         if dry_run:
-            logger.info(f"Maintenance dry run completed: {operations_count} operations simulated")
+            logger.info(
+                f"Maintenance dry run completed: {operations_count} operations simulated"
+            )
         else:
-            logger.info(f"Maintenance completed: {operations_count} operations performed")
+            logger.info(
+                f"Maintenance completed: {operations_count} operations performed"
+            )
 
             if cleanup_orphaned_records:
-                cleaned = maintenance_results["cleanup_results"].get("records_cleaned", 0)
+                cleaned = maintenance_results["cleanup_results"].get(
+                    "records_cleaned", 0
+                )
                 logger.info(f"  - Cleaned up {cleaned} orphaned records")
 
             if reset_failed_records:
-                reset_total = maintenance_results["reset_results"].get("total_records_reset", 0)
+                reset_total = maintenance_results["reset_results"].get(
+                    "total_records_reset", 0
+                )
                 logger.info(f"  - Reset {reset_total} failed records for retry")
 
         return maintenance_results
@@ -497,7 +538,10 @@ def distributed_system_maintenance(
 
 # Helper functions for monitoring and diagnostics
 
-def _assess_queue_health(overall_status: dict[str, Any], flow_metrics: dict[str, Any]) -> dict[str, Any]:
+
+def _assess_queue_health(
+    overall_status: dict[str, Any], flow_metrics: dict[str, Any]
+) -> dict[str, Any]:
     """Assess overall queue health based on metrics."""
     total_records = overall_status.get("total_records", 0)
     overall_status.get("pending_records", 0)
@@ -529,13 +573,19 @@ def _assess_queue_health(overall_status: dict[str, Any], flow_metrics: dict[str,
         "queue_health": queue_health,
         "health_score": health_score,
         "total_records": total_records,
-        "failed_rate_percent": (failed_records / total_records * 100) if total_records > 0 else 0,
-        "processing_rate_percent": (processing_records / total_records * 100) if total_records > 0 else 0,
-        "assessment_timestamp": datetime.now().isoformat() + "Z"
+        "failed_rate_percent": (failed_records / total_records * 100)
+        if total_records > 0
+        else 0,
+        "processing_rate_percent": (processing_records / total_records * 100)
+        if total_records > 0
+        else 0,
+        "assessment_timestamp": datetime.now().isoformat() + "Z",
     }
 
 
-def _generate_queue_alerts(overall_status: dict[str, Any], flow_metrics: dict[str, Any]) -> list[str]:
+def _generate_queue_alerts(
+    overall_status: dict[str, Any], flow_metrics: dict[str, Any]
+) -> list[str]:
     """Generate operational alerts based on queue status."""
     alerts = []
 
@@ -548,17 +598,25 @@ def _generate_queue_alerts(overall_status: dict[str, Any], flow_metrics: dict[st
     if total_records > 0:
         failed_rate = (failed_records / total_records) * 100
         if failed_rate > 20:
-            alerts.append(f"CRITICAL: High failure rate ({failed_rate:.1f}%) - {failed_records} failed records")
+            alerts.append(
+                f"CRITICAL: High failure rate ({failed_rate:.1f}%) - {failed_records} failed records"
+            )
         elif failed_rate > 10:
-            alerts.append(f"WARNING: Elevated failure rate ({failed_rate:.1f}%) - {failed_records} failed records")
+            alerts.append(
+                f"WARNING: Elevated failure rate ({failed_rate:.1f}%) - {failed_records} failed records"
+            )
 
     # High processing backlog alert
     if pending_records > 1000:
-        alerts.append(f"WARNING: Large processing backlog - {pending_records} pending records")
+        alerts.append(
+            f"WARNING: Large processing backlog - {pending_records} pending records"
+        )
 
     # Stuck processing records alert
     if processing_records > 100:
-        alerts.append(f"WARNING: Many records in processing state - {processing_records} records (check for orphaned records)")
+        alerts.append(
+            f"WARNING: Many records in processing state - {processing_records} records (check for orphaned records)"
+        )
 
     # Flow-specific alerts
     for flow_name, flow_data in flow_metrics.items():
@@ -568,12 +626,16 @@ def _generate_queue_alerts(overall_status: dict[str, Any], flow_metrics: dict[st
         if flow_total > 0 and flow_failed > 0:
             flow_failed_rate = (flow_failed / flow_total) * 100
             if flow_failed_rate > 50:
-                alerts.append(f"CRITICAL: Flow '{flow_name}' has high failure rate ({flow_failed_rate:.1f}%)")
+                alerts.append(
+                    f"CRITICAL: Flow '{flow_name}' has high failure rate ({flow_failed_rate:.1f}%)"
+                )
 
     return alerts
 
 
-def _generate_queue_recommendations(overall_status: dict[str, Any], queue_assessment: dict[str, Any]) -> list[str]:
+def _generate_queue_recommendations(
+    overall_status: dict[str, Any], queue_assessment: dict[str, Any]
+) -> list[str]:
     """Generate operational recommendations based on queue analysis."""
     recommendations = []
 
@@ -582,22 +644,34 @@ def _generate_queue_recommendations(overall_status: dict[str, Any], queue_assess
     queue_assessment.get("processing_rate_percent", 0)
 
     if queue_health == "critical":
-        recommendations.append("URGENT: Investigate high failure rates and resolve underlying issues")
-        recommendations.append("Consider pausing new record ingestion until issues are resolved")
+        recommendations.append(
+            "URGENT: Investigate high failure rates and resolve underlying issues"
+        )
+        recommendations.append(
+            "Consider pausing new record ingestion until issues are resolved"
+        )
 
     elif queue_health == "degraded":
-        recommendations.append("Investigate causes of record failures and implement fixes")
-        recommendations.append("Monitor error patterns and consider adjusting retry logic")
+        recommendations.append(
+            "Investigate causes of record failures and implement fixes"
+        )
+        recommendations.append(
+            "Monitor error patterns and consider adjusting retry logic"
+        )
 
     elif queue_health == "overloaded":
-        recommendations.append("Consider scaling up processing capacity (more containers)")
+        recommendations.append(
+            "Consider scaling up processing capacity (more containers)"
+        )
         recommendations.append("Review batch sizes and processing efficiency")
 
     if overall_status.get("processing_records", 0) > 50:
         recommendations.append("Check for orphaned records and run cleanup maintenance")
 
     if overall_status.get("pending_records", 0) > 500:
-        recommendations.append("Consider increasing processing capacity to handle backlog")
+        recommendations.append(
+            "Consider increasing processing capacity to handle backlog"
+        )
 
     if not recommendations:
         recommendations.append("Queue is operating normally - continue monitoring")
@@ -605,7 +679,9 @@ def _generate_queue_recommendations(overall_status: dict[str, Any], queue_assess
     return recommendations
 
 
-def _analyze_orphaned_records(processor: DistributedProcessor, flow_name: Optional[str]) -> dict[str, Any]:
+def _analyze_orphaned_records(
+    processor: DistributedProcessor, flow_name: Optional[str]
+) -> dict[str, Any]:
     """Analyze orphaned records in the processing queue."""
     try:
         # Query for potentially orphaned records (processing for > 1 hour)
@@ -637,18 +713,22 @@ def _analyze_orphaned_records(processor: DistributedProcessor, flow_name: Option
             "analysis_timestamp": datetime.now().isoformat() + "Z",
             "total_orphaned_records": total_orphaned,
             "orphaned_by_flow": results,
-            "oldest_orphaned_hours": max(row["avg_hours_stuck"] for row in results) if results else 0
+            "oldest_orphaned_hours": max(row["avg_hours_stuck"] for row in results)
+            if results
+            else 0,
         }
 
     except Exception as e:
         return {
             "analysis_timestamp": datetime.now().isoformat() + "Z",
             "error": f"Failed to analyze orphaned records: {e}",
-            "total_orphaned_records": 0
+            "total_orphaned_records": 0,
         }
 
 
-def _analyze_processing_performance(processor: DistributedProcessor, flow_name: Optional[str]) -> dict[str, Any]:
+def _analyze_processing_performance(
+    processor: DistributedProcessor, flow_name: Optional[str]
+) -> dict[str, Any]:
     """Analyze processing performance metrics."""
     try:
         # Query for processing performance over last 24 hours
@@ -679,7 +759,9 @@ def _analyze_processing_performance(processor: DistributedProcessor, flow_name: 
         if results:
             total_processed = sum(row["total_processed"] for row in results)
             total_completed = sum(row["completed_count"] for row in results)
-            avg_processing_time = sum(row["avg_processing_minutes"] or 0 for row in results) / len(results)
+            avg_processing_time = sum(
+                row["avg_processing_minutes"] or 0 for row in results
+            ) / len(results)
         else:
             total_processed = 0
             total_completed = 0
@@ -690,16 +772,18 @@ def _analyze_processing_performance(processor: DistributedProcessor, flow_name: 
             "time_window_hours": 24,
             "total_processed": total_processed,
             "total_completed": total_completed,
-            "success_rate_percent": (total_completed / total_processed * 100) if total_processed > 0 else 0,
+            "success_rate_percent": (total_completed / total_processed * 100)
+            if total_processed > 0
+            else 0,
             "avg_processing_time_minutes": round(avg_processing_time, 2),
-            "performance_by_flow": results
+            "performance_by_flow": results,
         }
 
     except Exception as e:
         return {
             "analysis_timestamp": datetime.now().isoformat() + "Z",
             "error": f"Failed to analyze processing performance: {e}",
-            "total_processed": 0
+            "total_processed": 0,
         }
 
 
@@ -707,7 +791,7 @@ def _calculate_performance_metrics(
     processor: DistributedProcessor,
     flow_name: Optional[str],
     start_time: datetime,
-    end_time: datetime
+    end_time: datetime,
 ) -> dict[str, Any]:
     """Calculate detailed performance metrics for a time window."""
     try:
@@ -726,7 +810,7 @@ def _calculate_performance_metrics(
 
         params = {
             "start_time": start_time.isoformat(),
-            "end_time": end_time.isoformat()
+            "end_time": end_time.isoformat(),
         }
 
         if flow_name:
@@ -744,21 +828,25 @@ def _calculate_performance_metrics(
 
             # Calculate processing rate per hour
             time_window_hours = (end_time - start_time).total_seconds() / 3600
-            processing_rate_per_hour = total_processed / time_window_hours if time_window_hours > 0 else 0
+            processing_rate_per_hour = (
+                total_processed / time_window_hours if time_window_hours > 0 else 0
+            )
 
             return {
                 "flow_name": flow_name,
                 "time_window": {
                     "start_time": start_time.isoformat() + "Z",
                     "end_time": end_time.isoformat() + "Z",
-                    "duration_hours": round(time_window_hours, 2)
+                    "duration_hours": round(time_window_hours, 2),
                 },
                 "total_processed": total_processed,
                 "completed_count": completed_count,
                 "failed_count": failed_count,
-                "success_rate_percent": round((completed_count / total_processed * 100), 2),
+                "success_rate_percent": round(
+                    (completed_count / total_processed * 100), 2
+                ),
                 "avg_processing_time_minutes": round(avg_processing_minutes, 2),
-                "avg_processing_rate_per_hour": round(processing_rate_per_hour, 2)
+                "avg_processing_rate_per_hour": round(processing_rate_per_hour, 2),
             }
         else:
             return {
@@ -766,21 +854,23 @@ def _calculate_performance_metrics(
                 "time_window": {
                     "start_time": start_time.isoformat() + "Z",
                     "end_time": end_time.isoformat() + "Z",
-                    "duration_hours": round((end_time - start_time).total_seconds() / 3600, 2)
+                    "duration_hours": round(
+                        (end_time - start_time).total_seconds() / 3600, 2
+                    ),
                 },
                 "total_processed": 0,
                 "completed_count": 0,
                 "failed_count": 0,
                 "success_rate_percent": 0,
                 "avg_processing_time_minutes": 0,
-                "avg_processing_rate_per_hour": 0
+                "avg_processing_rate_per_hour": 0,
             }
 
     except Exception as e:
         return {
             "flow_name": flow_name,
             "error": f"Failed to calculate performance metrics: {e}",
-            "total_processed": 0
+            "total_processed": 0,
         }
 
 
@@ -788,7 +878,7 @@ def _analyze_processing_errors(
     processor: DistributedProcessor,
     flow_names: list[str],
     start_time: datetime,
-    end_time: datetime
+    end_time: datetime,
 ) -> dict[str, Any]:
     """Analyze error patterns in processing."""
     try:
@@ -808,7 +898,7 @@ def _analyze_processing_errors(
 
         params = {
             "start_time": start_time.isoformat(),
-            "end_time": end_time.isoformat()
+            "end_time": end_time.isoformat(),
         }
 
         if flow_names:
@@ -830,31 +920,33 @@ def _analyze_processing_errors(
             if flow_name not in errors_by_flow:
                 errors_by_flow[flow_name] = []
 
-            errors_by_flow[flow_name].append({
-                "error_message": row["error_message"],
-                "error_count": row["error_count"],
-                "first_occurrence": row["first_occurrence"],
-                "last_occurrence": row["last_occurrence"]
-            })
+            errors_by_flow[flow_name].append(
+                {
+                    "error_message": row["error_message"],
+                    "error_count": row["error_count"],
+                    "first_occurrence": row["first_occurrence"],
+                    "last_occurrence": row["last_occurrence"],
+                }
+            )
             total_errors += row["error_count"]
 
         return {
             "analysis_timestamp": datetime.now().isoformat() + "Z",
             "time_window": {
                 "start_time": start_time.isoformat() + "Z",
-                "end_time": end_time.isoformat() + "Z"
+                "end_time": end_time.isoformat() + "Z",
             },
             "total_errors": total_errors,
             "unique_error_types": len(results),
             "errors_by_flow": errors_by_flow,
-            "top_errors": results[:10]  # Top 10 most frequent errors
+            "top_errors": results[:10],  # Top 10 most frequent errors
         }
 
     except Exception as e:
         return {
             "analysis_timestamp": datetime.now().isoformat() + "Z",
             "error": f"Failed to analyze processing errors: {e}",
-            "total_errors": 0
+            "total_errors": 0,
         }
 
 
@@ -862,7 +954,7 @@ def _analyze_performance_trends(
     processor: DistributedProcessor,
     flow_names: list[str],
     start_time: datetime,
-    end_time: datetime
+    end_time: datetime,
 ) -> dict[str, Any]:
     """Analyze performance trends over time."""
     try:
@@ -880,7 +972,7 @@ def _analyze_performance_trends(
 
         params = {
             "start_time": start_time.isoformat(),
-            "end_time": end_time.isoformat()
+            "end_time": end_time.isoformat(),
         }
 
         if flow_names:
@@ -889,7 +981,9 @@ def _analyze_performance_trends(
             for i, flow_name in enumerate(flow_names):
                 params[f"flow_{i}"] = flow_name
 
-        query += " GROUP BY DATE_TRUNC('hour', claimed_at), flow_name ORDER BY hour DESC"
+        query += (
+            " GROUP BY DATE_TRUNC('hour', claimed_at), flow_name ORDER BY hour DESC"
+        )
 
         results = processor.rpa_db.execute_query(query, params)
 
@@ -902,7 +996,7 @@ def _analyze_performance_trends(
                     "total_processed": 0,
                     "total_completed": 0,
                     "avg_processing_time": 0,
-                    "flows": {}
+                    "flows": {},
                 }
 
             hourly_totals[hour]["total_processed"] += row["records_processed"]
@@ -910,57 +1004,72 @@ def _analyze_performance_trends(
             hourly_totals[hour]["flows"][row["flow_name"]] = {
                 "processed": row["records_processed"],
                 "completed": row["completed_count"],
-                "avg_processing_minutes": row["avg_processing_minutes"]
+                "avg_processing_minutes": row["avg_processing_minutes"],
             }
 
         return {
             "analysis_timestamp": datetime.now().isoformat() + "Z",
             "time_window": {
                 "start_time": start_time.isoformat() + "Z",
-                "end_time": end_time.isoformat() + "Z"
+                "end_time": end_time.isoformat() + "Z",
             },
             "hourly_trends": hourly_totals,
             "trend_summary": {
                 "total_hours_analyzed": len(hourly_totals),
                 "peak_hour_processing": max(
-                    (hour_data["total_processed"] for hour_data in hourly_totals.values()),
-                    default=0
-                )
-            }
+                    (
+                        hour_data["total_processed"]
+                        for hour_data in hourly_totals.values()
+                    ),
+                    default=0,
+                ),
+            },
         }
 
     except Exception as e:
         return {
             "analysis_timestamp": datetime.now().isoformat() + "Z",
             "error": f"Failed to analyze performance trends: {e}",
-            "hourly_trends": {}
+            "hourly_trends": {},
         }
 
 
-def _generate_performance_alerts(overall_metrics: dict[str, Any], flow_metrics: dict[str, Any]) -> list[str]:
+def _generate_performance_alerts(
+    overall_metrics: dict[str, Any], flow_metrics: dict[str, Any]
+) -> list[str]:
     """Generate performance-based alerts."""
     alerts = []
 
     # Overall performance alerts
     overall_success_rate = overall_metrics.get("success_rate_percent", 100)
     if overall_success_rate < 80:
-        alerts.append(f"CRITICAL: Low overall success rate ({overall_success_rate:.1f}%)")
+        alerts.append(
+            f"CRITICAL: Low overall success rate ({overall_success_rate:.1f}%)"
+        )
     elif overall_success_rate < 90:
-        alerts.append(f"WARNING: Reduced overall success rate ({overall_success_rate:.1f}%)")
+        alerts.append(
+            f"WARNING: Reduced overall success rate ({overall_success_rate:.1f}%)"
+        )
 
     overall_processing_rate = overall_metrics.get("avg_processing_rate_per_hour", 0)
     if overall_processing_rate < 10:
-        alerts.append(f"WARNING: Low processing rate ({overall_processing_rate:.1f} records/hour)")
+        alerts.append(
+            f"WARNING: Low processing rate ({overall_processing_rate:.1f} records/hour)"
+        )
 
     # Flow-specific alerts
     for flow_name, metrics in flow_metrics.items():
         flow_success_rate = metrics.get("success_rate_percent", 100)
         if flow_success_rate < 70:
-            alerts.append(f"CRITICAL: Flow '{flow_name}' has very low success rate ({flow_success_rate:.1f}%)")
+            alerts.append(
+                f"CRITICAL: Flow '{flow_name}' has very low success rate ({flow_success_rate:.1f}%)"
+            )
 
         flow_processing_time = metrics.get("avg_processing_time_minutes", 0)
         if flow_processing_time > 30:
-            alerts.append(f"WARNING: Flow '{flow_name}' has high processing time ({flow_processing_time:.1f} minutes)")
+            alerts.append(
+                f"WARNING: Flow '{flow_name}' has high processing time ({flow_processing_time:.1f} minutes)"
+            )
 
     return alerts
 
@@ -968,7 +1077,7 @@ def _generate_performance_alerts(overall_metrics: dict[str, Any], flow_metrics: 
 def _generate_performance_recommendations(
     overall_metrics: dict[str, Any],
     flow_metrics: dict[str, Any],
-    error_analysis: dict[str, Any]
+    error_analysis: dict[str, Any],
 ) -> list[str]:
     """Generate performance improvement recommendations."""
     recommendations = []
@@ -980,12 +1089,16 @@ def _generate_performance_recommendations(
 
     overall_processing_rate = overall_metrics.get("avg_processing_rate_per_hour", 0)
     if overall_processing_rate < 50:
-        recommendations.append("Consider optimizing processing logic or increasing container capacity")
+        recommendations.append(
+            "Consider optimizing processing logic or increasing container capacity"
+        )
 
     # Error pattern recommendations
     total_errors = error_analysis.get("total_errors", 0)
     if total_errors > 100:
-        recommendations.append("High error volume detected - review error patterns and implement fixes")
+        recommendations.append(
+            "High error volume detected - review error patterns and implement fixes"
+        )
 
     # Flow-specific recommendations
     slow_flows = []
@@ -998,13 +1111,19 @@ def _generate_performance_recommendations(
             failing_flows.append(flow_name)
 
     if slow_flows:
-        recommendations.append(f"Optimize processing logic for slow flows: {', '.join(slow_flows)}")
+        recommendations.append(
+            f"Optimize processing logic for slow flows: {', '.join(slow_flows)}"
+        )
 
     if failing_flows:
-        recommendations.append(f"Investigate failure causes for flows: {', '.join(failing_flows)}")
+        recommendations.append(
+            f"Investigate failure causes for flows: {', '.join(failing_flows)}"
+        )
 
     if not recommendations:
-        recommendations.append("Performance is within acceptable ranges - continue monitoring")
+        recommendations.append(
+            "Performance is within acceptable ranges - continue monitoring"
+        )
 
     return recommendations
 
@@ -1016,30 +1135,42 @@ def _generate_diagnostic_recommendations(diagnostics: dict[str, Any]) -> list[st
     # System health recommendations
     system_health = diagnostics.get("system_health", {})
     if system_health.get("status") == "unhealthy":
-        recommendations.append("URGENT: Resolve database connectivity issues before processing")
+        recommendations.append(
+            "URGENT: Resolve database connectivity issues before processing"
+        )
     elif system_health.get("status") == "degraded":
-        recommendations.append("Address database performance issues to improve processing efficiency")
+        recommendations.append(
+            "Address database performance issues to improve processing efficiency"
+        )
 
     # Orphaned records recommendations
     orphaned_analysis = diagnostics.get("orphaned_records_analysis", {})
     orphaned_count = orphaned_analysis.get("orphaned_count", 0)
     if orphaned_count > 10:
-        recommendations.append(f"Run maintenance to clean up {orphaned_count} orphaned records")
+        recommendations.append(
+            f"Run maintenance to clean up {orphaned_count} orphaned records"
+        )
 
     # Performance recommendations
     performance_analysis = diagnostics.get("performance_analysis", {})
     avg_processing_time = performance_analysis.get("avg_processing_time_minutes", 0)
     if avg_processing_time > 30:
-        recommendations.append("Investigate causes of high processing times and optimize business logic")
+        recommendations.append(
+            "Investigate causes of high processing times and optimize business logic"
+        )
 
     # Queue health recommendations
     queue_diagnostics = diagnostics.get("queue_diagnostics", {})
     failed_records = queue_diagnostics.get("failed_records", 0)
     if failed_records > 50:
-        recommendations.append("High number of failed records - investigate error patterns and implement fixes")
+        recommendations.append(
+            "High number of failed records - investigate error patterns and implement fixes"
+        )
 
     if not recommendations:
-        recommendations.append("System diagnostics show normal operation - continue monitoring")
+        recommendations.append(
+            "System diagnostics show normal operation - continue monitoring"
+        )
 
     return recommendations
 
@@ -1054,14 +1185,18 @@ def _count_orphaned_records(processor: DistributedProcessor, timeout_hours: int)
         AND claimed_at < NOW() - INTERVAL ':timeout_hours hours'
         """
 
-        results = processor.rpa_db.execute_query(query, {"timeout_hours": timeout_hours})
+        results = processor.rpa_db.execute_query(
+            query, {"timeout_hours": timeout_hours}
+        )
         return results[0]["count"] if results else 0
 
     except Exception:
         return 0
 
 
-def _count_resettable_failed_records(processor: DistributedProcessor, flow_name: str, max_retries: int) -> int:
+def _count_resettable_failed_records(
+    processor: DistributedProcessor, flow_name: str, max_retries: int
+) -> int:
     """Count failed records that would be reset."""
     try:
         query = """
@@ -1072,10 +1207,9 @@ def _count_resettable_failed_records(processor: DistributedProcessor, flow_name:
         AND retry_count < :max_retries
         """
 
-        results = processor.rpa_db.execute_query(query, {
-            "flow_name": flow_name,
-            "max_retries": max_retries
-        })
+        results = processor.rpa_db.execute_query(
+            query, {"flow_name": flow_name, "max_retries": max_retries}
+        )
         return results[0]["count"] if results else 0
 
     except Exception:
@@ -1085,7 +1219,7 @@ def _count_resettable_failed_records(processor: DistributedProcessor, flow_name:
 def _generate_maintenance_recommendations(
     before_status: dict[str, Any],
     after_status: dict[str, Any],
-    maintenance_results: dict[str, Any]
+    maintenance_results: dict[str, Any],
 ) -> list[str]:
     """Generate recommendations based on maintenance results."""
     recommendations = []
@@ -1102,25 +1236,35 @@ def _generate_maintenance_recommendations(
 
     if before_processing > after_processing:
         reduction = before_processing - after_processing
-        recommendations.append(f"Successfully reduced stuck processing records by {reduction}")
+        recommendations.append(
+            f"Successfully reduced stuck processing records by {reduction}"
+        )
 
     # Ongoing maintenance recommendations
     if after_failed > 100:
-        recommendations.append("Consider investigating root causes of persistent failures")
+        recommendations.append(
+            "Consider investigating root causes of persistent failures"
+        )
 
     if after_processing > 50:
-        recommendations.append("Monitor for new orphaned records and schedule regular cleanup")
+        recommendations.append(
+            "Monitor for new orphaned records and schedule regular cleanup"
+        )
 
     # Schedule recommendations
     cleanup_results = maintenance_results.get("cleanup_results", {})
     if cleanup_results.get("records_cleaned", 0) > 0:
-        recommendations.append("Schedule regular orphaned record cleanup (every 2-4 hours)")
+        recommendations.append(
+            "Schedule regular orphaned record cleanup (every 2-4 hours)"
+        )
 
     reset_results = maintenance_results.get("reset_results", {})
     if reset_results.get("total_records_reset", 0) > 0:
         recommendations.append("Monitor reset records for recurring failures")
 
     if not recommendations:
-        recommendations.append("Maintenance completed successfully - system is operating normally")
+        recommendations.append(
+            "Maintenance completed successfully - system is operating normally"
+        )
 
     return recommendations

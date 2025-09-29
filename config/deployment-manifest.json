@@ -1,0 +1,38 @@
+{
+  "deployment_order": [
+    "rpa1-worker",
+    "rpa2-worker", 
+    "rpa3-worker"
+  ],
+  "deployment_delay": 30,
+  "continue_on_failure": false,
+  "services": {
+    "rpa1-worker": {
+      "image_tag": "rpa-flow1:latest",
+      "replicas": 2,
+      "environment_variables": {
+        "CONTAINER_FLOW_NAME": "rpa1",
+        "CONTAINER_LOG_LEVEL": "INFO",
+        "CONTAINER_METRICS_ENABLED": "true"
+      }
+    },
+    "rpa2-worker": {
+      "image_tag": "rpa-flow2:latest", 
+      "replicas": 2,
+      "environment_variables": {
+        "CONTAINER_FLOW_NAME": "rpa2",
+        "CONTAINER_LOG_LEVEL": "INFO",
+        "CONTAINER_METRICS_ENABLED": "true"
+      }
+    },
+    "rpa3-worker": {
+      "image_tag": "rpa-flow3:latest",
+      "replicas": 1,
+      "environment_variables": {
+        "CONTAINER_FLOW_NAME": "rpa3",
+        "CONTAINER_LOG_LEVEL": "INFO", 
+        "CONTAINER_METRICS_ENABLED": "true"
+      }
+    }
+  }
+}

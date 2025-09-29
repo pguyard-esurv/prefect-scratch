@@ -31,8 +31,7 @@ processor = DistributedProcessor(rpa_db_manager, source_db_manager)
 
 @task(name="prepare-survey-records")
 def prepare_survey_records_for_queue(
-    survey_count: int = 10,
-    priority_distribution: Optional[dict[str, float]] = None
+    survey_count: int = 10, priority_distribution: Optional[dict[str, float]] = None
 ) -> list[dict[str, Any]]:
     """
     Prepare sample survey records for adding to the processing queue.
@@ -57,9 +56,7 @@ def prepare_survey_records_for_queue(
     if priority_distribution is None:
         priority_distribution = {"high": 0.2, "normal": 0.6, "low": 0.2}
 
-    logger.info(
-        f"Preparing {survey_count} survey records for processing queue"
-    )
+    logger.info(f"Preparing {survey_count} survey records for processing queue")
 
     # Sample customer data for realistic records
     customers = [
@@ -72,7 +69,7 @@ def prepare_survey_records_for_queue(
         {"id": "CUST007", "name": "Grace Lee", "segment": "enterprise"},
         {"id": "CUST008", "name": "Henry Ford", "segment": "standard"},
         {"id": "CUST009", "name": "Ivy Chen", "segment": "premium"},
-        {"id": "CUST010", "name": "Jack Ryan", "segment": "enterprise"}
+        {"id": "CUST010", "name": "Jack Ryan", "segment": "enterprise"},
     ]
 
     survey_types = [
@@ -80,7 +77,7 @@ def prepare_survey_records_for_queue(
         "Product Feedback",
         "Market Research",
         "Service Quality",
-        "Feature Request"
+        "Feature Request",
     ]
 
     records = []
@@ -94,6 +91,7 @@ def prepare_survey_records_for_queue(
 
         # Determine priority based on distribution
         import random
+
         priority = random.choices(priorities, weights=priority_weights)[0]
 
         # Create realistic survey payload
@@ -113,26 +111,23 @@ def prepare_survey_records_for_queue(
                 "service_rating": random.randint(1, 5),
                 "product_rating": random.randint(1, 5),
                 "comments": f"Sample feedback for survey {1000 + i}",
-                "completion_time_seconds": random.randint(120, 600)
+                "completion_time_seconds": random.randint(120, 600),
             },
             "metadata": {
                 "source_system": "survey_portal",
                 "survey_version": "v2.1",
                 "device_type": random.choice(["desktop", "mobile", "tablet"]),
-                "language": "en-US"
-            }
+                "language": "en-US",
+            },
         }
 
         # Create record for queue insertion
-        record = {
-            "payload": survey_payload
-        }
+        record = {"payload": survey_payload}
 
         records.append(record)
 
     priority_counts = {
-        p: sum(1 for r in records if r['payload']['priority'] == p)
-        for p in priorities
+        p: sum(1 for r in records if r["payload"]["priority"] == p) for p in priorities
     }
     logger.info(
         f"Prepared {len(records)} survey records with priority distribution: "
@@ -144,8 +139,7 @@ def prepare_survey_records_for_queue(
 
 @task(name="add-surveys-to-queue")
 def add_surveys_to_processing_queue(
-    records: list[dict[str, Any]],
-    flow_name: str = "survey_processor"
+    records: list[dict[str, Any]], flow_name: str = "survey_processor"
 ) -> dict[str, Any]:
     """
     Add prepared survey records to the distributed processing queue.
@@ -181,7 +175,7 @@ def add_surveys_to_processing_queue(
             "records_added": inserted_count,
             "flow_name": flow_name,
             "queue_status": queue_status,
-            "insertion_timestamp": datetime.now().isoformat()
+            "insertion_timestamp": datetime.now().isoformat(),
         }
 
         logger.info(
@@ -227,12 +221,8 @@ def process_survey_business_logic(payload: dict[str, Any]) -> dict[str, Any]:
     logger.info(f"Processing survey {survey_id} for customer {customer_id}")
 
     # Validate required fields
-    required_fields = [
-        "survey_id", "customer_id", "survey_type", "response_data"
-    ]
-    missing_fields = [
-        field for field in required_fields if not payload.get(field)
-    ]
+    required_fields = ["survey_id", "customer_id", "survey_type", "response_data"]
+    missing_fields = [field for field in required_fields if not payload.get(field)]
 
     if missing_fields:
         raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
@@ -241,18 +231,14 @@ def process_survey_business_logic(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(response_data, dict):
         raise ValueError("response_data must be a dictionary")
 
-    required_response_fields = [
-        "overall_satisfaction", "likelihood_to_recommend"
-    ]
+    required_response_fields = ["overall_satisfaction", "likelihood_to_recommend"]
     missing_response_fields = [
-        field for field in required_response_fields
-        if field not in response_data
+        field for field in required_response_fields if field not in response_data
     ]
 
     if missing_response_fields:
         raise ValueError(
-            f"Missing required response fields: "
-            f"{', '.join(missing_response_fields)}"
+            f"Missing required response fields: {', '.join(missing_response_fields)}"
         )
 
     try:
@@ -274,7 +260,7 @@ def process_survey_business_logic(payload: dict[str, Any]) -> dict[str, Any]:
                     "registration_date": "2023-01-15",
                     "total_orders": 15,
                     "lifetime_value": 2500.00,
-                    "support_tickets": 2
+                    "support_tickets": 2,
                 }
 
                 logger.debug(
@@ -300,24 +286,16 @@ def process_survey_business_logic(payload: dict[str, Any]) -> dict[str, Any]:
             nps_category = "detractor"
 
         # Calculate composite satisfaction score (weighted average)
-        weights = {
-            "overall": 0.4,
-            "service": 0.3,
-            "product": 0.3
-        }
+        weights = {"overall": 0.4, "service": 0.3, "product": 0.3}
 
         # Normalize ratings to 0-10 scale
-        normalized_service = (
-            (service_rating / 5.0) * 10 if service_rating else 0
-        )
-        normalized_product = (
-            (product_rating / 5.0) * 10 if product_rating else 0
-        )
+        normalized_service = (service_rating / 5.0) * 10 if service_rating else 0
+        normalized_product = (product_rating / 5.0) * 10 if product_rating else 0
 
         composite_score = (
-            (overall_satisfaction * weights["overall"]) +
-            (normalized_service * weights["service"]) +
-            (normalized_product * weights["product"])
+            (overall_satisfaction * weights["overall"])
+            + (normalized_service * weights["service"])
+            + (normalized_product * weights["product"])
         )
 
         # Determine satisfaction level
@@ -358,18 +336,19 @@ def process_survey_business_logic(payload: dict[str, Any]) -> dict[str, Any]:
                 "composite_score": round(composite_score, 2),
                 "weighted_score": round(weighted_score, 2),
                 "satisfaction_level": satisfaction_level,
-                "nps_category": nps_category
+                "nps_category": nps_category,
             },
             "customer_analysis": customer_data,
             "processing_metadata": {
                 "processor_instance": processor.instance_id,
                 "processing_algorithm": "composite_scoring_v2.1",
                 "data_sources": (
-                    ["survey_response", "customer_profile"] if customer_data
+                    ["survey_response", "customer_profile"]
+                    if customer_data
                     else ["survey_response"]
                 ),
-                "quality_score": 0.95  # Simulated data quality score
-            }
+                "quality_score": 0.95,  # Simulated data quality score
+            },
         }
 
         # Step 5: Store results in rpa_db processed_surveys table
@@ -393,7 +372,7 @@ def process_survey_business_logic(payload: dict[str, Any]) -> dict[str, Any]:
                 "processed_at": processing_result["processed_at"],
                 "processing_duration_ms": processing_result["processing_duration_ms"],
                 "flow_run_id": processing_result["flow_run_id"],
-                "error_message": None
+                "error_message": None,
             }
 
             rpa_db_manager.execute_query(insert_query, insert_params)
@@ -406,9 +385,7 @@ def process_survey_business_logic(payload: dict[str, Any]) -> dict[str, Any]:
             )
 
         except Exception as db_error:
-            logger.error(
-                f"Failed to store survey results in database: {db_error}"
-            )
+            logger.error(f"Failed to store survey results in database: {db_error}")
             # Update processing result to reflect storage failure
             processing_result["processing_status"] = "completed_with_storage_error"
             processing_result["storage_error"] = str(db_error)
@@ -442,15 +419,13 @@ def process_survey_business_logic(payload: dict[str, Any]) -> dict[str, Any]:
                     f"distributed-survey-failed-"
                     f"{datetime.now().strftime('%Y%m%d-%H%M%S')}"
                 ),
-                "error_message": error_msg
+                "error_message": error_msg,
             }
 
             rpa_db_manager.execute_query(failure_query, failure_params)
 
         except Exception as db_error:
-            logger.error(
-                f"Failed to store error record in database: {db_error}"
-            )
+            logger.error(f"Failed to store error record in database: {db_error}")
 
         # Re-raise the original error
         raise RuntimeError(error_msg) from e
@@ -459,12 +434,12 @@ def process_survey_business_logic(payload: dict[str, Any]) -> dict[str, Any]:
 @flow(
     name="distributed-survey-processing",
     task_runner=ConcurrentTaskRunner(),
-    description="Complete distributed survey processing example with queue management"
+    description="Complete distributed survey processing example with queue management",
 )
 def distributed_survey_processing_flow(
     batch_size: int = 10,
     prepare_sample_data: bool = True,
-    sample_record_count: int = 25
+    sample_record_count: int = 25,
 ) -> dict[str, Any]:
     """
     Complete distributed survey processing flow with sample data preparation.
@@ -517,8 +492,7 @@ def distributed_survey_processing_flow(
 
             # Add records to processing queue
             preparation_result = add_surveys_to_processing_queue(
-                records=sample_records,
-                flow_name=flow_name
+                records=sample_records, flow_name=flow_name
             )
 
             logger.info(
@@ -546,7 +520,7 @@ def distributed_survey_processing_flow(
         processing_result = distributed_processing_flow(
             flow_name=flow_name,
             batch_size=batch_size,
-            business_logic_func=process_survey_business_logic
+            business_logic_func=process_survey_business_logic,
         )
 
         # Step 4: Get final queue status
@@ -592,13 +566,13 @@ def distributed_survey_processing_flow(
                 "flow_name": flow_name,
                 "execution_time": datetime.now().isoformat(),
                 "batch_size": batch_size,
-                "processor_instance": processor.instance_id
+                "processor_instance": processor.instance_id,
             },
             "sample_data_preparation": preparation_result,
             "queue_status": {
                 "initial": initial_queue_status,
                 "final": final_queue_status,
-                "records_processed_this_run": records_processed
+                "records_processed_this_run": records_processed,
             },
             "processing_results": processing_result,
             "performance_metrics": {
@@ -608,17 +582,17 @@ def distributed_survey_processing_flow(
                 "success_rate_percent": success_rate,
                 "processing_efficiency": {
                     "batch_utilization": (
-                        (records_processed / batch_size * 100)
-                        if batch_size > 0 else 0
+                        (records_processed / batch_size * 100) if batch_size > 0 else 0
                     ),
                     "error_rate": (
                         (records_failed / records_processed * 100)
-                        if records_processed > 0 else 0
-                    )
-                }
+                        if records_processed > 0
+                        else 0
+                    ),
+                },
             },
             "database_statistics": processing_stats,
-            "system_health": processor.health_check()
+            "system_health": processor.health_check(),
         }
 
         logger.info(
@@ -639,12 +613,12 @@ def distributed_survey_processing_flow(
                 "error": str(e),
                 "execution_time": datetime.now().isoformat(),
                 "flow_name": flow_name,
-                "batch_size": batch_size
+                "batch_size": batch_size,
             },
             "sample_data_preparation": (
-                preparation_result if 'preparation_result' in locals() else None
+                preparation_result if "preparation_result" in locals() else None
             ),
-            "system_health": processor.health_check()
+            "system_health": processor.health_check(),
         }
 
         # Re-raise with context
@@ -667,9 +641,7 @@ def cleanup_old_survey_records(days_to_keep: int = 30) -> dict[str, Any]:
     logger = get_run_logger()
 
     try:
-        logger.info(
-            f"Cleaning up survey records older than {days_to_keep} days"
-        )
+        logger.info(f"Cleaning up survey records older than {days_to_keep} days")
 
         # Clean up old completed records from processing_queue
         cleanup_queue_query = f"""
@@ -702,7 +674,7 @@ def cleanup_old_survey_records(days_to_keep: int = 30) -> dict[str, Any]:
             "survey_records_deleted": surveys_deleted,
             "orphaned_records_cleaned": orphaned_cleaned,
             "cleanup_timestamp": datetime.now().isoformat(),
-            "days_retained": days_to_keep
+            "days_retained": days_to_keep,
         }
 
         logger.info(
@@ -731,34 +703,31 @@ if __name__ == "__main__":
             # Run cleanup operation
             print("Running cleanup operation...")
             cleanup_result = cleanup_old_survey_records(days_to_keep=7)
-            print("\n" + "="*50)
+            print("\n" + "=" * 50)
             print("CLEANUP OPERATION COMPLETED")
-            print("="*50)
+            print("=" * 50)
             print(json.dumps(cleanup_result, indent=2, default=str))
 
         elif len(sys.argv) > 1 and sys.argv[1] == "process-only":
             # Process existing queue without adding sample data
             print("Processing existing queue...")
             result = distributed_survey_processing_flow(
-                batch_size=15,
-                prepare_sample_data=False
+                batch_size=15, prepare_sample_data=False
             )
-            print("\n" + "="*50)
+            print("\n" + "=" * 50)
             print("DISTRIBUTED SURVEY PROCESSING COMPLETED")
-            print("="*50)
+            print("=" * 50)
             print(json.dumps(result, indent=2, default=str))
 
         else:
             # Full flow with sample data preparation
             print("Running full distributed survey processing flow...")
             result = distributed_survey_processing_flow(
-                batch_size=10,
-                prepare_sample_data=True,
-                sample_record_count=20
+                batch_size=10, prepare_sample_data=True, sample_record_count=20
             )
-            print("\n" + "="*50)
+            print("\n" + "=" * 50)
             print("DISTRIBUTED SURVEY PROCESSING COMPLETED")
-            print("="*50)
+            print("=" * 50)
             print(json.dumps(result, indent=2, default=str))
 
     except Exception as e:

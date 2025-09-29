@@ -43,18 +43,21 @@ def check_environment_setup():
     if python_version < (3, 8):
         issues.append(
             f"❌ Python version {python_version.major}.{python_version.minor} "
-            f"is too old. Requires Python 3.8+")
+            f"is too old. Requires Python 3.8+"
+        )
     else:
-        print(f"✅ Python version: {python_version.major}.{python_version.minor}.{python_version.micro}")  # noqa: E501
+        print(
+            f"✅ Python version: {python_version.major}.{python_version.minor}.{python_version.micro}"
+        )  # noqa: E501
 
     # Check required packages
     required_packages = [
-        ('sqlalchemy', 'SQLAlchemy'),
-        ('psycopg2', 'PostgreSQL driver'),
-        ('pyodbc', 'SQL Server driver'),
-        ('pyway', 'Migration tool'),
-        ('tenacity', 'Retry logic'),
-        ('dotenv', 'Environment file support')
+        ("sqlalchemy", "SQLAlchemy"),
+        ("psycopg2", "PostgreSQL driver"),
+        ("pyodbc", "SQL Server driver"),
+        ("pyway", "Migration tool"),
+        ("tenacity", "Retry logic"),
+        ("dotenv", "Environment file support"),
     ]
 
     for package, description in required_packages:
@@ -65,7 +68,7 @@ def check_environment_setup():
             issues.append(f"❌ {description}: Missing package '{package}'")
 
     # Check environment variable
-    prefect_env = os.getenv('PREFECT_ENVIRONMENT')
+    prefect_env = os.getenv("PREFECT_ENVIRONMENT")
     if prefect_env:
         print(f"✅ PREFECT_ENVIRONMENT: {prefect_env}")
     else:
@@ -96,9 +99,10 @@ def check_odbc_drivers():
 
     try:
         import pyodbc
+
         drivers = pyodbc.drivers()
 
-        sql_server_drivers = [d for d in drivers if 'SQL Server' in d]
+        sql_server_drivers = [d for d in drivers if "SQL Server" in d]
 
         if sql_server_drivers:
             print("✅ SQL Server ODBC drivers found:")
@@ -107,8 +111,10 @@ def check_odbc_drivers():
         else:
             print("❌ No SQL Server ODBC drivers found")
             print("   Install ODBC Driver 17 or 18 for SQL Server")
-            print("   https://docs.microsoft.com/en-us/sql/connect/odbc/"
-                  "download-odbc-driver-for-sql-server")
+            print(
+                "   https://docs.microsoft.com/en-us/sql/connect/odbc/"
+                "download-odbc-driver-for-sql-server"
+            )
 
         return len(sql_server_drivers) > 0
 
@@ -128,11 +134,11 @@ def suggest_fixes(validation_results):
     fixes_suggested = False
 
     for db_name, result in validation_results.items():
-        if not result['valid']:
+        if not result["valid"]:
             print(f"\nDatabase: {db_name}")
             print("-" * 30)
 
-            for error in result['errors']:
+            for error in result["errors"]:
                 fixes_suggested = True
 
                 if "Missing database type" in error:
@@ -145,32 +151,46 @@ def suggest_fixes(validation_results):
                 elif "Missing connection string" in error:
                     env = ConfigManager().environment.upper()
                     print(f"💡 Add to core/envs/.env.{ConfigManager().environment}:")
-                    print(f"   {env}_GLOBAL_{db_name.upper()}_CONNECTION_STRING="
-                          "postgresql://user:pass@host:5432/db")
+                    print(
+                        f"   {env}_GLOBAL_{db_name.upper()}_CONNECTION_STRING="
+                        "postgresql://user:pass@host:5432/db"
+                    )
                     print("   # or")
-                    print(f"   {env}_GLOBAL_{db_name.upper()}_CONNECTION_STRING="
-                          "mssql+pyodbc://user:pass@host:1433/db?"
-                          "driver=ODBC+Driver+17+for+SQL+Server")
+                    print(
+                        f"   {env}_GLOBAL_{db_name.upper()}_CONNECTION_STRING="
+                        "mssql+pyodbc://user:pass@host:1433/db?"
+                        "driver=ODBC+Driver+17+for+SQL+Server"
+                    )
 
                 elif "must start with 'postgresql://'" in error:
                     print("💡 Fix PostgreSQL connection string format:")
-                    print("   Correct: postgresql://username:password@hostname:5432/database")
-                    print("   With SSL: postgresql://username:password@hostname:5432/"
-                          "database?sslmode=require")
+                    print(
+                        "   Correct: postgresql://username:password@hostname:5432/database"
+                    )
+                    print(
+                        "   With SSL: postgresql://username:password@hostname:5432/"
+                        "database?sslmode=require"
+                    )
 
                 elif "must start with 'mssql+pyodbc://'" in error:
                     print("💡 Fix SQL Server connection string format:")
-                    print("   Correct: mssql+pyodbc://username:password@hostname:1433/"
-                          "database?driver=ODBC+Driver+17+for+SQL+Server")
+                    print(
+                        "   Correct: mssql+pyodbc://username:password@hostname:1433/"
+                        "database?driver=ODBC+Driver+17+for+SQL+Server"
+                    )
 
                 elif "missing required 'driver' parameter" in error:
-                    print("💡 Add ODBC driver parameter to SQL Server connection string:")
+                    print(
+                        "💡 Add ODBC driver parameter to SQL Server connection string:"
+                    )
                     print("   Add: ?driver=ODBC+Driver+17+for+SQL+Server")
                     print("   Or:  ?driver=ODBC+Driver+18+for+SQL+Server")
 
                 elif "Pool size must be" in error:
                     env = ConfigManager().environment.upper()
-                    print(f"💡 Fix pool size in core/envs/.env.{ConfigManager().environment}:")
+                    print(
+                        f"💡 Fix pool size in core/envs/.env.{ConfigManager().environment}:"
+                    )
                     print(f"   {env}_GLOBAL_{db_name.upper()}_POOL_SIZE=5")
 
                 elif "Invalid database type" in error:
@@ -188,7 +208,9 @@ def create_example_config():
 
     config_manager = ConfigManager()
     env_file = project_root / "core" / "envs" / f".env.{config_manager.environment}"
-    example_file = project_root / "core" / "envs" / f".env.{config_manager.environment}.example"  # noqa: E501
+    example_file = (
+        project_root / "core" / "envs" / f".env.{config_manager.environment}.example"
+    )  # noqa: E501
 
     env_upper = config_manager.environment.upper()
     env_title = config_manager.environment.title()
@@ -217,7 +239,7 @@ def create_example_config():
 """
 
     try:
-        with open(example_file, 'w') as f:
+        with open(example_file, "w") as f:
             f.write(example_content)
         print(f"✅ Created example configuration: {example_file}")
 
@@ -243,43 +265,35 @@ Examples:
   python scripts/validate_database_config.py --environment staging  # Use staging environment
   python scripts/validate_database_config.py --check-setup      # Check basic setup only
   python scripts/validate_database_config.py --create-example   # Create example config files
-        """
+        """,
     )
 
+    parser.add_argument("--database", help="Specific database to validate")
     parser.add_argument(
-        "--database",
-        help="Specific database to validate"
+        "--environment", help="Environment to use (overrides PREFECT_ENVIRONMENT)"
     )
     parser.add_argument(
-        "--environment",
-        help="Environment to use (overrides PREFECT_ENVIRONMENT)"
-    )
-    parser.add_argument(
-        "--check-setup",
-        action="store_true",
-        help="Check basic environment setup only"
+        "--check-setup", action="store_true", help="Check basic environment setup only"
     )
     parser.add_argument(
         "--create-example",
         action="store_true",
-        help="Create example configuration files"
+        help="Create example configuration files",
     )
     parser.add_argument(
         "--suggest-fixes",
         action="store_true",
-        help="Suggest fixes for configuration issues"
+        help="Suggest fixes for configuration issues",
     )
     parser.add_argument(
-        "--no-connectivity",
-        action="store_true",
-        help="Skip connectivity testing"
+        "--no-connectivity", action="store_true", help="Skip connectivity testing"
     )
 
     args = parser.parse_args()
 
     # Set environment if specified
     if args.environment:
-        os.environ['PREFECT_ENVIRONMENT'] = args.environment
+        os.environ["PREFECT_ENVIRONMENT"] = args.environment
 
     print("🔧 Database Configuration Validator")
     print("=" * 60)
@@ -296,8 +310,10 @@ Examples:
         return 0
 
     if not setup_ok:
-        print("\n❌ Basic setup issues found. "
-              "Fix these first before validating database configuration.")
+        print(
+            "\n❌ Basic setup issues found. "
+            "Fix these first before validating database configuration."
+        )
         return 1
 
     # Check ODBC drivers
@@ -312,14 +328,16 @@ Examples:
             config_manager = ConfigManager()
             result = validate_database_config(args.database, config_manager)
 
-            if result['valid']:
+            if result["valid"]:
                 print("✅ Configuration: VALID")
 
                 if not args.no_connectivity:
                     print("\n🔌 Testing Connectivity...")
-                    connectivity = test_database_connectivity(args.database, config_manager)
-                    if connectivity['connected']:
-                        response_time = connectivity['response_time_ms']
+                    connectivity = test_database_connectivity(
+                        args.database, config_manager
+                    )
+                    if connectivity["connected"]:
+                        response_time = connectivity["response_time_ms"]
                         print(f"✅ Connection: SUCCESS ({response_time:.1f}ms)")
                     else:
                         print("❌ Connection: FAILED")
@@ -328,7 +346,7 @@ Examples:
             else:
                 print("❌ Configuration: INVALID")
                 print("\nErrors:")
-                for error in result['errors']:
+                for error in result["errors"]:
                     print(f"  ❌ {error}")
 
                 if args.suggest_fixes:
@@ -336,9 +354,9 @@ Examples:
 
                 return 1
 
-            if result['warnings']:
+            if result["warnings"]:
                 print("\nWarnings:")
-                for warning in result['warnings']:
+                for warning in result["warnings"]:
                     print(f"  ⚠️  {warning}")
 
         else:
@@ -352,7 +370,7 @@ Examples:
             # Check if there are any issues
             validation_results = validate_all_database_configurations()
             has_issues = any(
-                not result['valid'] for result in validation_results.values()
+                not result["valid"] for result in validation_results.values()
             )
 
             if has_issues and args.suggest_fixes:
@@ -363,6 +381,7 @@ Examples:
     except Exception as e:
         print(f"\n❌ Validation failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

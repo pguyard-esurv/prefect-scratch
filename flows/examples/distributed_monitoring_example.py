@@ -21,12 +21,12 @@ from core.monitoring import (
 @flow(
     name="Distributed Processing Health Monitoring",
     description="Comprehensive health monitoring for distributed processing system",
-    task_runner=ConcurrentTaskRunner()
+    task_runner=ConcurrentTaskRunner(),
 )
 def distributed_health_monitoring_flow(
     flow_names: Optional[list[str]] = None,
     include_performance_analysis: bool = True,
-    performance_window_hours: int = 24
+    performance_window_hours: int = 24,
 ) -> dict:
     """
     Comprehensive health monitoring flow for distributed processing system.
@@ -54,35 +54,38 @@ def distributed_health_monitoring_flow(
         "performance_analysis": {},
         "overall_health_assessment": {},
         "recommendations": [],
-        "alerts": []
+        "alerts": [],
     }
 
     try:
         # Step 1: Queue Monitoring
         logger.info("Step 1: Monitoring distributed processing queue")
         queue_status = distributed_queue_monitoring(
-            flow_names=flow_names,
-            include_detailed_metrics=True
+            flow_names=flow_names, include_detailed_metrics=True
         )
         monitoring_results["queue_monitoring"] = queue_status
-        monitoring_results["monitoring_timestamp"] = queue_status["monitoring_timestamp"]
+        monitoring_results["monitoring_timestamp"] = queue_status[
+            "monitoring_timestamp"
+        ]
 
         # Step 2: System Diagnostics
         logger.info("Step 2: Running system diagnostics")
         diagnostics = distributed_processing_diagnostics(
             flow_name=None,  # Diagnose all flows
             include_orphaned_analysis=True,
-            include_performance_analysis=True
+            include_performance_analysis=True,
         )
         monitoring_results["system_diagnostics"] = diagnostics
 
         # Step 3: Performance Analysis (if requested)
         if include_performance_analysis:
-            logger.info(f"Step 3: Analyzing performance over {performance_window_hours} hours")
+            logger.info(
+                f"Step 3: Analyzing performance over {performance_window_hours} hours"
+            )
             performance = processing_performance_monitoring(
                 flow_names=flow_names,
                 time_window_hours=performance_window_hours,
-                include_error_analysis=True
+                include_error_analysis=True,
             )
             monitoring_results["performance_analysis"] = performance
         else:
@@ -120,7 +123,9 @@ def distributed_health_monitoring_flow(
         for issue in diagnostic_issues:
             all_alerts.append(f"DIAGNOSTIC: {issue}")
 
-        monitoring_results["recommendations"] = list(set(all_recommendations))  # Remove duplicates
+        monitoring_results["recommendations"] = list(
+            set(all_recommendations)
+        )  # Remove duplicates
         monitoring_results["alerts"] = all_alerts
 
         # Log summary
@@ -149,11 +154,10 @@ def distributed_health_monitoring_flow(
 
 @flow(
     name="Distributed Processing Diagnostics",
-    description="Detailed diagnostics for troubleshooting distributed processing issues"
+    description="Detailed diagnostics for troubleshooting distributed processing issues",
 )
 def distributed_diagnostics_flow(
-    target_flow: Optional[str] = None,
-    include_maintenance_recommendations: bool = True
+    target_flow: Optional[str] = None, include_maintenance_recommendations: bool = True
 ) -> dict:
     """
     Detailed diagnostics flow for troubleshooting distributed processing issues.
@@ -180,7 +184,7 @@ def distributed_diagnostics_flow(
         "queue_analysis": {},
         "maintenance_recommendations": {},
         "troubleshooting_guide": {},
-        "next_steps": []
+        "next_steps": [],
     }
 
     try:
@@ -189,7 +193,7 @@ def distributed_diagnostics_flow(
         diagnostics = distributed_processing_diagnostics(
             flow_name=target_flow,
             include_orphaned_analysis=True,
-            include_performance_analysis=True
+            include_performance_analysis=True,
         )
         diagnostic_results["system_diagnostics"] = diagnostics
         diagnostic_results["diagnostic_timestamp"] = diagnostics["diagnostic_timestamp"]
@@ -198,7 +202,7 @@ def distributed_diagnostics_flow(
         logger.info("Step 2: Performing detailed queue analysis")
         queue_analysis = distributed_queue_monitoring(
             flow_names=[target_flow] if target_flow else None,
-            include_detailed_metrics=True
+            include_detailed_metrics=True,
         )
         diagnostic_results["queue_analysis"] = queue_analysis
 
@@ -208,7 +212,9 @@ def distributed_diagnostics_flow(
             maintenance_recommendations = _generate_maintenance_recommendations(
                 diagnostics, queue_analysis
             )
-            diagnostic_results["maintenance_recommendations"] = maintenance_recommendations
+            diagnostic_results["maintenance_recommendations"] = (
+                maintenance_recommendations
+            )
         else:
             logger.info("Step 3: Skipping maintenance recommendations")
 
@@ -227,7 +233,9 @@ def distributed_diagnostics_flow(
         # Log diagnostic summary
         issues_found = len(diagnostics.get("issues_found", []))
         system_health = diagnostics.get("system_health", {}).get("status", "unknown")
-        queue_health = queue_analysis.get("queue_health_assessment", {}).get("queue_health", "unknown")
+        queue_health = queue_analysis.get("queue_health_assessment", {}).get(
+            "queue_health", "unknown"
+        )
 
         logger.info(
             f"Diagnostics complete: {issues_found} issues found, "
@@ -248,14 +256,14 @@ def distributed_diagnostics_flow(
 
 @flow(
     name="Distributed Processing Maintenance",
-    description="Automated maintenance operations for distributed processing system"
+    description="Automated maintenance operations for distributed processing system",
 )
 def distributed_maintenance_flow(
     perform_cleanup: bool = True,
     perform_failed_reset: bool = False,
     cleanup_timeout_hours: int = 2,
     max_retries: int = 3,
-    dry_run: bool = False
+    dry_run: bool = False,
 ) -> dict:
     """
     Automated maintenance flow for distributed processing system.
@@ -285,7 +293,7 @@ def distributed_maintenance_flow(
         "maintenance_operations": {},
         "post_maintenance_status": {},
         "maintenance_summary": {},
-        "recommendations": []
+        "recommendations": [],
     }
 
     try:
@@ -301,10 +309,12 @@ def distributed_maintenance_flow(
             reset_failed_records=perform_failed_reset,
             orphaned_timeout_hours=cleanup_timeout_hours,
             max_retries=max_retries,
-            dry_run=dry_run
+            dry_run=dry_run,
         )
         maintenance_results["maintenance_operations"] = maintenance_ops
-        maintenance_results["maintenance_timestamp"] = maintenance_ops["maintenance_timestamp"]
+        maintenance_results["maintenance_timestamp"] = maintenance_ops[
+            "maintenance_timestamp"
+        ]
 
         # Step 3: Post-maintenance Assessment
         logger.info("Step 3: Assessing system status after maintenance")
@@ -327,9 +337,13 @@ def distributed_maintenance_flow(
         operations_performed = len(maintenance_ops.get("operations_performed", []))
 
         if dry_run:
-            logger.info(f"Maintenance dry run completed: {operations_performed} operations simulated")
+            logger.info(
+                f"Maintenance dry run completed: {operations_performed} operations simulated"
+            )
         else:
-            logger.info(f"Maintenance completed: {operations_performed} operations performed")
+            logger.info(
+                f"Maintenance completed: {operations_performed} operations performed"
+            )
 
         # Log specific results
         if perform_cleanup:
@@ -358,12 +372,12 @@ def distributed_maintenance_flow(
 
 @flow(
     name="Distributed Processing Performance Analysis",
-    description="Comprehensive performance analysis for distributed processing system"
+    description="Comprehensive performance analysis for distributed processing system",
 )
 def distributed_performance_analysis_flow(
     analysis_window_hours: int = 24,
     include_trend_analysis: bool = True,
-    generate_optimization_report: bool = True
+    generate_optimization_report: bool = True,
 ) -> dict:
     """
     Comprehensive performance analysis flow for distributed processing system.
@@ -390,7 +404,7 @@ def distributed_performance_analysis_flow(
         "trend_analysis": {},
         "bottleneck_analysis": {},
         "optimization_report": {},
-        "recommendations": []
+        "recommendations": [],
     }
 
     try:
@@ -399,10 +413,12 @@ def distributed_performance_analysis_flow(
         performance_metrics = processing_performance_monitoring(
             flow_names=None,  # Analyze all flows
             time_window_hours=analysis_window_hours,
-            include_error_analysis=True
+            include_error_analysis=True,
         )
         analysis_results["performance_metrics"] = performance_metrics
-        analysis_results["analysis_timestamp"] = performance_metrics["monitoring_timestamp"]
+        analysis_results["analysis_timestamp"] = performance_metrics[
+            "monitoring_timestamp"
+        ]
 
         # Step 2: Trend Analysis (if requested)
         if include_trend_analysis:
@@ -439,8 +455,12 @@ def distributed_performance_analysis_flow(
         analysis_results["recommendations"] = list(set(all_recommendations))
 
         # Log analysis summary
-        overall_success_rate = performance_metrics.get("overall_metrics", {}).get("success_rate_percent", 0)
-        processing_rate = performance_metrics.get("overall_metrics", {}).get("avg_processing_rate_per_hour", 0)
+        overall_success_rate = performance_metrics.get("overall_metrics", {}).get(
+            "success_rate_percent", 0
+        )
+        processing_rate = performance_metrics.get("overall_metrics", {}).get(
+            "avg_processing_rate_per_hour", 0
+        )
         alert_count = len(performance_metrics.get("alerts", []))
 
         logger.info(
@@ -462,22 +482,27 @@ def distributed_performance_analysis_flow(
 
 # Helper functions for analysis and reporting
 
+
 def _generate_overall_health_assessment(
-    queue_status: dict,
-    diagnostics: dict,
-    performance_analysis: Optional[dict] = None
+    queue_status: dict, diagnostics: dict, performance_analysis: Optional[dict] = None
 ) -> dict:
     """Generate overall health assessment from monitoring data."""
 
     # Collect health indicators
-    queue_health = queue_status.get("queue_health_assessment", {}).get("queue_health", "unknown")
+    queue_health = queue_status.get("queue_health_assessment", {}).get(
+        "queue_health", "unknown"
+    )
     system_health = diagnostics.get("system_health", {}).get("status", "unknown")
     issues_count = len(diagnostics.get("issues_found", []))
 
     # Performance indicators
     if performance_analysis:
-        success_rate = performance_analysis.get("overall_metrics", {}).get("success_rate_percent", 100)
-        processing_rate = performance_analysis.get("overall_metrics", {}).get("avg_processing_rate_per_hour", 0)
+        success_rate = performance_analysis.get("overall_metrics", {}).get(
+            "success_rate_percent", 100
+        )
+        processing_rate = performance_analysis.get("overall_metrics", {}).get(
+            "avg_processing_rate_per_hour", 0
+        )
     else:
         success_rate = 100
         processing_rate = 0
@@ -485,8 +510,12 @@ def _generate_overall_health_assessment(
     # Determine overall status
     if system_health == "unhealthy" or queue_health == "critical" or issues_count > 5:
         overall_status = "critical"
-    elif (system_health == "degraded" or queue_health == "degraded" or
-          success_rate < 90 or issues_count > 2):
+    elif (
+        system_health == "degraded"
+        or queue_health == "degraded"
+        or success_rate < 90
+        or issues_count > 2
+    ):
         overall_status = "degraded"
     elif queue_health == "idle" and processing_rate == 0:
         overall_status = "idle"
@@ -500,20 +529,22 @@ def _generate_overall_health_assessment(
             "system_health": system_health,
             "issues_count": issues_count,
             "success_rate_percent": success_rate,
-            "processing_rate_per_hour": processing_rate
+            "processing_rate_per_hour": processing_rate,
         },
-        "assessment_timestamp": queue_status.get("monitoring_timestamp")
+        "assessment_timestamp": queue_status.get("monitoring_timestamp"),
     }
 
 
-def _generate_maintenance_recommendations(diagnostics: dict, queue_analysis: dict) -> dict:
+def _generate_maintenance_recommendations(
+    diagnostics: dict, queue_analysis: dict
+) -> dict:
     """Generate maintenance recommendations based on diagnostics."""
 
     recommendations = {
         "immediate_actions": [],
         "scheduled_maintenance": [],
         "optimization_opportunities": [],
-        "monitoring_adjustments": []
+        "monitoring_adjustments": [],
     }
 
     # Immediate actions based on issues
@@ -522,16 +553,24 @@ def _generate_maintenance_recommendations(diagnostics: dict, queue_analysis: dic
         if "orphaned" in issue.lower():
             recommendations["immediate_actions"].append("Run orphaned record cleanup")
         elif "connectivity" in issue.lower():
-            recommendations["immediate_actions"].append("Investigate database connectivity issues")
+            recommendations["immediate_actions"].append(
+                "Investigate database connectivity issues"
+            )
         elif "performance" in issue.lower():
-            recommendations["immediate_actions"].append("Investigate performance bottlenecks")
+            recommendations["immediate_actions"].append(
+                "Investigate performance bottlenecks"
+            )
 
     # Scheduled maintenance based on queue status
     queue_health = queue_analysis.get("queue_health_assessment", {})
-    failed_records = queue_analysis.get("overall_queue_status", {}).get("failed_records", 0)
+    failed_records = queue_analysis.get("overall_queue_status", {}).get(
+        "failed_records", 0
+    )
 
     if failed_records > 50:
-        recommendations["scheduled_maintenance"].append("Schedule failed record analysis and reset")
+        recommendations["scheduled_maintenance"].append(
+            "Schedule failed record analysis and reset"
+        )
 
     if queue_health.get("queue_health") == "overloaded":
         recommendations["scheduled_maintenance"].append("Plan capacity scaling")
@@ -539,11 +578,15 @@ def _generate_maintenance_recommendations(diagnostics: dict, queue_analysis: dic
     # Optimization opportunities
     orphaned_analysis = diagnostics.get("orphaned_records_analysis", {})
     if orphaned_analysis.get("total_orphaned_records", 0) > 0:
-        recommendations["optimization_opportunities"].append("Optimize processing timeout settings")
+        recommendations["optimization_opportunities"].append(
+            "Optimize processing timeout settings"
+        )
 
     # Monitoring adjustments
     if len(issues) > 3:
-        recommendations["monitoring_adjustments"].append("Increase monitoring frequency")
+        recommendations["monitoring_adjustments"].append(
+            "Increase monitoring frequency"
+        )
 
     return recommendations
 
@@ -555,7 +598,7 @@ def _generate_troubleshooting_guide(diagnostics: dict, queue_analysis: dict) -> 
         "current_issues": [],
         "diagnostic_steps": [],
         "resolution_steps": [],
-        "escalation_criteria": []
+        "escalation_criteria": [],
     }
 
     # Identify current issues
@@ -573,15 +616,21 @@ def _generate_troubleshooting_guide(diagnostics: dict, queue_analysis: dict) -> 
     if any("connectivity" in issue.lower() for issue in issues):
         guide["diagnostic_steps"].append("Test database connectivity manually")
         guide["diagnostic_steps"].append("Check connection pool utilization")
-        guide["resolution_steps"].append("Restart database connections or increase pool size")
+        guide["resolution_steps"].append(
+            "Restart database connections or increase pool size"
+        )
 
     # Escalation criteria
     system_health = diagnostics.get("system_health", {}).get("status")
     if system_health == "unhealthy":
-        guide["escalation_criteria"].append("System health is unhealthy - escalate immediately")
+        guide["escalation_criteria"].append(
+            "System health is unhealthy - escalate immediately"
+        )
 
     if len(issues) > 5:
-        guide["escalation_criteria"].append("Multiple critical issues detected - escalate to senior team")
+        guide["escalation_criteria"].append(
+            "Multiple critical issues detected - escalate to senior team"
+        )
 
     return guide
 
@@ -617,7 +666,9 @@ def _determine_next_steps(diagnostics: dict, queue_analysis: dict) -> list:
     return next_steps
 
 
-def _generate_maintenance_summary(pre_status: dict, post_status: dict, maintenance_ops: dict) -> dict:
+def _generate_maintenance_summary(
+    pre_status: dict, post_status: dict, maintenance_ops: dict
+) -> dict:
     """Generate summary of maintenance operations and their impact."""
 
     # Extract key metrics
@@ -631,17 +682,17 @@ def _generate_maintenance_summary(pre_status: dict, post_status: dict, maintenan
                 "total_records": pre_metrics.get("total_records", 0),
                 "pending_records": pre_metrics.get("pending_records", 0),
                 "processing_records": pre_metrics.get("processing_records", 0),
-                "failed_records": pre_metrics.get("failed_records", 0)
+                "failed_records": pre_metrics.get("failed_records", 0),
             },
             "after": {
                 "total_records": post_metrics.get("total_records", 0),
                 "pending_records": post_metrics.get("pending_records", 0),
                 "processing_records": post_metrics.get("processing_records", 0),
-                "failed_records": post_metrics.get("failed_records", 0)
-            }
+                "failed_records": post_metrics.get("failed_records", 0),
+            },
         },
         "improvements": {},
-        "effectiveness_assessment": "unknown"
+        "effectiveness_assessment": "unknown",
     }
 
     # Calculate improvements
@@ -649,9 +700,10 @@ def _generate_maintenance_summary(pre_status: dict, post_status: dict, maintenan
     after = summary["metrics_comparison"]["after"]
 
     summary["improvements"] = {
-        "processing_records_reduced": before["processing_records"] - after["processing_records"],
+        "processing_records_reduced": before["processing_records"]
+        - after["processing_records"],
         "failed_records_reduced": before["failed_records"] - after["failed_records"],
-        "total_records_change": after["total_records"] - before["total_records"]
+        "total_records_change": after["total_records"] - before["total_records"],
     }
 
     # Assess effectiveness
@@ -686,14 +738,16 @@ def _perform_trend_analysis(performance_metrics: dict) -> dict:
         "analysis_period": {
             "start_hour": min(hours) if hours else None,
             "end_hour": max(hours) if hours else None,
-            "total_hours": len(hours)
+            "total_hours": len(hours),
         },
         "processing_trends": {
             "peak_hour_processing": max(processing_rates) if processing_rates else 0,
             "min_hour_processing": min(processing_rates) if processing_rates else 0,
-            "avg_hour_processing": sum(processing_rates) / len(processing_rates) if processing_rates else 0
+            "avg_hour_processing": sum(processing_rates) / len(processing_rates)
+            if processing_rates
+            else 0,
         },
-        "trend_direction": "stable"  # Simplified - could implement more sophisticated trend detection
+        "trend_direction": "stable",  # Simplified - could implement more sophisticated trend detection
     }
 
     return trend_analysis
@@ -705,7 +759,7 @@ def _analyze_performance_bottlenecks(performance_metrics: dict) -> dict:
     bottlenecks = {
         "identified_bottlenecks": [],
         "performance_indicators": {},
-        "recommendations": []
+        "recommendations": [],
     }
 
     # Analyze overall metrics
@@ -717,67 +771,85 @@ def _analyze_performance_bottlenecks(performance_metrics: dict) -> dict:
     bottlenecks["performance_indicators"] = {
         "success_rate": success_rate,
         "processing_rate": processing_rate,
-        "avg_processing_time": avg_processing_time
+        "avg_processing_time": avg_processing_time,
     }
 
     # Identify bottlenecks
     if success_rate < 90:
         bottlenecks["identified_bottlenecks"].append("High failure rate")
-        bottlenecks["recommendations"].append("Investigate error patterns and fix root causes")
+        bottlenecks["recommendations"].append(
+            "Investigate error patterns and fix root causes"
+        )
 
     if processing_rate < 50:
         bottlenecks["identified_bottlenecks"].append("Low processing throughput")
-        bottlenecks["recommendations"].append("Consider scaling up or optimizing processing logic")
+        bottlenecks["recommendations"].append(
+            "Consider scaling up or optimizing processing logic"
+        )
 
     if avg_processing_time > 15:
         bottlenecks["identified_bottlenecks"].append("High processing latency")
-        bottlenecks["recommendations"].append("Profile and optimize business logic performance")
+        bottlenecks["recommendations"].append(
+            "Profile and optimize business logic performance"
+        )
 
     return bottlenecks
 
 
-def _generate_optimization_report(performance_metrics: dict, bottleneck_analysis: dict) -> dict:
+def _generate_optimization_report(
+    performance_metrics: dict, bottleneck_analysis: dict
+) -> dict:
     """Generate optimization report with specific recommendations."""
 
     report = {
         "optimization_opportunities": [],
         "performance_targets": {},
         "implementation_priorities": [],
-        "recommendations": []
+        "recommendations": [],
     }
 
     # Identify optimization opportunities
     bottlenecks = bottleneck_analysis.get("identified_bottlenecks", [])
 
     if "High failure rate" in bottlenecks:
-        report["optimization_opportunities"].append({
-            "area": "Error Handling",
-            "description": "Improve error handling and retry logic",
-            "expected_impact": "Increase success rate by 5-10%"
-        })
+        report["optimization_opportunities"].append(
+            {
+                "area": "Error Handling",
+                "description": "Improve error handling and retry logic",
+                "expected_impact": "Increase success rate by 5-10%",
+            }
+        )
 
     if "Low processing throughput" in bottlenecks:
-        report["optimization_opportunities"].append({
-            "area": "Capacity Scaling",
-            "description": "Increase container instances or optimize batch sizes",
-            "expected_impact": "Increase throughput by 50-100%"
-        })
+        report["optimization_opportunities"].append(
+            {
+                "area": "Capacity Scaling",
+                "description": "Increase container instances or optimize batch sizes",
+                "expected_impact": "Increase throughput by 50-100%",
+            }
+        )
 
     if "High processing latency" in bottlenecks:
-        report["optimization_opportunities"].append({
-            "area": "Performance Optimization",
-            "description": "Optimize business logic and database queries",
-            "expected_impact": "Reduce processing time by 20-40%"
-        })
+        report["optimization_opportunities"].append(
+            {
+                "area": "Performance Optimization",
+                "description": "Optimize business logic and database queries",
+                "expected_impact": "Reduce processing time by 20-40%",
+            }
+        )
 
     # Set performance targets
-    current_success_rate = performance_metrics.get("overall_metrics", {}).get("success_rate_percent", 100)
-    current_processing_rate = performance_metrics.get("overall_metrics", {}).get("avg_processing_rate_per_hour", 0)
+    current_success_rate = performance_metrics.get("overall_metrics", {}).get(
+        "success_rate_percent", 100
+    )
+    current_processing_rate = performance_metrics.get("overall_metrics", {}).get(
+        "avg_processing_rate_per_hour", 0
+    )
 
     report["performance_targets"] = {
         "target_success_rate": max(95, current_success_rate + 5),
         "target_processing_rate": max(100, current_processing_rate * 1.5),
-        "target_processing_time_minutes": 10
+        "target_processing_time_minutes": 10,
     }
 
     # Implementation priorities
@@ -786,7 +858,7 @@ def _generate_optimization_report(performance_metrics: dict, bottleneck_analysis
             "Address critical bottlenecks first",
             "Implement monitoring for new optimizations",
             "Test changes in staging environment",
-            "Roll out optimizations gradually"
+            "Roll out optimizations gradually",
         ]
 
     # Consolidate recommendations
@@ -802,8 +874,7 @@ if __name__ == "__main__":
 
     try:
         result = distributed_health_monitoring_flow(
-            include_performance_analysis=True,
-            performance_window_hours=6
+            include_performance_analysis=True, performance_window_hours=6
         )
 
         overall_status = result["overall_health_assessment"]["overall_status"]
@@ -824,9 +895,7 @@ if __name__ == "__main__":
     print("\nRunning distributed processing diagnostics example...")
 
     try:
-        result = distributed_diagnostics_flow(
-            include_maintenance_recommendations=True
-        )
+        result = distributed_diagnostics_flow(include_maintenance_recommendations=True)
 
         issues_count = len(result["system_diagnostics"].get("issues_found", []))
         next_steps = result["next_steps"]
@@ -844,9 +913,7 @@ if __name__ == "__main__":
 
     try:
         result = distributed_maintenance_flow(
-            perform_cleanup=True,
-            perform_failed_reset=False,
-            dry_run=True
+            perform_cleanup=True, perform_failed_reset=False, dry_run=True
         )
 
         operations = result["maintenance_operations"].get("operations_performed", [])

@@ -23,12 +23,12 @@ from core.tasks import (
 @flow(
     name="Database Health Monitoring",
     description="Comprehensive database health monitoring across all configured databases",
-    task_runner=ConcurrentTaskRunner()
+    task_runner=ConcurrentTaskRunner(),
 )
 def database_health_monitoring_flow(
     database_names: Optional[list[str]] = None,
     include_performance_tests: bool = True,
-    performance_threshold_ms: float = 1000.0
+    performance_threshold_ms: float = 1000.0,
 ):
     """
     Comprehensive database health monitoring flow.
@@ -72,9 +72,9 @@ def database_health_monitoring_flow(
                 db_name,
                 test_queries=[
                     "SELECT 1 as health_test",
-                    "SELECT COUNT(*) FROM information_schema.tables"
+                    "SELECT COUNT(*) FROM information_schema.tables",
                 ],
-                iterations=3
+                iterations=3,
             )
             performance_results.append(perf_result)
 
@@ -84,7 +84,9 @@ def database_health_monitoring_flow(
         "overall_health": health_summary,
         "individual_health_checks": health_checks,
         "pool_monitoring": pool_monitoring_results,
-        "performance_results": performance_results if include_performance_tests else None
+        "performance_results": performance_results
+        if include_performance_tests
+        else None,
     }
 
     # Log summary
@@ -102,13 +104,13 @@ def database_health_monitoring_flow(
 
 @flow(
     name="Database Prerequisite Validation",
-    description="Validate database prerequisites before flow execution"
+    description="Validate database prerequisites before flow execution",
 )
 def database_prerequisite_flow(
     database_names: Optional[list[str]] = None,
     check_migrations: bool = True,
     performance_threshold_ms: float = 1000.0,
-    fail_on_validation_error: bool = True
+    fail_on_validation_error: bool = True,
 ):
     """
     Database prerequisite validation flow for startup checks.
@@ -133,7 +135,7 @@ def database_prerequisite_flow(
     validation_result = database_prerequisite_validation(
         database_names=database_names,
         check_migrations=check_migrations,
-        performance_threshold_ms=performance_threshold_ms
+        performance_threshold_ms=performance_threshold_ms,
     )
 
     # Check validation results
@@ -142,11 +144,15 @@ def database_prerequisite_flow(
     warning_count = validation_result["summary"]["warnings"]
 
     if overall_status == "failed" and fail_on_validation_error:
-        error_msg = f"Database prerequisite validation failed for {failed_count} database(s)"
+        error_msg = (
+            f"Database prerequisite validation failed for {failed_count} database(s)"
+        )
         logger.error(error_msg)
         raise RuntimeError(error_msg)
     elif warning_count > 0:
-        logger.warning(f"Database prerequisite validation completed with {warning_count} warning(s)")
+        logger.warning(
+            f"Database prerequisite validation completed with {warning_count} warning(s)"
+        )
     else:
         logger.info("All database prerequisites validated successfully")
 
@@ -155,7 +161,7 @@ def database_prerequisite_flow(
 
 @flow(
     name="Database Diagnostics",
-    description="Comprehensive database connectivity diagnostics"
+    description="Comprehensive database connectivity diagnostics",
 )
 def database_diagnostics_flow(database_name: str):
     """
@@ -186,9 +192,9 @@ def database_diagnostics_flow(database_name: str):
         test_queries=[
             "SELECT 1 as simple_test",
             "SELECT COUNT(*) FROM information_schema.tables",
-            "SELECT version() as db_version"  # Database-specific version query
+            "SELECT version() as db_version",  # Database-specific version query
         ],
-        iterations=5
+        iterations=5,
     )
 
     # Compile diagnostic report
@@ -198,7 +204,7 @@ def database_diagnostics_flow(database_name: str):
         "health_check": health_result,
         "connectivity_diagnostics": diagnostics_result,
         "pool_analysis": pool_result,
-        "performance_analysis": performance_result
+        "performance_analysis": performance_result,
     }
 
     # Generate summary and recommendations
@@ -206,7 +212,9 @@ def database_diagnostics_flow(database_name: str):
 
     # Health-based recommendations
     if health_result["status"] == "unhealthy":
-        recommendations.append("CRITICAL: Database is unhealthy - immediate attention required")
+        recommendations.append(
+            "CRITICAL: Database is unhealthy - immediate attention required"
+        )
     elif health_result["status"] == "degraded":
         recommendations.append("WARNING: Database performance is degraded")
 
@@ -219,7 +227,9 @@ def database_diagnostics_flow(database_name: str):
     if perf_rating == "poor":
         recommendations.append("CRITICAL: Poor database performance detected")
     elif perf_rating == "acceptable":
-        recommendations.append("Database performance is acceptable but could be improved")
+        recommendations.append(
+            "Database performance is acceptable but could be improved"
+        )
 
     # Connectivity-based recommendations
     recommendations.extend(diagnostics_result.get("recommendations", []))
@@ -242,12 +252,12 @@ def database_diagnostics_flow(database_name: str):
 
 @flow(
     name="Operational Database Monitoring",
-    description="Continuous operational monitoring for production environments"
+    description="Continuous operational monitoring for production environments",
 )
 def operational_monitoring_flow(
     database_names: Optional[list[str]] = None,
     monitoring_interval_minutes: int = 15,
-    alert_thresholds: Optional[dict] = None
+    alert_thresholds: Optional[dict] = None,
 ):
     """
     Operational monitoring flow for production database oversight.
@@ -270,7 +280,7 @@ def operational_monitoring_flow(
         alert_thresholds = {
             "response_time_ms": 2000.0,
             "pool_utilization_percent": 80.0,
-            "connection_failure_threshold": 1
+            "connection_failure_threshold": 1,
         }
 
     logger.info(f"Starting operational monitoring for {len(database_names)} databases")
@@ -280,7 +290,7 @@ def operational_monitoring_flow(
         "monitoring_timestamp": None,
         "databases": {},
         "alerts": [],
-        "metrics_summary": {}
+        "metrics_summary": {},
     }
 
     # Get comprehensive health summary
@@ -293,7 +303,7 @@ def operational_monitoring_flow(
             "database_name": db_name,
             "health": None,
             "pool_status": None,
-            "alerts": []
+            "alerts": [],
         }
 
         try:
@@ -333,14 +343,18 @@ def operational_monitoring_flow(
 
     # Generate metrics summary
     total_alerts = len(monitoring_data["alerts"])
-    healthy_dbs = sum(1 for db_data in monitoring_data["databases"].values()
-                     if db_data.get("health") and db_data.get("health", {}).get("status") == "healthy")
+    healthy_dbs = sum(
+        1
+        for db_data in monitoring_data["databases"].values()
+        if db_data.get("health")
+        and db_data.get("health", {}).get("status") == "healthy"
+    )
 
     monitoring_data["metrics_summary"] = {
         "total_databases": len(database_names),
         "healthy_databases": healthy_dbs,
         "total_alerts": total_alerts,
-        "overall_status": "healthy" if total_alerts == 0 else "alert"
+        "overall_status": "healthy" if total_alerts == 0 else "alert",
     }
 
     # Log operational summary
@@ -363,10 +377,11 @@ if __name__ == "__main__":
 
     try:
         result = database_health_monitoring_flow(
-            database_names=["rpa_db"],
-            include_performance_tests=True
+            database_names=["rpa_db"], include_performance_tests=True
         )
-        print(f"Health monitoring completed: {result['overall_health']['overall_status']}")
+        print(
+            f"Health monitoring completed: {result['overall_health']['overall_status']}"
+        )
     except Exception as e:
         print(f"Health monitoring failed: {e}")
 
@@ -375,8 +390,7 @@ if __name__ == "__main__":
 
     try:
         result = database_prerequisite_flow(
-            database_names=["rpa_db"],
-            fail_on_validation_error=False
+            database_names=["rpa_db"], fail_on_validation_error=False
         )
         print(f"Prerequisite validation: {result['overall_status']}")
     except Exception as e:

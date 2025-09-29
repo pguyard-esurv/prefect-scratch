@@ -30,14 +30,15 @@ class TestDatabaseFailureScenarios:
         self.mock_source_db.database_name = "test_source_db"
 
         self.processor = DistributedProcessor(
-            rpa_db_manager=self.mock_rpa_db,
-            source_db_manager=self.mock_source_db
+            rpa_db_manager=self.mock_rpa_db, source_db_manager=self.mock_source_db
         )
 
     def test_complete_database_failure(self):
         """Test behavior when database is completely unavailable."""
         # Simulate complete database failure
-        self.mock_rpa_db.execute_query.side_effect = Exception("Database server unavailable")
+        self.mock_rpa_db.execute_query.side_effect = Exception(
+            "Database server unavailable"
+        )
 
         # Test that all operations fail gracefully
         with pytest.raises(RuntimeError, match="Failed to claim records"):
@@ -97,7 +98,7 @@ class TestDatabaseFailureScenarios:
             socket.timeout("Connection timeout"),
             Exception("Query timeout"),
             Exception("Lock wait timeout exceeded"),
-            Exception("Connection pool timeout")
+            Exception("Connection pool timeout"),
         ]
 
         for timeout_exception in timeout_exceptions:
@@ -143,6 +144,7 @@ class TestDatabaseFailureScenarios:
 
     def test_partial_database_functionality(self):
         """Test behavior when some database operations work but others fail."""
+
         def selective_failure(query, params, **kwargs):
             if "claim_records_batch" in str(query) or "FOR UPDATE SKIP LOCKED" in query:
                 # Claiming works
@@ -189,7 +191,7 @@ class TestNetworkFailureScenarios:
             socket.timeout("Network timeout"),
             socket.gaierror("Name resolution failed"),
             ConnectionError("Network unreachable"),
-            OSError("Network is down")
+            OSError("Network is down"),
         ]
 
         for network_exception in network_exceptions:
@@ -204,6 +206,7 @@ class TestNetworkFailureScenarios:
 
     def test_slow_network_conditions(self):
         """Test behavior under slow network conditions."""
+
         def slow_network_response(*args, **kwargs):
             # Simulate slow network by adding delay
             time.sleep(0.1)  # 100ms delay
@@ -222,6 +225,7 @@ class TestNetworkFailureScenarios:
 
     def test_network_jitter_simulation(self):
         """Test behavior with network jitter (variable delays)."""
+
         def jittery_network(*args, **kwargs):
             # Random delay between 0-50ms
             delay = random.uniform(0, 0.05)
@@ -272,8 +276,7 @@ class TestContainerFailureScenarios:
         """Test that container instances are properly isolated."""
         # Create multiple processor instances (simulating containers)
         processors = [
-            DistributedProcessor(rpa_db_manager=self.mock_rpa_db)
-            for _ in range(5)
+            DistributedProcessor(rpa_db_manager=self.mock_rpa_db) for _ in range(5)
         ]
 
         # Verify unique instance IDs
@@ -284,7 +287,9 @@ class TestContainerFailureScenarios:
         self.mock_rpa_db.execute_query.return_value = 1
 
         for i, processor in enumerate(processors):
-            processor.mark_record_completed(i + 1, {"processed": True})  # Use 1-based indexing
+            processor.mark_record_completed(
+                i + 1, {"processed": True}
+            )  # Use 1-based indexing
 
             # Verify the correct instance ID was used
             call_args = self.mock_rpa_db.execute_query.call_args
@@ -294,8 +299,7 @@ class TestContainerFailureScenarios:
         """Test system behavior when multiple containers fail simultaneously."""
         # Create multiple processors
         processors = [
-            DistributedProcessor(rpa_db_manager=self.mock_rpa_db)
-            for _ in range(10)
+            DistributedProcessor(rpa_db_manager=self.mock_rpa_db) for _ in range(10)
         ]
 
         # Simulate some containers failing
@@ -304,7 +308,14 @@ class TestContainerFailureScenarios:
                 raise Exception(f"Container {processor_index} crashed")
 
             # Successful containers return records
-            return [(processor_index, {"data": f"test_{processor_index}"}, 0, datetime.now())]
+            return [
+                (
+                    processor_index,
+                    {"data": f"test_{processor_index}"},
+                    0,
+                    datetime.now(),
+                )
+            ]
 
         # Test operations with container failures
         results = []
@@ -328,7 +339,9 @@ class TestContainerFailureScenarios:
 
         # Verify successful containers processed records
         for container_id, record_count in results:
-            assert record_count == 1, f"Container {container_id} should process 1 record"
+            assert record_count == 1, (
+                f"Container {container_id} should process 1 record"
+            )
 
     def test_container_restart_simulation(self):
         """Test behavior during container restart scenarios."""
@@ -384,7 +397,7 @@ class TestResourceExhaustionScenarios:
         memory_exceptions = [
             MemoryError("Out of memory"),
             Exception("Cannot allocate memory"),
-            OSError("Not enough space")
+            OSError("Not enough space"),
         ]
 
         for memory_exception in memory_exceptions:
@@ -403,7 +416,7 @@ class TestResourceExhaustionScenarios:
         pool_exceptions = [
             Exception("Connection pool exhausted"),
             Exception("Too many connections"),
-            Exception("Max connections reached")
+            Exception("Max connections reached"),
         ]
 
         for pool_exception in pool_exceptions:
@@ -422,7 +435,7 @@ class TestResourceExhaustionScenarios:
         disk_exceptions = [
             OSError("No space left on device"),
             Exception("Disk full"),
-            OSError("Write failed: disk full")
+            OSError("Write failed: disk full"),
         ]
 
         for disk_exception in disk_exceptions:
@@ -435,6 +448,7 @@ class TestResourceExhaustionScenarios:
 
     def test_cpu_exhaustion_simulation(self):
         """Test behavior under high CPU load conditions."""
+
         def cpu_intensive_operation(*args, **kwargs):
             # Simulate CPU-intensive operation
             start_time = time.time()
@@ -458,7 +472,9 @@ class TestResourceExhaustionScenarios:
                 pass
 
         # Should complete some operations despite CPU load
-        assert operations_completed > 0, "Should complete some operations under CPU load"
+        assert operations_completed > 0, (
+            "Should complete some operations under CPU load"
+        )
         assert operations_completed < 200, "Should be slower due to CPU load"
 
 
@@ -474,17 +490,13 @@ class TestCascadingFailureScenarios:
         self.mock_source_db.database_name = "test_source_db"
 
         self.processor = DistributedProcessor(
-            rpa_db_manager=self.mock_rpa_db,
-            source_db_manager=self.mock_source_db
+            rpa_db_manager=self.mock_rpa_db, source_db_manager=self.mock_source_db
         )
 
     def test_multi_database_failure_cascade(self):
         """Test cascading failures across multiple databases."""
         # Simulate primary database failure leading to secondary failures
-        failure_cascade = {
-            "rpa_db_failed": False,
-            "source_db_failed": False
-        }
+        failure_cascade = {"rpa_db_failed": False, "source_db_failed": False}
 
         def cascading_database_failure(*args, **kwargs):
             # Primary database fails first
@@ -523,7 +535,7 @@ class TestCascadingFailureScenarios:
         health_scenarios = [
             {"status": "healthy"},  # Initial healthy state
             {"status": "degraded", "error": "High latency detected"},  # Degraded
-            {"status": "unhealthy", "error": "Database connection failed"}  # Failed
+            {"status": "unhealthy", "error": "Database connection failed"},  # Failed
         ]
 
         scenario_index = 0
@@ -538,10 +550,15 @@ class TestCascadingFailureScenarios:
 
         # Mock health checks for both databases
         self.mock_rpa_db.health_check.side_effect = lambda: health_check_progression()
-        self.mock_source_db.health_check.side_effect = lambda: health_check_progression()
+        self.mock_source_db.health_check.side_effect = (
+            lambda: health_check_progression()
+        )
 
         # Mock queue status for health check
-        self.mock_rpa_db.execute_query.return_value = [("pending", 10), ("processing", 2)]
+        self.mock_rpa_db.execute_query.return_value = [
+            ("pending", 10),
+            ("processing", 2),
+        ]
 
         # Test health checks during failure progression
         health_results = []

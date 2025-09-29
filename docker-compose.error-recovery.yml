@@ -1,0 +1,361 @@
+# Docker Compose override for error recovery and monitoring
+# This file extends the base docker-compose.yml with error recovery capabilities
+
+version: "3.8"
+
+services:
+  # RPA Flow 1 with error recovery
+  rpa1:
+    environment:
+      # Error recovery configuration
+      - CONTAINER_ERROR_RECOVERY_ENABLED=true
+      - CONTAINER_LOCAL_QUEUE_PATH=/app/data/rpa1_queue.json
+      - CONTAINER_DISK_MONITOR_PATHS=/,/app,/tmp,/var/log
+      - CONTAINER_ALERT_FILE_PATH=/app/logs/alerts.json
+
+      # Health monitoring configuration
+      - CONTAINER_HEALTH_CHECK_INTERVAL=30
+      - CONTAINER_QUEUE_PROCESSING_INTERVAL=10
+      - CONTAINER_DISK_MONITORING_INTERVAL=300
+
+      # Retry configuration
+      - CONTAINER_DATABASE_RETRY_MAX_ATTEMPTS=5
+      - CONTAINER_DATABASE_RETRY_MIN_WAIT=1
+      - CONTAINER_DATABASE_RETRY_MAX_WAIT=30
+      - CONTAINER_DATABASE_RETRY_MULTIPLIER=2
+
+      # Disk cleanup configuration
+      - CONTAINER_DISK_WARNING_THRESHOLD=80
+      - CONTAINER_DISK_CRITICAL_THRESHOLD=90
+      - CONTAINER_CLEANUP_LOG_FILES_DAYS=7
+      - CONTAINER_CLEANUP_TEMP_FILES_DAYS=1
+      - CONTAINER_CLEANUP_CACHE_FILES_DAYS=3
+
+    volumes:
+      # Persistent storage for local queue and alerts
+      - ./data/rpa1:/app/data
+      - ./logs/rpa1:/app/logs
+      # Mount error recovery script
+      - ./scripts/container_startup_with_recovery.py:/app/startup_with_recovery.py:ro
+
+    # Use error recovery startup script
+    command: ["python", "/app/startup_with_recovery.py", "--flow-name", "rpa1"]
+
+    # Health check with error recovery awareness
+    healthcheck:
+      test: [
+          "CMD",
+          "python",
+          "-c",
+          "
+          import sys, os;
+          sys.path.insert(0, '/app');
+          from core.health_monitor import HealthMonitor;
+          from core.database import DatabaseManager;
+          try:
+          db_managers = {'rpa_db': DatabaseManager('rpa_db')};
+          monitor = HealthMonitor(database_managers=db_managers);
+          result = monitor.comprehensive_health_check();
+          exit(0 if result['overall_status'] in ['healthy', 'degraded'] else 1)
+          except Exception as e:
+          print(f'Health check failed: {e}');
+          exit(1)
+          ",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Restart policy for automatic recovery
+    restart: unless-stopped
+
+    # Resource limits to prevent resource exhaustion
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+
+  # RPA Flow 2 with error recovery
+  rpa2:
+    environment:
+      # Error recovery configuration
+      - CONTAINER_ERROR_RECOVERY_ENABLED=true
+      - CONTAINER_LOCAL_QUEUE_PATH=/app/data/rpa2_queue.json
+      - CONTAINER_DISK_MONITOR_PATHS=/,/app,/tmp,/var/log
+      - CONTAINER_ALERT_FILE_PATH=/app/logs/alerts.json
+
+      # Health monitoring configuration
+      - CONTAINER_HEALTH_CHECK_INTERVAL=30
+      - CONTAINER_QUEUE_PROCESSING_INTERVAL=10
+      - CONTAINER_DISK_MONITORING_INTERVAL=300
+
+      # Retry configuration
+      - CONTAINER_DATABASE_RETRY_MAX_ATTEMPTS=5
+      - CONTAINER_DATABASE_RETRY_MIN_WAIT=1
+      - CONTAINER_DATABASE_RETRY_MAX_WAIT=30
+      - CONTAINER_DATABASE_RETRY_MULTIPLIER=2
+
+      # Disk cleanup configuration
+      - CONTAINER_DISK_WARNING_THRESHOLD=80
+      - CONTAINER_DISK_CRITICAL_THRESHOLD=90
+      - CONTAINER_CLEANUP_LOG_FILES_DAYS=7
+      - CONTAINER_CLEANUP_TEMP_FILES_DAYS=1
+      - CONTAINER_CLEANUP_CACHE_FILES_DAYS=3
+
+    volumes:
+      # Persistent storage for local queue and alerts
+      - ./data/rpa2:/app/data
+      - ./logs/rpa2:/app/logs
+      # Mount error recovery script
+      - ./scripts/container_startup_with_recovery.py:/app/startup_with_recovery.py:ro
+
+    # Use error recovery startup script
+    command: ["python", "/app/startup_with_recovery.py", "--flow-name", "rpa2"]
+
+    # Health check with error recovery awareness
+    healthcheck:
+      test: [
+          "CMD",
+          "python",
+          "-c",
+          "
+          import sys, os;
+          sys.path.insert(0, '/app');
+          from core.health_monitor import HealthMonitor;
+          from core.database import DatabaseManager;
+          try:
+          db_managers = {'rpa_db': DatabaseManager('rpa_db')};
+          monitor = HealthMonitor(database_managers=db_managers);
+          result = monitor.comprehensive_health_check();
+          exit(0 if result['overall_status'] in ['healthy', 'degraded'] else 1)
+          except Exception as e:
+          print(f'Health check failed: {e}');
+          exit(1)
+          ",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Restart policy for automatic recovery
+    restart: unless-stopped
+
+    # Resource limits to prevent resource exhaustion
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+
+  # RPA Flow 3 with error recovery
+  rpa3:
+    environment:
+      # Error recovery configuration
+      - CONTAINER_ERROR_RECOVERY_ENABLED=true
+      - CONTAINER_LOCAL_QUEUE_PATH=/app/data/rpa3_queue.json
+      - CONTAINER_DISK_MONITOR_PATHS=/,/app,/tmp,/var/log
+      - CONTAINER_ALERT_FILE_PATH=/app/logs/alerts.json
+
+      # Health monitoring configuration
+      - CONTAINER_HEALTH_CHECK_INTERVAL=30
+      - CONTAINER_QUEUE_PROCESSING_INTERVAL=10
+      - CONTAINER_DISK_MONITORING_INTERVAL=300
+
+      # Retry configuration
+      - CONTAINER_DATABASE_RETRY_MAX_ATTEMPTS=5
+      - CONTAINER_DATABASE_RETRY_MIN_WAIT=1
+      - CONTAINER_DATABASE_RETRY_MAX_WAIT=30
+      - CONTAINER_DATABASE_RETRY_MULTIPLIER=2
+
+      # Disk cleanup configuration
+      - CONTAINER_DISK_WARNING_THRESHOLD=80
+      - CONTAINER_DISK_CRITICAL_THRESHOLD=90
+      - CONTAINER_CLEANUP_LOG_FILES_DAYS=7
+      - CONTAINER_CLEANUP_TEMP_FILES_DAYS=1
+      - CONTAINER_CLEANUP_CACHE_FILES_DAYS=3
+
+    volumes:
+      # Persistent storage for local queue and alerts
+      - ./data/rpa3:/app/data
+      - ./logs/rpa3:/app/logs
+      # Mount error recovery script
+      - ./scripts/container_startup_with_recovery.py:/app/startup_with_recovery.py:ro
+
+    # Use error recovery startup script
+    command: ["python", "/app/startup_with_recovery.py", "--flow-name", "rpa3"]
+
+    # Health check with error recovery awareness
+    healthcheck:
+      test: [
+          "CMD",
+          "python",
+          "-c",
+          "
+          import sys, os;
+          sys.path.insert(0, '/app');
+          from core.health_monitor import HealthMonitor;
+          from core.database import DatabaseManager;
+          try:
+          db_managers = {'rpa_db': DatabaseManager('rpa_db')};
+          monitor = HealthMonitor(database_managers=db_managers);
+          result = monitor.comprehensive_health_check();
+          exit(0 if result['overall_status'] in ['healthy', 'degraded'] else 1)
+          except Exception as e:
+          print(f'Health check failed: {e}');
+          exit(1)
+          ",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Restart policy for automatic recovery
+    restart: unless-stopped
+
+    # Resource limits to prevent resource exhaustion
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+
+  # PostgreSQL with enhanced monitoring
+  postgres:
+    environment:
+      # Enhanced PostgreSQL configuration for error recovery
+      - POSTGRES_MAX_CONNECTIONS=200
+      - POSTGRES_SHARED_BUFFERS=256MB
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=1GB
+      - POSTGRES_MAINTENANCE_WORK_MEM=64MB
+      - POSTGRES_CHECKPOINT_COMPLETION_TARGET=0.9
+      - POSTGRES_WAL_BUFFERS=16MB
+      - POSTGRES_DEFAULT_STATISTICS_TARGET=100
+
+    # Health check for PostgreSQL
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+        reservations:
+          memory: 1G
+          cpus: "1.0"
+
+  # Prefect Server with enhanced configuration
+  prefect-server:
+    # Health check for Prefect server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4200/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+
+  # Error Recovery Monitor Service
+  error-recovery-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+
+    environment:
+      # Monitor configuration
+      - CONTAINER_MONITOR_FLOWS=rpa1,rpa2,rpa3
+      - CONTAINER_MONITOR_INTERVAL=60
+      - CONTAINER_ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+      - CONTAINER_METRICS_EXPORT_ENABLED=true
+      - CONTAINER_METRICS_PORT=9090
+
+      # Database configuration
+      - DEVELOPMENT_GLOBAL_RPA_DB_TYPE=postgresql
+      - DEVELOPMENT_GLOBAL_RPA_DB_HOST=postgres
+      - DEVELOPMENT_GLOBAL_RPA_DB_PORT=5432
+      - DEVELOPMENT_GLOBAL_RPA_DB_NAME=rpa_development
+      - DEVELOPMENT_GLOBAL_RPA_DB_USER=rpa_user
+      - DEVELOPMENT_GLOBAL_RPA_DB_PASSWORD=rpa_password
+      - DEVELOPMENT_GLOBAL_RPA_DB_CONNECTION_STRING=postgresql://rpa_user:rpa_password@postgres:5432/rpa_development
+
+    volumes:
+      - ./logs:/app/logs:ro
+      - ./data:/app/data:ro
+      - ./scripts/error_recovery_monitor.py:/app/monitor.py:ro
+
+    command: ["python", "/app/monitor.py"]
+
+    ports:
+      - "9090:9090" # Metrics endpoint
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rpa1:
+        condition: service_started
+      rpa2:
+        condition: service_started
+      rpa3:
+        condition: service_started
+
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
+# Additional volumes for persistent data
+volumes:
+  # Persistent storage for error recovery data
+  error_recovery_data:
+    driver: local
+
+  # Persistent storage for alerts and logs
+  error_recovery_logs:
+    driver: local
+
+# Network configuration for error recovery
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

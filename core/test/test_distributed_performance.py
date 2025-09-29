@@ -18,6 +18,7 @@ import pytest
 
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
@@ -47,7 +48,12 @@ class TestBatchProcessingPerformance:
         for batch_size in batch_sizes:
             # Mock large batch response
             large_batch = [
-                (i, {"data": f"test_{i}", "timestamp": datetime.now().isoformat()}, 0, datetime.now())
+                (
+                    i,
+                    {"data": f"test_{i}", "timestamp": datetime.now().isoformat()},
+                    0,
+                    datetime.now(),
+                )
                 for i in range(batch_size)
             ]
             self.mock_rpa_db.execute_query.return_value = large_batch
@@ -60,7 +66,9 @@ class TestBatchProcessingPerformance:
             performance_results[batch_size] = {
                 "claim_time": claim_time,
                 "records_claimed": len(records),
-                "records_per_second": len(records) / claim_time if claim_time > 0 else 0
+                "records_per_second": len(records) / claim_time
+                if claim_time > 0
+                else 0,
             }
 
             # Verify results
@@ -70,8 +78,10 @@ class TestBatchProcessingPerformance:
         # Print performance results
         print("\nBatch Claiming Performance Results:")
         for batch_size, results in performance_results.items():
-            print(f"  Batch Size {batch_size}: {results['claim_time']:.3f}s "
-                  f"({results['records_per_second']:.0f} records/sec)")
+            print(
+                f"  Batch Size {batch_size}: {results['claim_time']:.3f}s "
+                f"({results['records_per_second']:.0f} records/sec)"
+            )
 
         # Verify performance scales reasonably
         small_batch_rate = performance_results[100]["records_per_second"]
@@ -92,13 +102,19 @@ class TestBatchProcessingPerformance:
             # Measure batch completion performance
             start_time = time.time()
             for i in range(1, batch_size + 1):  # Use 1-based indexing
-                result = {"processed": True, "record_id": i, "timestamp": datetime.now().isoformat()}
+                result = {
+                    "processed": True,
+                    "record_id": i,
+                    "timestamp": datetime.now().isoformat(),
+                }
                 self.processor.mark_record_completed(i, result)
             completion_time = time.time() - start_time
 
             performance_results[batch_size] = {
                 "completion_time": completion_time,
-                "updates_per_second": batch_size / completion_time if completion_time > 0 else 0
+                "updates_per_second": batch_size / completion_time
+                if completion_time > 0
+                else 0,
             }
 
             # Should complete within reasonable time
@@ -107,8 +123,10 @@ class TestBatchProcessingPerformance:
         # Print performance results
         print("\nBatch Status Update Performance Results:")
         for batch_size, results in performance_results.items():
-            print(f"  Batch Size {batch_size}: {results['completion_time']:.3f}s "
-                  f"({results['updates_per_second']:.0f} updates/sec)")
+            print(
+                f"  Batch Size {batch_size}: {results['completion_time']:.3f}s "
+                f"({results['updates_per_second']:.0f} updates/sec)"
+            )
 
     def test_queue_addition_performance(self):
         """Test performance of adding records to queue."""
@@ -119,7 +137,13 @@ class TestBatchProcessingPerformance:
         for batch_size in batch_sizes:
             # Create test records
             records = [
-                {"payload": {"id": i, "data": f"test_data_{i}", "timestamp": datetime.now().isoformat()}}
+                {
+                    "payload": {
+                        "id": i,
+                        "data": f"test_data_{i}",
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                }
                 for i in range(batch_size)
             ]
 
@@ -131,7 +155,7 @@ class TestBatchProcessingPerformance:
             performance_results[batch_size] = {
                 "addition_time": addition_time,
                 "records_added": count,
-                "records_per_second": count / addition_time if addition_time > 0 else 0
+                "records_per_second": count / addition_time if addition_time > 0 else 0,
             }
 
             # Verify results
@@ -141,8 +165,10 @@ class TestBatchProcessingPerformance:
         # Print performance results
         print("\nQueue Addition Performance Results:")
         for batch_size, results in performance_results.items():
-            print(f"  Batch Size {batch_size}: {results['addition_time']:.3f}s "
-                  f"({results['records_per_second']:.0f} records/sec)")
+            print(
+                f"  Batch Size {batch_size}: {results['addition_time']:.3f}s "
+                f"({results['records_per_second']:.0f} records/sec)"
+            )
 
 
 @pytest.mark.performance
@@ -162,7 +188,7 @@ class TestConnectionPoolPerformance:
             "checked_out": 2,
             "overflow": 0,
             "invalid": 0,
-            "max_overflow": 20
+            "max_overflow": 20,
         }
         self.mock_rpa_db.get_pool_status.return_value = self.mock_pool_status
 
@@ -171,7 +197,9 @@ class TestConnectionPoolPerformance:
     def test_connection_pool_under_load(self):
         """Test connection pool behavior under high load."""
         # Mock database responses
-        self.mock_rpa_db.execute_query.return_value = [(1, {"data": "test"}, 0, datetime.now())]
+        self.mock_rpa_db.execute_query.return_value = [
+            (1, {"data": "test"}, 0, datetime.now())
+        ]
 
         # Track connection usage
         connection_usage = []
@@ -213,7 +241,9 @@ class TestConnectionPoolPerformance:
         print(f"  Total Time: {total_time:.3f}s")
         print(f"  Operations/Second: {operations_per_second:.0f}")
         print(f"  Max Connection Usage: {max(connection_usage)}")
-        print(f"  Avg Connection Usage: {sum(connection_usage) / len(connection_usage):.1f}")
+        print(
+            f"  Avg Connection Usage: {sum(connection_usage) / len(connection_usage):.1f}"
+        )
 
         # Verify performance
         assert operations_per_second > 100  # Should achieve reasonable throughput
@@ -231,7 +261,7 @@ class TestConnectionPoolPerformance:
                 "checked_in": random.randint(5, 9),
                 "checked_out": random.randint(1, 5),
                 "overflow": random.randint(0, 2),
-                "invalid": 0
+                "invalid": 0,
             }
             pool_stats.append(stats)
             return [(1, {"data": "test"}, 0, datetime.now())]
@@ -285,10 +315,10 @@ class TestMemoryPerformance:
                 "payload": {
                     "data": "x" * 1000,  # 1KB of data per record
                     "metadata": {"timestamp": datetime.now().isoformat(), "index": i},
-                    "processing_info": {"retry_count": 0, "created_at": datetime.now()}
+                    "processing_info": {"retry_count": 0, "created_at": datetime.now()},
                 },
                 "retry_count": 0,
-                "created_at": datetime.now()
+                "created_at": datetime.now(),
             }
             large_records.append(record)
 
@@ -296,14 +326,14 @@ class TestMemoryPerformance:
         memory_samples = []
 
         for batch_start in range(0, 1000, 100):
-            batch = large_records[batch_start:batch_start + 100]
+            batch = large_records[batch_start : batch_start + 100]
 
             # Simulate processing each record
             for record in batch:
                 {
                     "processed": True,
                     "size": len(str(record)),
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
                 }
                 # Simulate completion (would normally call mark_record_completed)
 
@@ -331,7 +361,9 @@ class TestMemoryPerformance:
         assert memory_increase < 200 * 1024 * 1024  # Less than 200MB increase
         # Only check GC effectiveness if there was significant memory increase
         if memory_increase > 10 * 1024 * 1024:  # More than 10MB increase
-            assert memory_after_gc < memory_increase * 0.8  # GC should free significant memory
+            assert (
+                memory_after_gc < memory_increase * 0.8
+            )  # GC should free significant memory
 
     def test_memory_leak_detection(self):
         """Test for potential memory leaks in repeated operations."""
@@ -349,7 +381,9 @@ class TestMemoryPerformance:
             # Perform a batch of operations
             for i in range(1, 101):  # Use 1-based indexing
                 # Simulate various operations
-                self.processor.mark_record_completed(i, {"processed": True, "cycle": cycle})
+                self.processor.mark_record_completed(
+                    i, {"processed": True, "cycle": cycle}
+                )
 
                 # Create and discard temporary data
                 temp_data = {"large_data": "x" * 1000, "index": i}
@@ -363,7 +397,7 @@ class TestMemoryPerformance:
         # Analyze memory trend
         memory_increases = []
         for i in range(1, len(memory_samples)):
-            increase = memory_samples[i] - memory_samples[i-1]
+            increase = memory_samples[i] - memory_samples[i - 1]
             memory_increases.append(increase)
 
         avg_increase_per_cycle = sum(memory_increases) / len(memory_increases)
@@ -396,8 +430,7 @@ class TestThroughputMeasurement:
         """Test throughput of record claiming operations."""
         # Mock fast database responses
         self.mock_rpa_db.execute_query.return_value = [
-            (i, {"data": f"test_{i}"}, 0, datetime.now())
-            for i in range(10)
+            (i, {"data": f"test_{i}"}, 0, datetime.now()) for i in range(10)
         ]
 
         # Measure claiming throughput
@@ -457,7 +490,9 @@ class TestThroughputMeasurement:
     def test_concurrent_throughput(self):
         """Test throughput under concurrent load."""
         # Mock database responses
-        self.mock_rpa_db.execute_query.return_value = [(1, {"data": "test"}, 0, datetime.now())]
+        self.mock_rpa_db.execute_query.return_value = [
+            (1, {"data": "test"}, 0, datetime.now())
+        ]
 
         # Measure concurrent throughput
         def throughput_worker():
@@ -466,7 +501,9 @@ class TestThroughputMeasurement:
 
             for _ in range(50):
                 try:
-                    records = self.processor.claim_records_batch("concurrent_throughput", 1)
+                    records = self.processor.claim_records_batch(
+                        "concurrent_throughput", 1
+                    )
                     operations += len(records)
                 except Exception:
                     pass

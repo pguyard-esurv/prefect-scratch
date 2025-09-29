@@ -26,9 +26,9 @@ from flows.examples.production_error_handling import production_error_handling_f
 
 def print_separator(title: str):
     """Print a formatted separator with title."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print(f" {title}")
-    print("="*80)
+    print("=" * 80)
 
 
 def print_result_summary(result: dict[str, Any], flow_name: str):
@@ -37,34 +37,36 @@ def print_result_summary(result: dict[str, Any], flow_name: str):
     print("-" * 40)
 
     # Extract key information based on flow type
-    if 'flow_execution' in result:
-        flow_exec = result['flow_execution']
+    if "flow_execution" in result:
+        flow_exec = result["flow_execution"]
         print(f"Status: {flow_exec.get('status', 'unknown')}")
         print(f"Execution Time: {flow_exec.get('execution_time', 'unknown')}")
 
-        if 'database_name' in flow_exec:
+        if "database_name" in flow_exec:
             print(f"Database: {flow_exec['database_name']}")
-        if 'source_database' in flow_exec and 'target_database' in flow_exec:
+        if "source_database" in flow_exec and "target_database" in flow_exec:
             print(f"Source DB: {flow_exec['source_database']}")
             print(f"Target DB: {flow_exec['target_database']}")
 
     # Print specific metrics based on flow type
-    if 'execution_metrics' in result:
-        metrics = result['execution_metrics']
+    if "execution_metrics" in result:
+        metrics = result["execution_metrics"]
         print(f"Total Orders: {metrics.get('total_orders', 0)}")
         print(f"Successful: {metrics.get('successful_orders', 0)}")
         print(f"Avg Processing Time: {metrics.get('avg_processing_time_ms', 0)}ms")
 
-    if 'error_handling' in result:
-        error_handling = result['error_handling']
+    if "error_handling" in result:
+        error_handling = result["error_handling"]
         print(f"Total Operations: {error_handling.get('total_operations', 0)}")
-        print(f"Successful Operations: {error_handling.get('successful_operations', 0)}")
+        print(
+            f"Successful Operations: {error_handling.get('successful_operations', 0)}"
+        )
         print(f"Failed Operations: {error_handling.get('failed_operations', 0)}")
 
-    if 'health_checks' in result and result['health_checks']:
+    if "health_checks" in result and result["health_checks"]:
         print("Health Check Results:")
-        for db_name, health_data in result['health_checks'].items():
-            status = health_data.get('overall_status', 'unknown')
+        for db_name, health_data in result["health_checks"].items():
+            status = health_data.get("overall_status", "unknown")
             print(f"  {db_name}: {status}")
 
 
@@ -77,7 +79,7 @@ def run_database_integration_example():
             source_database="rpa_db",
             target_database="rpa_db",
             run_migrations=True,
-            health_check_required=True
+            health_check_required=True,
         )
 
         print_result_summary(result, "Database Integration Example")
@@ -95,8 +97,7 @@ def run_concurrent_processing_example():
 
     try:
         result = concurrent_database_processing_flow(
-            database_name="rpa_db",
-            max_concurrent_tasks=4
+            database_name="rpa_db", max_concurrent_tasks=4
         )
 
         print_result_summary(result, "Concurrent Database Processing")
@@ -117,15 +118,15 @@ def run_health_check_integration_example():
             target_databases=["rpa_db"],
             minimum_health_level="degraded",
             perform_trend_analysis=True,
-            fail_on_prerequisites=False
+            fail_on_prerequisites=False,
         )
 
         print_result_summary(result, "Health Check Integration")
 
         # Print recommendations
-        if 'recommendations' in result:
+        if "recommendations" in result:
             print("\nRecommendations:")
-            for i, recommendation in enumerate(result['recommendations'], 1):
+            for i, recommendation in enumerate(result["recommendations"], 1):
                 print(f"  {i}. {recommendation}")
 
         print("\n✅ Health Check Integration Example completed successfully!")
@@ -145,13 +146,13 @@ def run_production_error_handling_example():
             primary_database="rpa_db",
             fallback_database=None,
             simulate_errors=True,  # Enable error simulation for demonstration
-            enable_circuit_breaker=True
+            enable_circuit_breaker=True,
         )
 
         print_result_summary(result, "Production Error Handling")
 
         # Print error handling details
-        if 'errors_logged' in result and result['errors_logged']:
+        if "errors_logged" in result and result["errors_logged"]:
             print(f"\nErrors Logged: {len(result['errors_logged'])}")
 
         print("\n✅ Production Error Handling Example completed successfully!")
@@ -171,17 +172,17 @@ def main():
 
     # Track results
     results = {
-        'database_integration': False,
-        'concurrent_processing': False,
-        'health_check_integration': False,
-        'production_error_handling': False
+        "database_integration": False,
+        "concurrent_processing": False,
+        "health_check_integration": False,
+        "production_error_handling": False,
     }
 
     # Run each example flow
-    results['database_integration'] = run_database_integration_example()
-    results['concurrent_processing'] = run_concurrent_processing_example()
-    results['health_check_integration'] = run_health_check_integration_example()
-    results['production_error_handling'] = run_production_error_handling_example()
+    results["database_integration"] = run_database_integration_example()
+    results["concurrent_processing"] = run_concurrent_processing_example()
+    results["health_check_integration"] = run_health_check_integration_example()
+    results["production_error_handling"] = run_production_error_handling_example()
 
     # Print final summary
     print_separator("EXECUTION SUMMARY")

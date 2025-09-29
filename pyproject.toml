@@ -21,6 +21,8 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "tenacity>=8.0.0",
     "psutil>=7.1.0",
+    "watchdog>=3.0.0",
+    "docker>=6.0.0",
 ]
 
 [project.optional-dependencies]

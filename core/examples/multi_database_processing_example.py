@@ -19,7 +19,7 @@ import os
 import sys
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from core.database import DatabaseManager
 from core.distributed import DistributedProcessor
@@ -31,18 +31,18 @@ def create_sample_survey_data():
         {
             "survey_id": "SURV-DEMO-001",
             "customer_name": "Alice Johnson",
-            "flow_run_id": "demo-flow-001"
+            "flow_run_id": "demo-flow-001",
         },
         {
             "survey_id": "SURV-DEMO-002",
             "customer_name": "Bob Smith",
-            "flow_run_id": "demo-flow-002"
+            "flow_run_id": "demo-flow-002",
         },
         {
             "survey_id": "SURV-DEMO-003",
             "customer_name": "Charlie Brown",
-            "flow_run_id": "demo-flow-003"
-        }
+            "flow_run_id": "demo-flow-003",
+        },
     ]
 
 
@@ -77,20 +77,23 @@ def demonstrate_multi_database_processing():
         # Initialize DistributedProcessor with both databases
         print("\n2. Creating DistributedProcessor...")
         processor = DistributedProcessor(
-            rpa_db_manager=rpa_db_manager,
-            source_db_manager=source_db_manager
+            rpa_db_manager=rpa_db_manager, source_db_manager=source_db_manager
         )
         print(f"   - Instance ID: {processor.instance_id}")
         print(f"   - RPA DB: {processor.rpa_db.database_name}")
-        print(f"   - Source DB: {processor.source_db.database_name if processor.source_db else 'None'}")
+        print(
+            f"   - Source DB: {processor.source_db.database_name if processor.source_db else 'None'}"
+        )
 
         # Demonstrate health check
         print("\n3. Performing health check...")
         health_status = processor.health_check()
         print(f"   - Overall Status: {health_status['status']}")
         print(f"   - RPA DB Status: {health_status['databases']['rpa_db']['status']}")
-        if 'source_db' in health_status['databases']:
-            print(f"   - Source DB Status: {health_status['databases']['source_db']['status']}")
+        if "source_db" in health_status["databases"]:
+            print(
+                f"   - Source DB Status: {health_status['databases']['source_db']['status']}"
+            )
 
         # Demonstrate multi-database processing (if source DB available)
         if processor.source_db:
@@ -108,7 +111,9 @@ def demonstrate_multi_database_processing():
                     result = processor.process_survey_logic(survey_payload)
 
                     print(f"   - Customer: {result['customer_name']}")
-                    print(f"   - Satisfaction Score: {result.get('satisfaction_score', 'N/A')}")
+                    print(
+                        f"   - Satisfaction Score: {result.get('satisfaction_score', 'N/A')}"
+                    )
                     print(f"   - Status: {result['processing_status']}")
                     print(f"   - Duration: {result['processing_duration_ms']}ms")
 
@@ -157,8 +162,7 @@ def demonstrate_business_logic():
     mock_source_db.database_name = "mock_surveyhub"
 
     processor = DistributedProcessor(
-        rpa_db_manager=mock_rpa_db,
-        source_db_manager=mock_source_db
+        rpa_db_manager=mock_rpa_db, source_db_manager=mock_source_db
     )
 
     # Demonstrate satisfaction score calculation
@@ -168,29 +172,28 @@ def demonstrate_business_logic():
         {
             "survey_type": "Customer Satisfaction",
             "response_data": {"overall_satisfaction": 8.5},
-            "description": "Customer Satisfaction with overall rating"
+            "description": "Customer Satisfaction with overall rating",
         },
         {
             "survey_type": "Product Feedback",
             "response_data": {"product_rating": 7.0, "recommendation_likelihood": 9.0},
-            "description": "Product Feedback with weighted scoring"
+            "description": "Product Feedback with weighted scoring",
         },
         {
             "survey_type": "Market Research",
             "response_data": {"interest_level": 6.5},
-            "description": "Market Research with interest level"
+            "description": "Market Research with interest level",
         },
         {
             "survey_type": "Unknown Type",
             "response_data": {"rating1": 8.0, "rating2": 7.0, "rating3": 9.0},
-            "description": "Unknown survey type with multiple ratings"
-        }
+            "description": "Unknown survey type with multiple ratings",
+        },
     ]
 
     for case in test_cases:
         score = processor._calculate_satisfaction_score(
-            case["response_data"],
-            case["survey_type"]
+            case["response_data"], case["survey_type"]
         )
         print(f"   - {case['description']}: {score}")
 
@@ -201,12 +204,12 @@ def demonstrate_business_logic():
         "survey_id": "SURV-TRANSFORM-001",
         "customer_id": "CUST-001",
         "response_data": {"overall_satisfaction": 8.7, "service_rating": 9.0},
-        "survey_type": "Customer Satisfaction"
+        "survey_type": "Customer Satisfaction",
     }
 
     sample_payload = {
         "customer_name": "Demo Customer",
-        "flow_run_id": "demo-transform-001"
+        "flow_run_id": "demo-transform-001",
     }
 
     transformed = processor._transform_survey_data(sample_survey_data, sample_payload)

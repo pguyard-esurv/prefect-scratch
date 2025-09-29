@@ -27,7 +27,7 @@ processor = DistributedProcessor(rpa_db_manager, source_db_manager, config_manag
 def distributed_processing_flow(
     flow_name: str,
     batch_size: Optional[int] = None,
-    business_logic_func: Optional[callable] = None
+    business_logic_func: Optional[callable] = None,
 ) -> dict[str, Any]:
     """
     Distributed processing flow template with health checks and record claiming.
@@ -76,7 +76,9 @@ def distributed_processing_flow(
     elif not isinstance(batch_size, int) or batch_size <= 0:
         raise ValueError("batch_size must be a positive integer")
 
-    logger.info(f"Starting distributed processing flow '{flow_name}' with batch_size: {batch_size}")
+    logger.info(
+        f"Starting distributed processing flow '{flow_name}' with batch_size: {batch_size}"
+    )
 
     # 1. Mandatory database health check with fail-fast behavior
     logger.info("Performing database health check before processing")
@@ -104,7 +106,7 @@ def distributed_processing_flow(
             "records_processed": 0,
             "records_completed": 0,
             "records_failed": 0,
-            "message": "No records to process"
+            "message": "No records to process",
         }
 
     logger.info(f"Successfully claimed {len(records)} records for processing")
@@ -114,7 +116,9 @@ def distributed_processing_flow(
 
     if business_logic_func:
         # Use custom business logic function
-        results = process_record_with_status_custom.map(records, business_logic_func=business_logic_func)
+        results = process_record_with_status_custom.map(
+            records, business_logic_func=business_logic_func
+        )
     else:
         # Use default business logic
         results = process_record_with_status.map(records)
@@ -147,24 +151,20 @@ def process_record_with_status(record: dict[str, Any]) -> dict[str, Any]:
         conflicting with the database-level retry counting mechanism.
     """
     logger = get_run_logger()
-    record_id = record['id']
+    record_id = record["id"]
 
     logger.info(f"Processing record {record_id}")
 
     try:
         # Default business logic - can be overridden by custom implementations
-        result = process_default_business_logic(record['payload'])
+        result = process_default_business_logic(record["payload"])
 
         # Mark record as completed in database with retry logic
         processor.mark_record_completed_with_retry(record_id, result)
 
         logger.info(f"Successfully processed record {record_id}")
 
-        return {
-            "record_id": record_id,
-            "status": "completed",
-            "result": result
-        }
+        return {"record_id": record_id, "status": "completed", "result": result}
 
     except Exception as e:
         # Mark record as failed in database with retry logic
@@ -173,18 +173,13 @@ def process_record_with_status(record: dict[str, Any]) -> dict[str, Any]:
 
         logger.error(f"Failed to process record {record_id}: {error_message}")
 
-        return {
-            "record_id": record_id,
-            "status": "failed",
-            "error": error_message
-        }
+        return {"record_id": record_id, "status": "failed", "error": error_message}
         # Note: Not re-raising to prevent Prefect retries conflicting with DB retry logic
 
 
 @task(name="process-record-with-status-custom", retries=0)
 def process_record_with_status_custom(
-    record: dict[str, Any],
-    business_logic_func: callable
+    record: dict[str, Any], business_logic_func: callable
 ) -> dict[str, Any]:
     """
     Process individual record with custom business logic and status management.
@@ -200,37 +195,31 @@ def process_record_with_status_custom(
         Dictionary containing processing result with record_id, status, and result/error
     """
     logger = get_run_logger()
-    record_id = record['id']
+    record_id = record["id"]
 
     logger.info(f"Processing record {record_id} with custom business logic")
 
     try:
         # Use custom business logic function
-        result = business_logic_func(record['payload'])
+        result = business_logic_func(record["payload"])
 
         # Mark record as completed in database with retry logic
         processor.mark_record_completed_with_retry(record_id, result)
 
         logger.info(f"Successfully processed record {record_id} with custom logic")
 
-        return {
-            "record_id": record_id,
-            "status": "completed",
-            "result": result
-        }
+        return {"record_id": record_id, "status": "completed", "result": result}
 
     except Exception as e:
         # Mark record as failed in database with retry logic
         error_message = str(e)
         processor.mark_record_failed_with_retry(record_id, error_message)
 
-        logger.error(f"Failed to process record {record_id} with custom logic: {error_message}")
+        logger.error(
+            f"Failed to process record {record_id} with custom logic: {error_message}"
+        )
 
-        return {
-            "record_id": record_id,
-            "status": "failed",
-            "error": error_message
-        }
+        return {"record_id": record_id, "status": "failed", "error": error_message}
 
 
 def process_default_business_logic(payload: dict[str, Any]) -> dict[str, Any]:
@@ -258,16 +247,13 @@ def process_default_business_logic(payload: dict[str, Any]) -> dict[str, Any]:
         "processed": True,
         "original_payload": payload,
         "processed_at": datetime.datetime.now(datetime.UTC).isoformat(),
-        "processor_instance": processor.instance_id
+        "processor_instance": processor.instance_id,
     }
 
 
 @task(name="generate-processing-summary")
 def generate_processing_summary(
-    results: list[dict[str, Any]],
-    flow_name: str,
-    batch_size: int,
-    records_claimed: int
+    results: list[dict[str, Any]], flow_name: str, batch_size: int, records_claimed: int
 ) -> dict[str, Any]:
     """
     Generate comprehensive processing summary from task results.
@@ -297,14 +283,13 @@ def generate_processing_summary(
             completed_count += 1
         elif result["status"] == "failed":
             failed_count += 1
-            errors.append({
-                "record_id": result["record_id"],
-                "error": result["error"]
-            })
+            errors.append({"record_id": result["record_id"], "error": result["error"]})
 
     # Calculate success rate
     total_processed = completed_count + failed_count
-    success_rate = (completed_count / total_processed * 100) if total_processed > 0 else 0
+    success_rate = (
+        (completed_count / total_processed * 100) if total_processed > 0 else 0
+    )
 
     # Build summary
     summary = {
@@ -317,7 +302,7 @@ def generate_processing_summary(
         "success_rate_percent": round(success_rate, 2),
         "processor_instance": processor.instance_id,
         "errors": errors[:10] if errors else [],  # Limit to first 10 errors
-        "error_count": len(errors)
+        "error_count": len(errors),
     }
 
     logger.info(
@@ -327,17 +312,18 @@ def generate_processing_summary(
     )
 
     if failed_count > 0:
-        logger.warning(f"{failed_count} records failed processing in flow '{flow_name}'")
+        logger.warning(
+            f"{failed_count} records failed processing in flow '{flow_name}'"
+        )
 
     return summary
 
 
 # Utility functions for flow template usage
 
+
 def create_custom_distributed_flow(
-    flow_name: str,
-    business_logic_func: callable,
-    default_batch_size: int = 100
+    flow_name: str, business_logic_func: callable, default_batch_size: int = 100
 ) -> callable:
     """
     Factory function to create custom distributed flows with specific business logic.
@@ -363,12 +349,13 @@ def create_custom_distributed_flow(
             default_batch_size=50
         )
     """
+
     @flow(name=f"distributed-{flow_name}")
     def custom_flow(batch_size: int = default_batch_size) -> dict[str, Any]:
         return distributed_processing_flow(
             flow_name=flow_name,
             batch_size=batch_size,
-            business_logic_func=business_logic_func
+            business_logic_func=business_logic_func,
         )
 
     return custom_flow

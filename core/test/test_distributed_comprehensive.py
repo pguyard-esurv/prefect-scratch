@@ -50,13 +50,13 @@ class TestDistributedProcessorComprehensive:
             "default_batch_size": 100,
             "cleanup_timeout_hours": 1,
             "max_retries": 3,
-            "health_check_interval": 300
+            "health_check_interval": 300,
         }
 
         self.processor = DistributedProcessor(
             rpa_db_manager=self.mock_rpa_db,
             source_db_manager=self.mock_source_db,
-            config_manager=self.mock_config
+            config_manager=self.mock_config,
         )
 
     def test_initialization_comprehensive(self):
@@ -65,7 +65,7 @@ class TestDistributedProcessorComprehensive:
         processor = DistributedProcessor(
             rpa_db_manager=self.mock_rpa_db,
             source_db_manager=self.mock_source_db,
-            config_manager=self.mock_config
+            config_manager=self.mock_config,
         )
 
         assert processor.rpa_db is self.mock_rpa_db
@@ -149,7 +149,11 @@ class TestDistributedProcessorComprehensive:
         # Mock status query results
         self.mock_rpa_db.execute_query.side_effect = [
             [("pending", 50), ("processing", 10), ("completed", 100), ("failed", 5)],
-            [("flow1", "pending", 25), ("flow1", "completed", 50), ("flow2", "pending", 25)]
+            [
+                ("flow1", "pending", 25),
+                ("flow1", "completed", 50),
+                ("flow2", "pending", 25),
+            ],
         ]
 
         # Test system-wide status
@@ -181,7 +185,7 @@ class TestDistributedProcessorComprehensive:
         # Mock count query and reset query
         self.mock_rpa_db.execute_query.side_effect = [
             [(10, 5, 15)],  # resettable, exceeded_limit, total
-            10  # rows affected by reset
+            10,  # rows affected by reset
         ]
 
         reset_count = self.processor.reset_failed_records("test_flow", max_retries=3)
@@ -195,17 +199,19 @@ class TestDistributedProcessorComprehensive:
         self.mock_rpa_db.health_check.return_value = {
             "status": "healthy",
             "connection": True,
-            "response_time_ms": 45.2
+            "response_time_ms": 45.2,
         }
         self.mock_source_db.health_check.return_value = {
             "status": "healthy",
             "connection": True,
-            "response_time_ms": 32.1
+            "response_time_ms": 32.1,
         }
 
         # Mock queue status
         self.mock_rpa_db.execute_query.return_value = [
-            ("pending", 150), ("processing", 25), ("failed", 3)
+            ("pending", 150),
+            ("processing", 25),
+            ("failed", 3),
         ]
 
         health = self.processor.health_check()
@@ -234,8 +240,7 @@ class TestDistributedProcessorIntegration:
 
         # Create test processor
         self.processor = DistributedProcessor(
-            rpa_db_manager=self.rpa_db,
-            config_manager=self.config_manager
+            rpa_db_manager=self.rpa_db, config_manager=self.config_manager
         )
 
     def test_multi_container_record_claiming(self):
@@ -246,10 +251,7 @@ class TestDistributedProcessorIntegration:
         processor3 = DistributedProcessor(rpa_db_manager=self.rpa_db)
 
         # Add test records to queue
-        test_records = [
-            {"payload": {"id": i, "data": f"test_{i}"}}
-            for i in range(30)
-        ]
+        test_records = [{"payload": {"id": i, "data": f"test_{i}"}} for i in range(30)]
         processor1.add_records_to_queue("integration_test", test_records)
 
         # Claim records concurrently from multiple processors
@@ -260,7 +262,7 @@ class TestDistributedProcessorIntegration:
             futures = [
                 executor.submit(claim_records, processor1, 10),
                 executor.submit(claim_records, processor2, 10),
-                executor.submit(claim_records, processor3, 10)
+                executor.submit(claim_records, processor3, 10),
             ]
 
             results = [future.result() for future in futures]
@@ -272,7 +274,9 @@ class TestDistributedProcessorIntegration:
             all_claimed_ids.extend(claimed_ids)
 
         # Check for duplicates
-        assert len(all_claimed_ids) == len(set(all_claimed_ids)), "Duplicate records were claimed"
+        assert len(all_claimed_ids) == len(set(all_claimed_ids)), (
+            "Duplicate records were claimed"
+        )
         assert len(all_claimed_ids) == 30, "Not all records were claimed"
 
     def test_concurrent_status_updates(self):
@@ -321,7 +325,7 @@ class TestDistributedProcessorIntegration:
             past_time = datetime.now() - timedelta(hours=2)
             self.rpa_db.execute_query(
                 "UPDATE processing_queue SET claimed_at = %s WHERE id = %s",
-                (past_time, record["id"])
+                (past_time, record["id"]),
             )
 
         # Run cleanup
@@ -396,11 +400,14 @@ class TestConcurrentProcessing:
 
     def test_concurrent_queue_operations(self):
         """Test concurrent queue operations (add, claim, status)."""
+
         # Mock responses for different operations
         def mock_execute_query(query, params, **kwargs):
             if "INSERT INTO processing_queue" in query:
                 return None  # Add operation
-            elif "UPDATE processing_queue" in query and "FOR UPDATE SKIP LOCKED" in query:
+            elif (
+                "UPDATE processing_queue" in query and "FOR UPDATE SKIP LOCKED" in query
+            ):
                 return [(1, {"data": "test"}, 0, datetime.now())]  # Claim operation
             elif "SELECT status, COUNT(*)" in query:
                 return [("pending", 10), ("processing", 5)]  # Status operation
@@ -452,8 +459,7 @@ class TestDistributedProcessorPerformance:
         """Test performance of batch processing operations."""
         # Mock large batch response
         large_batch = [
-            (i, {"data": f"test_{i}"}, 0, datetime.now())
-            for i in range(1000)
+            (i, {"data": f"test_{i}"}, 0, datetime.now()) for i in range(1000)
         ]
         self.mock_rpa_db.execute_query.return_value = large_batch
 
@@ -489,11 +495,13 @@ class TestDistributedProcessorPerformance:
             "checked_in": 8,
             "checked_out": 2,
             "overflow": 0,
-            "invalid": 0
+            "invalid": 0,
         }
 
         # Simulate high load
-        self.mock_rpa_db.execute_query.return_value = [(1, {"data": "test"}, 0, datetime.now())]
+        self.mock_rpa_db.execute_query.return_value = [
+            (1, {"data": "test"}, 0, datetime.now())
+        ]
 
         def load_worker():
             for _ in range(10):
@@ -527,13 +535,18 @@ class TestDistributedProcessorPerformance:
 
         # Mock large dataset processing
         large_records = [
-            {"id": i, "payload": {"data": "x" * 1000}, "retry_count": 0, "created_at": datetime.now()}
+            {
+                "id": i,
+                "payload": {"data": "x" * 1000},
+                "retry_count": 0,
+                "created_at": datetime.now(),
+            }
             for i in range(1000)
         ]
 
         # Process records in batches
         for batch_start in range(0, 1000, 100):
-            batch = large_records[batch_start:batch_start + 100]
+            batch = large_records[batch_start : batch_start + 100]
 
             # Simulate processing
             for record in batch:
@@ -581,8 +594,7 @@ class TestChaosEngineering:
         self.mock_rpa_db.logger = Mock()
 
         self.processor = DistributedProcessor(
-            rpa_db_manager=self.mock_rpa_db,
-            source_db_manager=self.mock_source_db
+            rpa_db_manager=self.mock_rpa_db, source_db_manager=self.mock_source_db
         )
 
     def test_database_connection_failures(self):
@@ -635,7 +647,11 @@ class TestChaosEngineering:
         processor3 = DistributedProcessor(rpa_db_manager=self.mock_rpa_db)
 
         # Verify unique instance IDs
-        instance_ids = [processor1.instance_id, processor2.instance_id, processor3.instance_id]
+        instance_ids = [
+            processor1.instance_id,
+            processor2.instance_id,
+            processor3.instance_id,
+        ]
         assert len(set(instance_ids)) == 3
 
         # Test that each processor uses its own instance ID in queries
@@ -649,6 +665,7 @@ class TestChaosEngineering:
         """Test behavior during simulated network partitions."""
         # Simulate network timeout
         import socket
+
         self.mock_rpa_db.execute_query.side_effect = socket.timeout("Network timeout")
 
         # Test that operations handle network issues
@@ -668,7 +685,9 @@ class TestChaosEngineering:
             self.processor.claim_records_batch("memory_test", 1000)
 
         # Simulate connection pool exhaustion
-        self.mock_rpa_db.execute_query.side_effect = Exception("Connection pool exhausted")
+        self.mock_rpa_db.execute_query.side_effect = Exception(
+            "Connection pool exhausted"
+        )
 
         with pytest.raises(RuntimeError):
             self.processor.get_queue_status()
@@ -677,15 +696,21 @@ class TestChaosEngineering:
         """Test system behavior when containers fail concurrently."""
         # Simulate multiple containers processing
         processors = [
-            DistributedProcessor(rpa_db_manager=self.mock_rpa_db)
-            for _ in range(5)
+            DistributedProcessor(rpa_db_manager=self.mock_rpa_db) for _ in range(5)
         ]
 
         # Mock some processors failing
         def failing_processor_operation(processor_index):
             if processor_index < 2:  # First 2 processors fail
                 raise Exception(f"Container {processor_index} failed")
-            return [(processor_index, {"data": f"test_{processor_index}"}, 0, datetime.now())]
+            return [
+                (
+                    processor_index,
+                    {"data": f"test_{processor_index}"},
+                    0,
+                    datetime.now(),
+                )
+            ]
 
         # Test concurrent operations with failures
         results = []
@@ -693,7 +718,9 @@ class TestChaosEngineering:
 
         for i, processor in enumerate(processors):
             try:
-                self.mock_rpa_db.execute_query.return_value = failing_processor_operation(i)
+                self.mock_rpa_db.execute_query.return_value = (
+                    failing_processor_operation(i)
+                )
                 if i >= 2:  # Only successful processors
                     records = processor.claim_records_batch("failure_test", 1)
                     results.append(records)
@@ -718,7 +745,7 @@ class TestFlowTemplateComprehensive:
         self.mock_processor.instance_id = "test-instance-123"
         self.mock_processor.config = {"default_batch_size": 100}
 
-    @patch('core.flow_template.processor')
+    @patch("core.flow_template.processor")
     def test_distributed_flow_comprehensive(self, mock_processor):
         """Test comprehensive distributed flow scenarios."""
         mock_processor.instance_id = "test-instance-123"
@@ -729,16 +756,26 @@ class TestFlowTemplateComprehensive:
 
         # Mock record claiming
         mock_records = [
-            {"id": 1, "payload": {"data": "test1"}, "retry_count": 0, "created_at": "2024-01-01"},
-            {"id": 2, "payload": {"data": "test2"}, "retry_count": 0, "created_at": "2024-01-01"}
+            {
+                "id": 1,
+                "payload": {"data": "test1"},
+                "retry_count": 0,
+                "created_at": "2024-01-01",
+            },
+            {
+                "id": 2,
+                "payload": {"data": "test2"},
+                "retry_count": 0,
+                "created_at": "2024-01-01",
+            },
         ]
         mock_processor.claim_records_batch_with_retry.return_value = mock_records
 
         # Mock processing results
-        with patch('core.flow_template.process_record_with_status') as mock_task:
+        with patch("core.flow_template.process_record_with_status") as mock_task:
             mock_task.map.return_value = [
                 {"record_id": 1, "status": "completed", "result": {"processed": True}},
-                {"record_id": 2, "status": "completed", "result": {"processed": True}}
+                {"record_id": 2, "status": "completed", "result": {"processed": True}},
             ]
 
             # Test flow execution
@@ -757,7 +794,7 @@ class TestFlowTemplateComprehensive:
             {"record_id": 2, "status": "failed", "error": "Processing error"},
             {"record_id": 3, "status": "completed", "result": {"processed": True}},
             {"record_id": 4, "status": "failed", "error": "Validation error"},
-            {"record_id": 5, "status": "completed", "result": {"processed": True}}
+            {"record_id": 5, "status": "completed", "result": {"processed": True}},
         ]
 
         summary = generate_processing_summary(results, "mixed_flow", 10, 5)
@@ -768,7 +805,7 @@ class TestFlowTemplateComprehensive:
         assert summary["success_rate_percent"] == 60.0
         assert len(summary["errors"]) == 2
 
-    @patch('core.flow_template.processor')
+    @patch("core.flow_template.processor")
     def test_record_processing_error_handling(self, mock_processor):
         """Test comprehensive error handling in record processing."""
         mock_processor.instance_id = "test-instance-123"
@@ -778,10 +815,10 @@ class TestFlowTemplateComprehensive:
             "id": 123,
             "payload": {"data": "test"},
             "retry_count": 0,
-            "created_at": "2024-01-01"
+            "created_at": "2024-01-01",
         }
 
-        with patch('core.flow_template.process_default_business_logic') as mock_logic:
+        with patch("core.flow_template.process_default_business_logic") as mock_logic:
             mock_logic.return_value = {"processed": True}
 
             result = process_record_with_status(record)

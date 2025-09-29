@@ -142,6 +142,7 @@ def test_validate_file_exists():
 
 # Database Monitoring Task Tests
 
+
 @pytest.fixture
 def mock_database_manager(mocker):
     """Create a mock DatabaseManager for testing."""
@@ -153,12 +154,9 @@ def mock_database_manager(mocker):
         "status": "healthy",
         "connection": True,
         "query_test": True,
-        "migration_status": {
-            "current_version": "V003",
-            "pending_migrations": []
-        },
+        "migration_status": {"current_version": "V003", "pending_migrations": []},
         "response_time_ms": 45.2,
-        "timestamp": "2024-01-15T10:30:00Z"
+        "timestamp": "2024-01-15T10:30:00Z",
     }
 
     # Mock health check with retry
@@ -176,7 +174,7 @@ def mock_database_manager(mocker):
         "max_connections": 15,
         "utilization_percent": 13.33,
         "timestamp": "2024-01-15T10:30:00Z",
-        "pool_class": "QueuePool"
+        "pool_class": "QueuePool",
     }
 
     # Mock migration status
@@ -185,7 +183,7 @@ def mock_database_manager(mocker):
         "migration_directory": "/path/to/migrations",
         "current_version": "V003",
         "pending_migrations": [],
-        "total_applied": 3
+        "total_applied": 3,
     }
 
     # Mock query execution
@@ -199,7 +197,7 @@ def test_database_health_check_healthy(mocker, mock_database_manager):
     # Mock DatabaseManager constructor and context manager
     mock_database_manager.__enter__.return_value = mock_database_manager
     mock_database_manager.__exit__.return_value = None
-    mocker.patch('core.tasks.DatabaseManager', return_value=mock_database_manager)
+    mocker.patch("core.tasks.DatabaseManager", return_value=mock_database_manager)
 
     with disable_run_logger():
         result = database_health_check.fn("test_db", include_retry=False)
@@ -216,7 +214,7 @@ def test_database_health_check_with_retry(mocker, mock_database_manager):
     """Test database health check task with retry enabled."""
     mock_database_manager.__enter__.return_value = mock_database_manager
     mock_database_manager.__exit__.return_value = None
-    mocker.patch('core.tasks.DatabaseManager', return_value=mock_database_manager)
+    mocker.patch("core.tasks.DatabaseManager", return_value=mock_database_manager)
 
     with disable_run_logger():
         result = database_health_check.fn("test_db", include_retry=True)
@@ -239,10 +237,10 @@ def test_database_health_check_unhealthy(mocker):
         "migration_status": None,
         "response_time_ms": None,
         "timestamp": "2024-01-15T10:30:00Z",
-        "error": "Connection failed"
+        "error": "Connection failed",
     }
 
-    mocker.patch('core.tasks.DatabaseManager', return_value=mock_db)
+    mocker.patch("core.tasks.DatabaseManager", return_value=mock_db)
 
     with disable_run_logger():
         result = database_health_check.fn("test_db")
@@ -255,7 +253,7 @@ def test_database_health_check_unhealthy(mocker):
 
 def test_database_health_check_exception(mocker):
     """Test database health check task when exception occurs."""
-    mocker.patch('core.tasks.DatabaseManager', side_effect=Exception("Database error"))
+    mocker.patch("core.tasks.DatabaseManager", side_effect=Exception("Database error"))
 
     with disable_run_logger():
         result = database_health_check.fn("test_db")
@@ -271,7 +269,7 @@ def test_connection_pool_monitoring(mocker, mock_database_manager):
     """Test connection pool monitoring task."""
     mock_database_manager.__enter__.return_value = mock_database_manager
     mock_database_manager.__exit__.return_value = None
-    mocker.patch('core.tasks.DatabaseManager', return_value=mock_database_manager)
+    mocker.patch("core.tasks.DatabaseManager", return_value=mock_database_manager)
 
     with disable_run_logger():
         result = connection_pool_monitoring.fn("test_db")
@@ -301,10 +299,10 @@ def test_connection_pool_monitoring_high_utilization(mocker):
         "max_connections": 15,
         "utilization_percent": 80.0,
         "timestamp": "2024-01-15T10:30:00Z",
-        "pool_class": "QueuePool"
+        "pool_class": "QueuePool",
     }
 
-    mocker.patch('core.tasks.DatabaseManager', return_value=mock_db)
+    mocker.patch("core.tasks.DatabaseManager", return_value=mock_db)
 
     with disable_run_logger():
         result = connection_pool_monitoring.fn("test_db")
@@ -318,13 +316,13 @@ def test_database_prerequisite_validation_success(mocker, mock_database_manager)
     """Test database prerequisite validation with successful validation."""
     mock_database_manager.__enter__.return_value = mock_database_manager
     mock_database_manager.__exit__.return_value = None
-    mocker.patch('core.tasks.DatabaseManager', return_value=mock_database_manager)
+    mocker.patch("core.tasks.DatabaseManager", return_value=mock_database_manager)
 
     with disable_run_logger():
         result = database_prerequisite_validation.fn(
             ["test_db1", "test_db2"],
             check_migrations=True,
-            performance_threshold_ms=1000.0
+            performance_threshold_ms=1000.0,
         )
 
     assert result["overall_status"] == "passed"
@@ -351,19 +349,17 @@ def test_database_prerequisite_validation_with_warnings(mocker):
         "connection": True,
         "query_test": True,
         "response_time_ms": 1500.0,  # Exceeds threshold
-        "timestamp": "2024-01-15T10:30:00Z"
+        "timestamp": "2024-01-15T10:30:00Z",
     }
     mock_db.get_migration_status.return_value = {
         "pending_migrations": [{"filename": "V004__new_migration.sql"}]
     }
 
-    mocker.patch('core.tasks.DatabaseManager', return_value=mock_db)
+    mocker.patch("core.tasks.DatabaseManager", return_value=mock_db)
 
     with disable_run_logger():
         result = database_prerequisite_validation.fn(
-            ["test_db"],
-            check_migrations=True,
-            performance_threshold_ms=1000.0
+            ["test_db"], check_migrations=True, performance_threshold_ms=1000.0
         )
 
     assert result["overall_status"] == "passed"  # Still passes but with warnings
@@ -388,10 +384,10 @@ def test_database_prerequisite_validation_failure(mocker):
         "connection": False,
         "query_test": False,
         "error": "Connection refused",
-        "timestamp": "2024-01-15T10:30:00Z"
+        "timestamp": "2024-01-15T10:30:00Z",
     }
 
-    mocker.patch('core.tasks.DatabaseManager', return_value=mock_db)
+    mocker.patch("core.tasks.DatabaseManager", return_value=mock_db)
 
     with disable_run_logger():
         result = database_prerequisite_validation.fn(["test_db"])
@@ -408,13 +404,14 @@ def test_database_prerequisite_validation_failure(mocker):
 def test_database_connectivity_diagnostics(mocker, mock_database_manager):
     """Test database connectivity diagnostics task."""
     # Mock configuration validation - it's imported from database module
-    mocker.patch('core.database.validate_database_configuration', return_value={
-        "test_db": {"valid": True, "configuration": "ok"}
-    })
+    mocker.patch(
+        "core.database.validate_database_configuration",
+        return_value={"test_db": {"valid": True, "configuration": "ok"}},
+    )
 
     mock_database_manager.__enter__.return_value = mock_database_manager
     mock_database_manager.__exit__.return_value = None
-    mocker.patch('core.tasks.DatabaseManager', return_value=mock_database_manager)
+    mocker.patch("core.tasks.DatabaseManager", return_value=mock_database_manager)
 
     with disable_run_logger():
         result = database_connectivity_diagnostics.fn("test_db")
@@ -432,9 +429,12 @@ def test_database_connectivity_diagnostics(mocker, mock_database_manager):
 
 def test_database_connectivity_diagnostics_config_invalid(mocker):
     """Test database connectivity diagnostics with invalid configuration."""
-    mocker.patch('core.database.validate_database_configuration', return_value={
-        "test_db": {"valid": False, "error": "Missing connection string"}
-    })
+    mocker.patch(
+        "core.database.validate_database_configuration",
+        return_value={
+            "test_db": {"valid": False, "error": "Missing connection string"}
+        },
+    )
 
     with disable_run_logger():
         result = database_connectivity_diagnostics.fn("test_db")
@@ -448,15 +448,13 @@ def test_database_performance_monitoring(mocker, mock_database_manager):
     """Test database performance monitoring task."""
     mock_database_manager.__enter__.return_value = mock_database_manager
     mock_database_manager.__exit__.return_value = None
-    mocker.patch('core.tasks.DatabaseManager', return_value=mock_database_manager)
+    mocker.patch("core.tasks.DatabaseManager", return_value=mock_database_manager)
 
     test_queries = ["SELECT 1", "SELECT COUNT(*) FROM test_table"]
 
     with disable_run_logger():
         result = database_performance_monitoring.fn(
-            "test_db",
-            test_queries=test_queries,
-            iterations=2
+            "test_db", test_queries=test_queries, iterations=2
         )
 
     assert result["database_name"] == "test_db"
@@ -474,7 +472,10 @@ def test_database_performance_monitoring(mocker, mock_database_manager):
 
     # Check performance assessment
     assert result["overall_assessment"]["performance_rating"] in [
-        "excellent", "good", "acceptable", "poor"
+        "excellent",
+        "good",
+        "acceptable",
+        "poor",
     ]
 
 
@@ -482,7 +483,7 @@ def test_database_performance_monitoring_default_queries(mocker, mock_database_m
     """Test database performance monitoring with default queries."""
     mock_database_manager.__enter__.return_value = mock_database_manager
     mock_database_manager.__exit__.return_value = None
-    mocker.patch('core.tasks.DatabaseManager', return_value=mock_database_manager)
+    mocker.patch("core.tasks.DatabaseManager", return_value=mock_database_manager)
 
     with disable_run_logger():
         result = database_performance_monitoring.fn("test_db", iterations=1)
@@ -494,6 +495,7 @@ def test_database_performance_monitoring_default_queries(mocker, mock_database_m
 
 def test_multi_database_health_summary(mocker):
     """Test multi-database health summary task."""
+
     # Mock the database_health_check task function
     def mock_health_check(db_name, include_retry=False):
         if db_name == "healthy_db":
@@ -502,7 +504,7 @@ def test_multi_database_health_summary(mocker):
                 "status": "healthy",
                 "connection": True,
                 "response_time_ms": 50.0,
-                "error": None
+                "error": None,
             }
         elif db_name == "degraded_db":
             return {
@@ -510,7 +512,7 @@ def test_multi_database_health_summary(mocker):
                 "status": "degraded",
                 "connection": True,
                 "response_time_ms": 2000.0,
-                "error": None
+                "error": None,
             }
         else:  # unhealthy_db
             return {
@@ -518,10 +520,10 @@ def test_multi_database_health_summary(mocker):
                 "status": "unhealthy",
                 "connection": False,
                 "response_time_ms": None,
-                "error": "Connection failed"
+                "error": "Connection failed",
             }
 
-    mocker.patch.object(database_health_check, 'fn', side_effect=mock_health_check)
+    mocker.patch.object(database_health_check, "fn", side_effect=mock_health_check)
 
     database_names = ["healthy_db", "degraded_db", "unhealthy_db"]
 
@@ -546,21 +548,24 @@ def test_multi_database_health_summary(mocker):
     assert any("unhealthy" in alert for alert in result["alerts"])
 
     # Check recommendations
-    assert len(result["recommendations"]) == 2  # Investigate unhealthy and monitor degraded
+    assert (
+        len(result["recommendations"]) == 2
+    )  # Investigate unhealthy and monitor degraded
 
 
 def test_multi_database_health_summary_all_healthy(mocker):
     """Test multi-database health summary with all databases healthy."""
+
     def mock_healthy_check(db_name, include_retry=False):
         return {
             "database_name": db_name,
             "status": "healthy",
             "connection": True,
             "response_time_ms": 50.0,
-            "error": None
+            "error": None,
         }
 
-    mocker.patch.object(database_health_check, 'fn', side_effect=mock_healthy_check)
+    mocker.patch.object(database_health_check, "fn", side_effect=mock_healthy_check)
 
     database_names = ["db1", "db2", "db3"]
 

@@ -1,0 +1,279 @@
+version: "3.8"
+
+# Development Override Configuration
+# Provides hot reloading, debugging access, and development optimizations
+# This file is automatically loaded by docker-compose in development
+
+services:
+  # Development overrides for RPA1 Worker
+  rpa1-worker:
+    environment:
+      # Development-specific settings
+      CONTAINER_DEBUG_MODE: "true"
+      CONTAINER_HOT_RELOAD: "true"
+      CONTAINER_LOG_LEVEL: DEBUG
+
+      # Development database settings
+      CONTAINER_RPA1_DB_POOL_SIZE: 3
+      CONTAINER_RPA1_DB_MAX_OVERFLOW: 5
+      CONTAINER_RPA1_DB_TIMEOUT: 30
+
+      # Development retry settings
+      CONTAINER_RPA1_RETRY_ATTEMPTS: 2
+      CONTAINER_RPA1_RETRY_MIN_WAIT: 1
+      CONTAINER_RPA1_RETRY_MAX_WAIT: 5
+    volumes:
+      # Hot reload - mount source code for development
+      - ./core:/app/core:ro
+      - ./flows/rpa1:/app/flows/rpa1
+      - ./scripts:/app/scripts:ro
+      - ./conftest.py:/app/conftest.py:ro
+
+      # Development debugging
+      - ./logs/rpa1:/app/logs
+      - /tmp/rpa1-debug:/tmp/debug
+    ports:
+      # Expose debugging port
+      - "5678:5678"
+    command:
+      [
+        "python",
+        "-m",
+        "debugpy",
+        "--listen",
+        "0.0.0.0:5678",
+        "--wait-for-client",
+        "/app/scripts/flow_startup.sh",
+        "rpa1",
+      ]
+    profiles:
+      - debug
+
+  # Development overrides for RPA2 Worker
+  rpa2-worker:
+    environment:
+      # Development-specific settings
+      CONTAINER_DEBUG_MODE: "true"
+      CONTAINER_HOT_RELOAD: "true"
+      CONTAINER_LOG_LEVEL: DEBUG
+
+      # Development database settings
+      CONTAINER_RPA2_DB_POOL_SIZE: 3
+      CONTAINER_RPA2_DB_MAX_OVERFLOW: 5
+      CONTAINER_RPA2_DB_TIMEOUT: 45
+
+      # Development retry settings
+      CONTAINER_RPA2_RETRY_ATTEMPTS: 2
+      CONTAINER_RPA2_RETRY_MIN_WAIT: 1
+      CONTAINER_RPA2_RETRY_MAX_WAIT: 8
+    volumes:
+      # Hot reload - mount source code for development
+      - ./core:/app/core:ro
+      - ./flows/rpa2:/app/flows/rpa2
+      - ./scripts:/app/scripts:ro
+      - ./conftest.py:/app/conftest.py:ro
+
+      # Development debugging
+      - ./logs/rpa2:/app/logs
+      - /tmp/rpa2-debug:/tmp/debug
+    ports:
+      # Expose debugging port
+      - "5679:5678"
+    command:
+      [
+        "python",
+        "-m",
+        "debugpy",
+        "--listen",
+        "0.0.0.0:5678",
+        "--wait-for-client",
+        "/app/scripts/flow_startup.sh",
+        "rpa2",
+      ]
+    profiles:
+      - debug
+
+  # Development overrides for RPA3 Worker
+  rpa3-worker:
+    environment:
+      # Development-specific settings
+      CONTAINER_DEBUG_MODE: "true"
+      CONTAINER_HOT_RELOAD: "true"
+      CONTAINER_LOG_LEVEL: DEBUG
+
+      # Development database settings
+      CONTAINER_RPA3_DB_POOL_SIZE: 5
+      CONTAINER_RPA3_DB_MAX_OVERFLOW: 8
+      CONTAINER_RPA3_DB_TIMEOUT: 20
+
+      # Development retry settings
+      CONTAINER_RPA3_RETRY_ATTEMPTS: 2
+      CONTAINER_RPA3_RETRY_MIN_WAIT: 0.5
+      CONTAINER_RPA3_RETRY_MAX_WAIT: 5
+
+      # Development concurrent processing
+      CONTAINER_RPA3_CONCURRENT_WORKERS: 2
+    volumes:
+      # Hot reload - mount source code for development
+      - ./core:/app/core:ro
+      - ./flows/rpa3:/app/flows/rpa3
+      - ./scripts:/app/scripts:ro
+      - ./conftest.py:/app/conftest.py:ro
+
+      # Development debugging
+      - ./logs/rpa3:/app/logs
+      - /tmp/rpa3-debug:/tmp/debug
+    ports:
+      # Expose debugging port
+      - "5680:5678"
+    command:
+      [
+        "python",
+        "-m",
+        "debugpy",
+        "--listen",
+        "0.0.0.0:5678",
+        "--wait-for-client",
+        "/app/scripts/flow_startup.sh",
+        "rpa3",
+      ]
+    profiles:
+      - debug
+
+  # Development PostgreSQL with enhanced logging
+  postgres:
+    environment:
+      # Development logging
+      POSTGRES_LOG_STATEMENT: all
+      POSTGRES_LOG_MIN_DURATION_STATEMENT: 0
+    volumes:
+      # Enhanced development logging
+      - ./logs/postgres:/var/log/postgresql
+    command: >
+      postgres
+      -c log_statement=all
+      -c log_destination=stderr
+      -c log_min_duration_statement=0
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_duration=on
+      -c log_line_prefix='%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+
+  # Development Prefect Server with enhanced logging
+  prefect-server:
+    environment:
+      # Development logging
+      PREFECT_LOGGING_LEVEL: DEBUG
+      PREFECT_LOGGING_SERVER_LEVEL: DEBUG
+    volumes:
+      # Enhanced development logging
+      - ./logs/prefect:/opt/prefect/logs
+
+  # Development Test Runner Service
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+    container_name: rpa-test-runner
+    environment:
+      CONTAINER_ENVIRONMENT: development
+      CONTAINER_TEST_MODE: "true"
+
+      # Database connections for testing
+      CONTAINER_RPA_DB_CONNECTION_STRING: postgresql://rpa_user:${POSTGRES_PASSWORD:-rpa_dev_password}@postgres:5432/rpa_db
+      CONTAINER_SURVEYHUB_CONNECTION_STRING: ${SURVEYHUB_CONNECTION_STRING:-}
+
+      # Test configuration
+      CONTAINER_TEST_PARALLEL: "true"
+      CONTAINER_TEST_COVERAGE: "true"
+      CONTAINER_TEST_VERBOSE: "true"
+    volumes:
+      # Mount entire codebase for testing
+      - .:/app
+      - ./logs/tests:/app/logs
+      - test_coverage:/app/htmlcov
+    networks:
+      - rpa-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prefect-server:
+        condition: service_healthy
+    profiles:
+      - testing
+    command:
+      [
+        "python",
+        "-m",
+        "pytest",
+        "-v",
+        "--cov=core",
+        "--cov-report=html",
+        "--cov-report=term",
+      ]
+
+  # Development Database Inspector Service
+  db-inspector:
+    image: dpage/pgadmin4:latest
+    container_name: rpa-db-inspector
+    environment:
+      PGADMIN_DEFAULT_EMAIL: dev@rpa.local
+      PGADMIN_DEFAULT_PASSWORD: dev_password
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./scripts/pgadmin_servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - rpa-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - development
+      - debug
+    restart: unless-stopped
+
+  # Development Log Aggregator
+  log-viewer:
+    image: goharbor/harbor-log:latest
+    container_name: rpa-log-viewer
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./logs:/logs:ro
+    networks:
+      - rpa-network
+    profiles:
+      - development
+      - debug
+    restart: unless-stopped
+
+  # Development File Watcher for Hot Reloading
+  file-watcher:
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+    container_name: rpa-file-watcher
+    environment:
+      CONTAINER_ENVIRONMENT: development
+      CONTAINER_WATCH_MODE: "true"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - rpa-network
+    profiles:
+      - development
+    command: ["python", "/app/scripts/development_watcher.py"]
+    restart: unless-stopped
+
+# Development-specific volumes
+volumes:
+  test_coverage:
+    driver: local
+
+  pgadmin_data:
+    driver: local

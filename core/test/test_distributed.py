@@ -52,8 +52,7 @@ class TestDistributedProcessorInitialization:
 
         # Initialize DistributedProcessor
         processor = DistributedProcessor(
-            rpa_db_manager=mock_rpa_db,
-            source_db_manager=mock_source_db
+            rpa_db_manager=mock_rpa_db, source_db_manager=mock_source_db
         )
 
         # Verify initialization
@@ -68,7 +67,9 @@ class TestDistributedProcessorInitialization:
 
     def test_init_with_invalid_rpa_db_manager_type(self):
         """Test initialization fails with invalid rpa_db_manager type."""
-        with pytest.raises(TypeError, match="rpa_db_manager must be a DatabaseManager instance"):
+        with pytest.raises(
+            TypeError, match="rpa_db_manager must be a DatabaseManager instance"
+        ):
             DistributedProcessor(rpa_db_manager="not_a_database_manager")
 
     def test_init_with_invalid_source_db_manager_type(self):
@@ -76,10 +77,12 @@ class TestDistributedProcessorInitialization:
         mock_rpa_db = Mock(spec=DatabaseManager)
         mock_rpa_db.logger = Mock()
 
-        with pytest.raises(TypeError, match="source_db_manager must be a DatabaseManager instance or None"):
+        with pytest.raises(
+            TypeError,
+            match="source_db_manager must be a DatabaseManager instance or None",
+        ):
             DistributedProcessor(
-                rpa_db_manager=mock_rpa_db,
-                source_db_manager="not_a_database_manager"
+                rpa_db_manager=mock_rpa_db, source_db_manager="not_a_database_manager"
             )
 
     def test_repr_with_source_db(self):
@@ -92,8 +95,7 @@ class TestDistributedProcessorInitialization:
         mock_source_db.database_name = "SurveyHub"
 
         processor = DistributedProcessor(
-            rpa_db_manager=mock_rpa_db,
-            source_db_manager=mock_source_db
+            rpa_db_manager=mock_rpa_db, source_db_manager=mock_source_db
         )
 
         repr_str = repr(processor)
@@ -120,14 +122,16 @@ class TestDistributedProcessorInitialization:
 class TestInstanceIdGeneration:
     """Test instance ID generation functionality."""
 
-    @patch('socket.gethostname')
-    @patch('uuid.uuid4')
+    @patch("socket.gethostname")
+    @patch("uuid.uuid4")
     def test_generate_instance_id_success(self, mock_uuid4, mock_gethostname):
         """Test successful instance ID generation."""
         # Setup mocks
         mock_gethostname.return_value = "rpa-worker-1"
         mock_uuid_obj = Mock()
-        mock_uuid_obj.__str__ = Mock(return_value="12345678-1234-5678-9abc-123456789abc")
+        mock_uuid_obj.__str__ = Mock(
+            return_value="12345678-1234-5678-9abc-123456789abc"
+        )
         mock_uuid4.return_value = mock_uuid_obj
 
         # Create processor
@@ -144,14 +148,16 @@ class TestInstanceIdGeneration:
         mock_gethostname.assert_called_once()
         mock_uuid4.assert_called_once()
 
-    @patch('socket.gethostname')
-    @patch('uuid.uuid4')
+    @patch("socket.gethostname")
+    @patch("uuid.uuid4")
     def test_generate_instance_id_hostname_failure(self, mock_uuid4, mock_gethostname):
         """Test instance ID generation with hostname failure."""
         # Setup mocks - hostname fails
         mock_gethostname.side_effect = OSError("Hostname not available")
         mock_uuid_obj = Mock()
-        mock_uuid_obj.__str__ = Mock(return_value="87654321-4321-8765-cba9-987654321cba")
+        mock_uuid_obj.__str__ = Mock(
+            return_value="87654321-4321-8765-cba9-987654321cba"
+        )
         mock_uuid4.return_value = mock_uuid_obj
 
         # Create processor
@@ -182,7 +188,11 @@ class TestInstanceIdGeneration:
         processor3 = DistributedProcessor(rpa_db_manager=mock_rpa_db)
 
         # Verify all instance IDs are unique
-        instance_ids = [processor1.instance_id, processor2.instance_id, processor3.instance_id]
+        instance_ids = [
+            processor1.instance_id,
+            processor2.instance_id,
+            processor3.instance_id,
+        ]
         assert len(set(instance_ids)) == 3, "All instance IDs should be unique"
 
     def test_instance_id_format(self):
@@ -196,18 +206,20 @@ class TestInstanceIdGeneration:
         instance_id = processor.instance_id
         assert isinstance(instance_id, str)
         assert len(instance_id) > 0
-        assert '-' in instance_id
+        assert "-" in instance_id
 
         # Split and verify parts
-        parts = instance_id.split('-')
-        assert len(parts) >= 2, "Instance ID should have at least hostname and UUID parts"
+        parts = instance_id.split("-")
+        assert len(parts) >= 2, (
+            "Instance ID should have at least hostname and UUID parts"
+        )
 
         # Last part should be 8-character UUID prefix
         uuid_part = parts[-1]
         assert len(uuid_part) == 8, "UUID part should be 8 characters"
         assert uuid_part.isalnum(), "UUID part should be alphanumeric"
 
-    @patch('socket.gethostname')
+    @patch("socket.gethostname")
     def test_instance_id_with_real_hostname(self, mock_gethostname):
         """Test instance ID generation with realistic hostname."""
         # Use realistic container hostname
@@ -219,8 +231,12 @@ class TestInstanceIdGeneration:
         processor = DistributedProcessor(rpa_db_manager=mock_rpa_db)
 
         # Verify instance ID includes hostname
-        assert processor.instance_id.startswith("rpa-processor-deployment-7d4b8c9f5d-x7k2m-")
-        assert len(processor.instance_id) > len("rpa-processor-deployment-7d4b8c9f5d-x7k2m-")
+        assert processor.instance_id.startswith(
+            "rpa-processor-deployment-7d4b8c9f5d-x7k2m-"
+        )
+        assert len(processor.instance_id) > len(
+            "rpa-processor-deployment-7d4b8c9f5d-x7k2m-"
+        )
 
 
 class TestDistributedProcessorProperties:
@@ -265,9 +281,19 @@ class TestClaimRecordsBatch:
         """Test successful record claiming with valid results."""
         # Mock database response with sample records
         mock_results = [
-            (1, {"survey_id": 1001, "customer_id": "CUST001"}, 0, "2024-01-15 10:00:00"),
-            (2, {"survey_id": 1002, "customer_id": "CUST002"}, 1, "2024-01-15 10:01:00"),
-            (3, {"order_id": 2001, "amount": 150.00}, 0, "2024-01-15 10:02:00")
+            (
+                1,
+                {"survey_id": 1001, "customer_id": "CUST001"},
+                0,
+                "2024-01-15 10:00:00",
+            ),
+            (
+                2,
+                {"survey_id": 1002, "customer_id": "CUST002"},
+                1,
+                "2024-01-15 10:01:00",
+            ),
+            (3, {"order_id": 2001, "amount": 150.00}, 0, "2024-01-15 10:02:00"),
         ]
         self.mock_rpa_db.execute_query.return_value = mock_results
 
@@ -277,22 +303,22 @@ class TestClaimRecordsBatch:
         # Verify results
         assert len(result) == 3
         assert result[0] == {
-            'id': 1,
-            'payload': {"survey_id": 1001, "customer_id": "CUST001"},
-            'retry_count': 0,
-            'created_at': "2024-01-15 10:00:00"
+            "id": 1,
+            "payload": {"survey_id": 1001, "customer_id": "CUST001"},
+            "retry_count": 0,
+            "created_at": "2024-01-15 10:00:00",
         }
         assert result[1] == {
-            'id': 2,
-            'payload': {"survey_id": 1002, "customer_id": "CUST002"},
-            'retry_count': 1,
-            'created_at': "2024-01-15 10:01:00"
+            "id": 2,
+            "payload": {"survey_id": 1002, "customer_id": "CUST002"},
+            "retry_count": 1,
+            "created_at": "2024-01-15 10:01:00",
         }
         assert result[2] == {
-            'id': 3,
-            'payload': {"order_id": 2001, "amount": 150.00},
-            'retry_count': 0,
-            'created_at': "2024-01-15 10:02:00"
+            "id": 3,
+            "payload": {"order_id": 2001, "amount": 150.00},
+            "retry_count": 0,
+            "created_at": "2024-01-15 10:02:00",
         }
 
         # Verify database query was called with correct parameters
@@ -308,9 +334,9 @@ class TestClaimRecordsBatch:
         assert "RETURNING id, payload, retry_count, created_at" in query
 
         # Verify query parameters
-        assert params['flow_name'] == "survey_processor"
-        assert params['batch_size'] == 3
-        assert params['instance_id'] == self.processor.instance_id
+        assert params["flow_name"] == "survey_processor"
+        assert params["batch_size"] == 3
+        assert params["instance_id"] == self.processor.instance_id
 
         # Verify logging
         self.mock_logger.info.assert_called()
@@ -334,7 +360,9 @@ class TestClaimRecordsBatch:
 
         # Verify debug logging for empty result (check all debug calls)
         debug_calls = [call.args[0] for call in self.mock_logger.debug.call_args_list]
-        empty_result_log = next((call for call in debug_calls if "No pending records found" in call), None)
+        empty_result_log = next(
+            (call for call in debug_calls if "No pending records found" in call), None
+        )
         assert empty_result_log is not None
         assert "nonexistent_flow" in empty_result_log
 
@@ -379,10 +407,14 @@ class TestClaimRecordsBatch:
     def test_claim_records_batch_database_error(self):
         """Test claiming records when database operation fails."""
         # Mock database error
-        self.mock_rpa_db.execute_query.side_effect = Exception("Database connection failed")
+        self.mock_rpa_db.execute_query.side_effect = Exception(
+            "Database connection failed"
+        )
 
         # Call claim_records_batch and expect RuntimeError
-        with pytest.raises(RuntimeError, match="Failed to claim records for flow 'test_flow'"):
+        with pytest.raises(
+            RuntimeError, match="Failed to claim records for flow 'test_flow'"
+        ):
             self.processor.claim_records_batch("test_flow", 5)
 
         # Verify error logging
@@ -423,7 +455,7 @@ class TestClaimRecordsBatch:
         mock_results = [
             (5, {"data": "oldest"}, 0, "2024-01-15 09:00:00"),
             (3, {"data": "middle"}, 0, "2024-01-15 09:30:00"),
-            (7, {"data": "newest"}, 0, "2024-01-15 10:00:00")
+            (7, {"data": "newest"}, 0, "2024-01-15 10:00:00"),
         ]
         self.mock_rpa_db.execute_query.return_value = mock_results
 
@@ -432,9 +464,9 @@ class TestClaimRecordsBatch:
 
         # Verify results maintain chronological order
         assert len(result) == 3
-        assert result[0]['created_at'] == "2024-01-15 09:00:00"  # oldest first
-        assert result[1]['created_at'] == "2024-01-15 09:30:00"  # middle
-        assert result[2]['created_at'] == "2024-01-15 10:00:00"  # newest last
+        assert result[0]["created_at"] == "2024-01-15 09:00:00"  # oldest first
+        assert result[1]["created_at"] == "2024-01-15 09:30:00"  # middle
+        assert result[2]["created_at"] == "2024-01-15 10:00:00"  # newest last
 
         # Verify SQL query includes ORDER BY created_at ASC
         call_args = self.mock_rpa_db.execute_query.call_args
@@ -484,17 +516,19 @@ class TestMarkRecordCompleted:
         assert "AND flow_instance_id = :instance_id" in query
 
         # Verify query parameters
-        assert params['record_id'] == 123
-        assert params['result'] == result
-        assert params['instance_id'] == self.processor.instance_id
+        assert params["record_id"] == 123
+        assert params["result"] == result
+        assert params["instance_id"] == self.processor.instance_id
 
         # Verify return_count=True was passed
-        assert kwargs.get('return_count') is True
+        assert kwargs.get("return_count") is True
 
         # Verify logging
         info_calls = [call.args[0] for call in self.mock_logger.info.call_args_list]
         assert any("Marking record 123 as completed" in call for call in info_calls)
-        assert any("Successfully marked record 123 as completed" in call for call in info_calls)
+        assert any(
+            "Successfully marked record 123 as completed" in call for call in info_calls
+        )
 
     def test_mark_record_completed_record_not_found(self):
         """Test marking record as completed when record is not found."""
@@ -506,7 +540,9 @@ class TestMarkRecordCompleted:
         result = {"status": "success"}
 
         # Call mark_record_completed and expect RuntimeError
-        with pytest.raises(RuntimeError, match="Record 999 not found or not in processing state"):
+        with pytest.raises(
+            RuntimeError, match="Record 999 not found or not in processing state"
+        ):
             self.processor.mark_record_completed(record_id, result)
 
         # Verify error logging
@@ -560,14 +596,18 @@ class TestMarkRecordCompleted:
     def test_mark_record_completed_database_error(self):
         """Test marking record as completed when database operation fails."""
         # Mock database error
-        self.mock_rpa_db.execute_query.side_effect = Exception("Database connection failed")
+        self.mock_rpa_db.execute_query.side_effect = Exception(
+            "Database connection failed"
+        )
 
         # Test data
         record_id = 123
         result = {"status": "success"}
 
         # Call mark_record_completed and expect RuntimeError
-        with pytest.raises(RuntimeError, match="Failed to mark record 123 as completed"):
+        with pytest.raises(
+            RuntimeError, match="Failed to mark record 123 as completed"
+        ):
             self.processor.mark_record_completed(record_id, result)
 
         # Verify error logging
@@ -592,7 +632,7 @@ class TestMarkRecordCompleted:
         # Verify database was called with empty result
         call_args = self.mock_rpa_db.execute_query.call_args
         params = call_args[0][1]
-        assert params['result'] == {}
+        assert params["result"] == {}
 
     def test_mark_record_completed_complex_result(self):
         """Test marking record as completed with complex result data."""
@@ -605,14 +645,14 @@ class TestMarkRecordCompleted:
             "survey_analysis": {
                 "satisfaction_score": 8.5,
                 "sentiment": "positive",
-                "categories": ["service", "quality", "price"]
+                "categories": ["service", "quality", "price"],
             },
             "processing_metadata": {
                 "duration_ms": 1250,
                 "records_processed": 15,
-                "errors": []
+                "errors": [],
             },
-            "timestamp": "2024-01-15T10:30:00Z"
+            "timestamp": "2024-01-15T10:30:00Z",
         }
 
         # Call mark_record_completed
@@ -621,8 +661,8 @@ class TestMarkRecordCompleted:
         # Verify complex result was passed correctly
         call_args = self.mock_rpa_db.execute_query.call_args
         params = call_args[0][1]
-        assert params['result'] == result
-        assert params['record_id'] == 456
+        assert params["result"] == result
+        assert params["record_id"] == 456
 
     def test_mark_record_completed_instance_id_verification(self):
         """Test that instance_id is correctly used in the WHERE clause."""
@@ -638,7 +678,7 @@ class TestMarkRecordCompleted:
         params = call_args[0][1]
 
         assert "AND flow_instance_id = :instance_id" in query
-        assert params['instance_id'] == self.processor.instance_id
+        assert params["instance_id"] == self.processor.instance_id
 
 
 class TestMarkRecordFailed:
@@ -660,7 +700,9 @@ class TestMarkRecordFailed:
 
         # Test data
         record_id = 123
-        error_message = "Invalid survey data format: missing required field 'customer_id'"
+        error_message = (
+            "Invalid survey data format: missing required field 'customer_id'"
+        )
 
         # Call mark_record_failed
         self.processor.mark_record_failed(record_id, error_message)
@@ -683,17 +725,19 @@ class TestMarkRecordFailed:
         assert "AND flow_instance_id = :instance_id" in query
 
         # Verify query parameters
-        assert params['record_id'] == 123
-        assert params['error_message'] == error_message
-        assert params['instance_id'] == self.processor.instance_id
+        assert params["record_id"] == 123
+        assert params["error_message"] == error_message
+        assert params["instance_id"] == self.processor.instance_id
 
         # Verify return_count=True was passed
-        assert kwargs.get('return_count') is True
+        assert kwargs.get("return_count") is True
 
         # Verify logging
         info_calls = [call.args[0] for call in self.mock_logger.info.call_args_list]
         assert any("Marking record 123 as failed" in call for call in info_calls)
-        assert any("Successfully marked record 123 as failed" in call for call in info_calls)
+        assert any(
+            "Successfully marked record 123 as failed" in call for call in info_calls
+        )
 
     def test_mark_record_failed_record_not_found(self):
         """Test marking record as failed when record is not found."""
@@ -705,7 +749,9 @@ class TestMarkRecordFailed:
         error_message = "Processing failed"
 
         # Call mark_record_failed and expect RuntimeError
-        with pytest.raises(RuntimeError, match="Record 999 not found or not in processing state"):
+        with pytest.raises(
+            RuntimeError, match="Record 999 not found or not in processing state"
+        ):
             self.processor.mark_record_failed(record_id, error_message)
 
         # Verify error logging
@@ -742,19 +788,27 @@ class TestMarkRecordFailed:
         record_id = 123
 
         # Test empty string
-        with pytest.raises(ValueError, match="error_message must be a non-empty string"):
+        with pytest.raises(
+            ValueError, match="error_message must be a non-empty string"
+        ):
             self.processor.mark_record_failed(record_id, "")
 
         # Test whitespace-only string
-        with pytest.raises(ValueError, match="error_message must be a non-empty string"):
+        with pytest.raises(
+            ValueError, match="error_message must be a non-empty string"
+        ):
             self.processor.mark_record_failed(record_id, "   ")
 
         # Test None error_message
-        with pytest.raises(ValueError, match="error_message must be a non-empty string"):
+        with pytest.raises(
+            ValueError, match="error_message must be a non-empty string"
+        ):
             self.processor.mark_record_failed(record_id, None)
 
         # Test non-string error_message
-        with pytest.raises(ValueError, match="error_message must be a non-empty string"):
+        with pytest.raises(
+            ValueError, match="error_message must be a non-empty string"
+        ):
             self.processor.mark_record_failed(record_id, 123)
 
         # Verify no database calls were made
@@ -763,7 +817,9 @@ class TestMarkRecordFailed:
     def test_mark_record_failed_database_error(self):
         """Test marking record as failed when database operation fails."""
         # Mock database error
-        self.mock_rpa_db.execute_query.side_effect = Exception("Database connection failed")
+        self.mock_rpa_db.execute_query.side_effect = Exception(
+            "Database connection failed"
+        )
 
         # Test data
         record_id = 123
@@ -795,7 +851,7 @@ class TestMarkRecordFailed:
         # Verify trimmed error message was passed to database
         call_args = self.mock_rpa_db.execute_query.call_args
         params = call_args[0][1]
-        assert params['error_message'] == "Processing failed due to invalid data"
+        assert params["error_message"] == "Processing failed due to invalid data"
 
     def test_mark_record_failed_long_error_message(self):
         """Test marking record as failed with long error message."""
@@ -818,8 +874,8 @@ class TestMarkRecordFailed:
         # Verify long error message was passed correctly
         call_args = self.mock_rpa_db.execute_query.call_args
         params = call_args[0][1]
-        assert params['error_message'] == error_message
-        assert params['record_id'] == 456
+        assert params["error_message"] == error_message
+        assert params["record_id"] == 456
 
     def test_mark_record_failed_retry_count_increment(self):
         """Test that retry count is incremented in the SQL query."""
@@ -848,7 +904,7 @@ class TestMarkRecordFailed:
         params = call_args[0][1]
 
         assert "AND flow_instance_id = :instance_id" in query
-        assert params['instance_id'] == self.processor.instance_id
+        assert params["instance_id"] == self.processor.instance_id
 
     def test_mark_record_failed_special_characters_in_error(self):
         """Test marking record as failed with special characters in error message."""
@@ -865,8 +921,8 @@ class TestMarkRecordFailed:
         # Verify special characters are handled correctly
         call_args = self.mock_rpa_db.execute_query.call_args
         params = call_args[0][1]
-        assert params['error_message'] == error_message
-        assert params['record_id'] == 789
+        assert params["error_message"] == error_message
+        assert params["record_id"] == 789
 
     def test_claim_records_batch_instance_id_assignment(self):
         """Test that instance ID is correctly assigned to claimed records."""
@@ -881,7 +937,7 @@ class TestMarkRecordFailed:
         # Verify instance_id parameter was passed correctly
         call_args = self.mock_rpa_db.execute_query.call_args
         params = call_args[0][1]
-        assert params['instance_id'] == self.processor.instance_id
+        assert params["instance_id"] == self.processor.instance_id
 
         # Verify SQL query sets flow_instance_id
         query = call_args[0][0]
@@ -906,15 +962,15 @@ class TestMarkRecordFailed:
 
         # Verify batch_size parameter was passed correctly in both calls
         calls = self.mock_rpa_db.execute_query.call_args_list
-        assert calls[0][0][1]['batch_size'] == 1
-        assert calls[1][0][1]['batch_size'] == 50
+        assert calls[0][0][1]["batch_size"] == 1
+        assert calls[1][0][1]["batch_size"] == 50
 
     def test_claim_records_batch_logging_details(self):
         """Test detailed logging during record claiming process."""
         # Mock database response
         mock_results = [
             (1, {"survey_id": 1001}, 0, "2024-01-15 10:00:00"),
-            (2, {"survey_id": 1002}, 0, "2024-01-15 10:01:00")
+            (2, {"survey_id": 1002}, 0, "2024-01-15 10:01:00"),
         ]
         self.mock_rpa_db.execute_query.return_value = mock_results
 
@@ -925,14 +981,18 @@ class TestMarkRecordFailed:
         info_calls = [call.args[0] for call in self.mock_logger.info.call_args_list]
 
         # Check initial claiming log
-        claiming_log = next((call for call in info_calls if "Claiming batch" in call), None)
+        claiming_log = next(
+            (call for call in info_calls if "Claiming batch" in call), None
+        )
         assert claiming_log is not None
         assert "Claiming batch of 5 records" in claiming_log
         assert "flow 'survey_processor'" in claiming_log
         assert self.processor.instance_id in claiming_log
 
         # Check success log
-        success_log = next((call for call in info_calls if "Successfully claimed" in call), None)
+        success_log = next(
+            (call for call in info_calls if "Successfully claimed" in call), None
+        )
         assert success_log is not None
         assert "Successfully claimed 2 records" in success_log
         assert "flow 'survey_processor'" in success_log
@@ -975,16 +1035,21 @@ class TestAddRecordsToQueue:
         # Verify SQL query structure for single record
         assert "INSERT INTO processing_queue" in query
         assert "(flow_name, payload, status, created_at, updated_at)" in query
-        assert "VALUES (:flow_name, :payload, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)" in query
+        assert (
+            "VALUES (:flow_name, :payload, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            in query
+        )
 
         # Verify query parameters
-        assert params['flow_name'] == "survey_processor"
-        assert params['payload'] == {"survey_id": 1001, "customer_id": "CUST001"}
+        assert params["flow_name"] == "survey_processor"
+        assert params["payload"] == {"survey_id": 1001, "customer_id": "CUST001"}
 
         # Verify logging
         info_calls = [call.args[0] for call in self.mock_logger.info.call_args_list]
         assert any("Adding 1 records to queue" in call for call in info_calls)
-        assert any("Successfully added 1 records to queue" in call for call in info_calls)
+        assert any(
+            "Successfully added 1 records to queue" in call for call in info_calls
+        )
 
     def test_add_records_to_queue_multiple_records(self):
         """Test adding multiple records to the queue using batch insertion."""
@@ -996,7 +1061,7 @@ class TestAddRecordsToQueue:
         records = [
             {"payload": {"survey_id": 1001, "customer_id": "CUST001"}},
             {"payload": {"survey_id": 1002, "customer_id": "CUST002"}},
-            {"payload": {"order_id": 2001, "amount": 150.00}}
+            {"payload": {"order_id": 2001, "amount": 150.00}},
         ]
 
         # Call add_records_to_queue
@@ -1015,20 +1080,31 @@ class TestAddRecordsToQueue:
         assert "INSERT INTO processing_queue" in query
         assert "(flow_name, payload, status, created_at, updated_at)" in query
         assert "VALUES" in query
-        assert "(:flow_name, :payload_0, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)" in query
-        assert "(:flow_name, :payload_1, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)" in query
-        assert "(:flow_name, :payload_2, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)" in query
+        assert (
+            "(:flow_name, :payload_0, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            in query
+        )
+        assert (
+            "(:flow_name, :payload_1, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            in query
+        )
+        assert (
+            "(:flow_name, :payload_2, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+            in query
+        )
 
         # Verify query parameters
-        assert params['flow_name'] == "survey_processor"
-        assert params['payload_0'] == {"survey_id": 1001, "customer_id": "CUST001"}
-        assert params['payload_1'] == {"survey_id": 1002, "customer_id": "CUST002"}
-        assert params['payload_2'] == {"order_id": 2001, "amount": 150.00}
+        assert params["flow_name"] == "survey_processor"
+        assert params["payload_0"] == {"survey_id": 1001, "customer_id": "CUST001"}
+        assert params["payload_1"] == {"survey_id": 1002, "customer_id": "CUST002"}
+        assert params["payload_2"] == {"order_id": 2001, "amount": 150.00}
 
         # Verify logging
         info_calls = [call.args[0] for call in self.mock_logger.info.call_args_list]
         assert any("Adding 3 records to queue" in call for call in info_calls)
-        assert any("Successfully added 3 records to queue" in call for call in info_calls)
+        assert any(
+            "Successfully added 3 records to queue" in call for call in info_calls
+        )
 
     def test_add_records_to_queue_invalid_flow_name(self):
         """Test adding records with invalid flow_name parameter."""
@@ -1077,19 +1153,25 @@ class TestAddRecordsToQueue:
             self.processor.add_records_to_queue(flow_name, ["not a dict"])
 
         # Test record missing payload field
-        with pytest.raises(ValueError, match="Record at index 0 missing required 'payload' field"):
+        with pytest.raises(
+            ValueError, match="Record at index 0 missing required 'payload' field"
+        ):
             self.processor.add_records_to_queue(flow_name, [{"data": "test"}])
 
         # Test record with non-dictionary payload
-        with pytest.raises(ValueError, match="Record at index 0 'payload' must be a dictionary"):
+        with pytest.raises(
+            ValueError, match="Record at index 0 'payload' must be a dictionary"
+        ):
             self.processor.add_records_to_queue(flow_name, [{"payload": "not a dict"}])
 
         # Test mixed valid and invalid records
         records = [
             {"payload": {"valid": "data"}},
-            {"invalid": "record"}  # Missing payload
+            {"invalid": "record"},  # Missing payload
         ]
-        with pytest.raises(ValueError, match="Record at index 1 missing required 'payload' field"):
+        with pytest.raises(
+            ValueError, match="Record at index 1 missing required 'payload' field"
+        ):
             self.processor.add_records_to_queue(flow_name, records)
 
         # Verify no database calls were made
@@ -1098,14 +1180,18 @@ class TestAddRecordsToQueue:
     def test_add_records_to_queue_database_error(self):
         """Test adding records when database operation fails."""
         # Mock database error
-        self.mock_rpa_db.execute_query.side_effect = Exception("Database connection failed")
+        self.mock_rpa_db.execute_query.side_effect = Exception(
+            "Database connection failed"
+        )
 
         # Test data
         flow_name = "test_flow"
         records = [{"payload": {"data": "test"}}]
 
         # Call add_records_to_queue and expect RuntimeError
-        with pytest.raises(RuntimeError, match="Failed to add 1 records to queue for flow 'test_flow'"):
+        with pytest.raises(
+            RuntimeError, match="Failed to add 1 records to queue for flow 'test_flow'"
+        ):
             self.processor.add_records_to_queue(flow_name, records)
 
         # Verify error logging
@@ -1132,7 +1218,7 @@ class TestAddRecordsToQueue:
         # Verify empty payload was passed correctly
         call_args = self.mock_rpa_db.execute_query.call_args
         params = call_args[0][1]
-        assert params['payload'] == {}
+        assert params["payload"] == {}
 
     def test_add_records_to_queue_complex_payload(self):
         """Test adding records with complex nested payload data."""
@@ -1141,22 +1227,24 @@ class TestAddRecordsToQueue:
 
         # Test data with complex payload
         flow_name = "complex_processor"
-        records = [{
-            "payload": {
-                "survey_data": {
-                    "survey_id": 1001,
-                    "responses": [
-                        {"question_id": 1, "answer": "Very satisfied"},
-                        {"question_id": 2, "answer": 8}
-                    ]
-                },
-                "metadata": {
-                    "source": "web_form",
-                    "timestamp": "2024-01-15T10:30:00Z",
-                    "user_agent": "Mozilla/5.0..."
+        records = [
+            {
+                "payload": {
+                    "survey_data": {
+                        "survey_id": 1001,
+                        "responses": [
+                            {"question_id": 1, "answer": "Very satisfied"},
+                            {"question_id": 2, "answer": 8},
+                        ],
+                    },
+                    "metadata": {
+                        "source": "web_form",
+                        "timestamp": "2024-01-15T10:30:00Z",
+                        "user_agent": "Mozilla/5.0...",
+                    },
                 }
             }
-        }]
+        ]
 
         # Call add_records_to_queue
         result = self.processor.add_records_to_queue(flow_name, records)
@@ -1165,7 +1253,7 @@ class TestAddRecordsToQueue:
         assert result == 1
         call_args = self.mock_rpa_db.execute_query.call_args
         params = call_args[0][1]
-        assert params['payload'] == records[0]['payload']
+        assert params["payload"] == records[0]["payload"]
 
     def test_add_records_to_queue_batch_size_threshold(self):
         """Test that single vs batch insertion logic works correctly."""
@@ -1190,7 +1278,7 @@ class TestAddRecordsToQueue:
         # Test multiple records (should use batch insertion query)
         multiple_records = [
             {"payload": {"data": "first"}},
-            {"payload": {"data": "second"}}
+            {"payload": {"data": "second"}},
         ]
         self.processor.add_records_to_queue(flow_name, multiple_records)
 
@@ -1200,8 +1288,8 @@ class TestAddRecordsToQueue:
         params = call_args[0][1]
         assert ":payload_0" in query
         assert ":payload_1" in query
-        assert params['payload_0'] == {"data": "first"}
-        assert params['payload_1'] == {"data": "second"}
+        assert params["payload_0"] == {"data": "first"}
+        assert params["payload_1"] == {"data": "second"}
 
 
 class TestGetQueueStatus:
@@ -1220,10 +1308,10 @@ class TestGetQueueStatus:
         """Test getting queue status for a specific flow."""
         # Mock database response for specific flow
         mock_results = [
-            ('pending', 15),
-            ('processing', 3),
-            ('completed', 120),
-            ('failed', 2)
+            ("pending", 15),
+            ("processing", 3),
+            ("completed", 120),
+            ("failed", 2),
         ]
         self.mock_rpa_db.execute_query.return_value = mock_results
 
@@ -1232,12 +1320,12 @@ class TestGetQueueStatus:
 
         # Verify result structure and values
         expected_result = {
-            'total_records': 140,
-            'pending_records': 15,
-            'processing_records': 3,
-            'completed_records': 120,
-            'failed_records': 2,
-            'flow_name': 'survey_processor'
+            "total_records": 140,
+            "pending_records": 15,
+            "processing_records": 3,
+            "completed_records": 120,
+            "failed_records": 2,
+            "flow_name": "survey_processor",
         }
         assert result == expected_result
 
@@ -1254,29 +1342,29 @@ class TestGetQueueStatus:
         assert "GROUP BY status" in query
 
         # Verify query parameters
-        assert params['flow_name'] == "survey_processor"
+        assert params["flow_name"] == "survey_processor"
 
     def test_get_queue_status_all_flows(self):
         """Test getting queue status for all flows (system-wide)."""
         # Mock database responses
         # First call: overall status
         overall_results = [
-            ('pending', 25),
-            ('processing', 8),
-            ('completed', 200),
-            ('failed', 5)
+            ("pending", 25),
+            ("processing", 8),
+            ("completed", 200),
+            ("failed", 5),
         ]
 
         # Second call: by flow breakdown
         by_flow_results = [
-            ('survey_processor', 'pending', 15),
-            ('survey_processor', 'processing', 3),
-            ('survey_processor', 'completed', 120),
-            ('survey_processor', 'failed', 2),
-            ('order_processor', 'pending', 10),
-            ('order_processor', 'processing', 5),
-            ('order_processor', 'completed', 80),
-            ('order_processor', 'failed', 3)
+            ("survey_processor", "pending", 15),
+            ("survey_processor", "processing", 3),
+            ("survey_processor", "completed", 120),
+            ("survey_processor", "failed", 2),
+            ("order_processor", "pending", 10),
+            ("order_processor", "processing", 5),
+            ("order_processor", "completed", 80),
+            ("order_processor", "failed", 3),
         ]
 
         # Configure mock to return different results for different calls
@@ -1287,28 +1375,28 @@ class TestGetQueueStatus:
 
         # Verify result structure and values
         expected_result = {
-            'total_records': 238,
-            'pending_records': 25,
-            'processing_records': 8,
-            'completed_records': 200,
-            'failed_records': 5,
-            'flow_name': None,
-            'by_flow': {
-                'survey_processor': {
-                    'pending': 15,
-                    'processing': 3,
-                    'completed': 120,
-                    'failed': 2,
-                    'total': 140
+            "total_records": 238,
+            "pending_records": 25,
+            "processing_records": 8,
+            "completed_records": 200,
+            "failed_records": 5,
+            "flow_name": None,
+            "by_flow": {
+                "survey_processor": {
+                    "pending": 15,
+                    "processing": 3,
+                    "completed": 120,
+                    "failed": 2,
+                    "total": 140,
                 },
-                'order_processor': {
-                    'pending': 10,
-                    'processing': 5,
-                    'completed': 80,
-                    'failed': 3,
-                    'total': 98
-                }
-            }
+                "order_processor": {
+                    "pending": 10,
+                    "processing": 5,
+                    "completed": 80,
+                    "failed": 3,
+                    "total": 98,
+                },
+            },
         }
         assert result == expected_result
 
@@ -1342,12 +1430,12 @@ class TestGetQueueStatus:
 
         # Verify result with zero counts
         expected_result = {
-            'total_records': 0,
-            'pending_records': 0,
-            'processing_records': 0,
-            'completed_records': 0,
-            'failed_records': 0,
-            'flow_name': 'empty_flow'
+            "total_records": 0,
+            "pending_records": 0,
+            "processing_records": 0,
+            "completed_records": 0,
+            "failed_records": 0,
+            "flow_name": "empty_flow",
         }
         assert result == expected_result
 
@@ -1355,8 +1443,8 @@ class TestGetQueueStatus:
         """Test getting queue status when only some statuses have records."""
         # Mock database response with only some statuses
         mock_results = [
-            ('pending', 10),
-            ('completed', 50)
+            ("pending", 10),
+            ("completed", 50),
             # No 'processing' or 'failed' records
         ]
         self.mock_rpa_db.execute_query.return_value = mock_results
@@ -1366,27 +1454,33 @@ class TestGetQueueStatus:
 
         # Verify result includes zero counts for missing statuses
         expected_result = {
-            'total_records': 60,
-            'pending_records': 10,
-            'processing_records': 0,  # Should be 0, not missing
-            'completed_records': 50,
-            'failed_records': 0,      # Should be 0, not missing
-            'flow_name': 'partial_flow'
+            "total_records": 60,
+            "pending_records": 10,
+            "processing_records": 0,  # Should be 0, not missing
+            "completed_records": 50,
+            "failed_records": 0,  # Should be 0, not missing
+            "flow_name": "partial_flow",
         }
         assert result == expected_result
 
     def test_get_queue_status_invalid_flow_name(self):
         """Test getting queue status with invalid flow_name parameter."""
         # Test empty string
-        with pytest.raises(ValueError, match="flow_name must be a non-empty string or None"):
+        with pytest.raises(
+            ValueError, match="flow_name must be a non-empty string or None"
+        ):
             self.processor.get_queue_status("")
 
         # Test whitespace-only string
-        with pytest.raises(ValueError, match="flow_name must be a non-empty string or None"):
+        with pytest.raises(
+            ValueError, match="flow_name must be a non-empty string or None"
+        ):
             self.processor.get_queue_status("   ")
 
         # Test non-string type (but not None)
-        with pytest.raises(ValueError, match="flow_name must be a non-empty string or None"):
+        with pytest.raises(
+            ValueError, match="flow_name must be a non-empty string or None"
+        ):
             self.processor.get_queue_status(123)
 
         # Verify no database calls were made
@@ -1395,10 +1489,14 @@ class TestGetQueueStatus:
     def test_get_queue_status_database_error(self):
         """Test getting queue status when database operation fails."""
         # Mock database error
-        self.mock_rpa_db.execute_query.side_effect = Exception("Database connection failed")
+        self.mock_rpa_db.execute_query.side_effect = Exception(
+            "Database connection failed"
+        )
 
         # Call get_queue_status and expect RuntimeError
-        with pytest.raises(RuntimeError, match="Failed to get queue status for flow 'test_flow'"):
+        with pytest.raises(
+            RuntimeError, match="Failed to get queue status for flow 'test_flow'"
+        ):
             self.processor.get_queue_status("test_flow")
 
         # Verify error logging
@@ -1410,22 +1508,22 @@ class TestGetQueueStatus:
     def test_get_queue_status_none_flow_name(self):
         """Test that None is a valid flow_name parameter."""
         # Mock database responses for system-wide query
-        overall_results = [('pending', 5)]
-        by_flow_results = [('test_flow', 'pending', 5)]
+        overall_results = [("pending", 5)]
+        by_flow_results = [("test_flow", "pending", 5)]
         self.mock_rpa_db.execute_query.side_effect = [overall_results, by_flow_results]
 
         # Call get_queue_status with None (should not raise error)
         result = self.processor.get_queue_status(None)
 
         # Verify it works and includes by_flow data
-        assert result['flow_name'] is None
-        assert 'by_flow' in result
+        assert result["flow_name"] is None
+        assert "by_flow" in result
         assert self.mock_rpa_db.execute_query.call_count == 2
 
     def test_get_queue_status_logging(self):
         """Test that appropriate logging occurs during queue status retrieval."""
         # Mock database response
-        mock_results = [('pending', 10), ('completed', 20)]
+        mock_results = [("pending", 10), ("completed", 20)]
         self.mock_rpa_db.execute_query.return_value = mock_results
 
         # Call get_queue_status
@@ -1435,11 +1533,25 @@ class TestGetQueueStatus:
         debug_calls = [call.args[0] for call in self.mock_logger.debug.call_args_list]
 
         # Check for initial debug log
-        initial_log = next((call for call in debug_calls if "Getting queue status for flow: test_flow" in call), None)
+        initial_log = next(
+            (
+                call
+                for call in debug_calls
+                if "Getting queue status for flow: test_flow" in call
+            ),
+            None,
+        )
         assert initial_log is not None
 
         # Check for result debug log
-        result_log = next((call for call in debug_calls if "Queue status retrieved: 30 total records" in call), None)
+        result_log = next(
+            (
+                call
+                for call in debug_calls
+                if "Queue status retrieved: 30 total records" in call
+            ),
+            None,
+        )
         assert result_log is not None
         assert "(10 pending, 0 processing, 20 completed, 0 failed)" in result_log
 
@@ -1447,9 +1559,9 @@ class TestGetQueueStatus:
         """Test handling of unknown status values in database results."""
         # Mock database response with unknown status
         mock_results = [
-            ('pending', 10),
-            ('unknown_status', 5),  # This should be ignored
-            ('completed', 20)
+            ("pending", 10),
+            ("unknown_status", 5),  # This should be ignored
+            ("completed", 20),
         ]
         self.mock_rpa_db.execute_query.return_value = mock_results
 
@@ -1458,12 +1570,12 @@ class TestGetQueueStatus:
 
         # Verify unknown status is ignored and doesn't affect totals
         expected_result = {
-            'total_records': 30,  # Only known statuses counted
-            'pending_records': 10,
-            'processing_records': 0,
-            'completed_records': 20,
-            'failed_records': 0,
-            'flow_name': 'test_flow'
+            "total_records": 30,  # Only known statuses counted
+            "pending_records": 10,
+            "processing_records": 0,
+            "completed_records": 20,
+            "failed_records": 0,
+            "flow_name": "test_flow",
         }
         assert result == expected_result
 
@@ -1509,7 +1621,7 @@ class TestCleanupOrphanedRecords:
         assert "claimed_at < CURRENT_TIMESTAMP - INTERVAL '1 hours'" in query
 
         # Verify return_count=True was passed
-        assert kwargs.get('return_count') is True
+        assert kwargs.get("return_count") is True
 
         # Verify logging
         self.mock_logger.warning.assert_called_once()
@@ -1551,7 +1663,9 @@ class TestCleanupOrphanedRecords:
         # Verify debug logging for no records found
         self.mock_logger.debug.assert_called()
         debug_calls = [call.args[0] for call in self.mock_logger.debug.call_args_list]
-        no_records_log = next((call for call in debug_calls if "No orphaned records found" in call), None)
+        no_records_log = next(
+            (call for call in debug_calls if "No orphaned records found" in call), None
+        )
         assert no_records_log is not None
         assert "1 hours" in no_records_log
 
@@ -1561,19 +1675,27 @@ class TestCleanupOrphanedRecords:
     def test_cleanup_orphaned_records_invalid_timeout(self):
         """Test cleanup with invalid timeout parameter."""
         # Test zero timeout
-        with pytest.raises(ValueError, match="timeout_hours must be a positive integer"):
+        with pytest.raises(
+            ValueError, match="timeout_hours must be a positive integer"
+        ):
             self.processor.cleanup_orphaned_records(timeout_hours=0)
 
         # Test negative timeout
-        with pytest.raises(ValueError, match="timeout_hours must be a positive integer"):
+        with pytest.raises(
+            ValueError, match="timeout_hours must be a positive integer"
+        ):
             self.processor.cleanup_orphaned_records(timeout_hours=-1)
 
         # Test non-integer timeout
-        with pytest.raises(ValueError, match="timeout_hours must be a positive integer"):
+        with pytest.raises(
+            ValueError, match="timeout_hours must be a positive integer"
+        ):
             self.processor.cleanup_orphaned_records(timeout_hours="2")
 
         # Test float timeout
-        with pytest.raises(ValueError, match="timeout_hours must be a positive integer"):
+        with pytest.raises(
+            ValueError, match="timeout_hours must be a positive integer"
+        ):
             self.processor.cleanup_orphaned_records(timeout_hours=2.5)
 
         # Verify no database calls were made
@@ -1582,16 +1704,23 @@ class TestCleanupOrphanedRecords:
     def test_cleanup_orphaned_records_database_error(self):
         """Test cleanup when database operation fails."""
         # Mock database error
-        self.mock_rpa_db.execute_query.side_effect = Exception("Database connection failed")
+        self.mock_rpa_db.execute_query.side_effect = Exception(
+            "Database connection failed"
+        )
 
         # Call cleanup_orphaned_records and expect RuntimeError
-        with pytest.raises(RuntimeError, match="Failed to cleanup orphaned records with timeout 2 hours"):
+        with pytest.raises(
+            RuntimeError,
+            match="Failed to cleanup orphaned records with timeout 2 hours",
+        ):
             self.processor.cleanup_orphaned_records(timeout_hours=2)
 
         # Verify error logging
         self.mock_logger.error.assert_called_once()
         error_message = self.mock_logger.error.call_args[0][0]
-        assert "Failed to cleanup orphaned records with timeout 2 hours" in error_message
+        assert (
+            "Failed to cleanup orphaned records with timeout 2 hours" in error_message
+        )
         assert "Database connection failed" in error_message
 
     def test_cleanup_orphaned_records_sql_structure(self):
@@ -1676,11 +1805,17 @@ class TestResetFailedRecords:
         count_query = first_call[0][0]
         count_params = first_call[0][1]
 
-        assert "COUNT(*) FILTER (WHERE retry_count < :max_retries) as resettable" in count_query
-        assert "COUNT(*) FILTER (WHERE retry_count >= :max_retries) as exceeded_limit" in count_query
+        assert (
+            "COUNT(*) FILTER (WHERE retry_count < :max_retries) as resettable"
+            in count_query
+        )
+        assert (
+            "COUNT(*) FILTER (WHERE retry_count >= :max_retries) as exceeded_limit"
+            in count_query
+        )
         assert "WHERE flow_name = :flow_name AND status = 'failed'" in count_query
-        assert count_params['flow_name'] == "survey_processor"
-        assert count_params['max_retries'] == 3
+        assert count_params["flow_name"] == "survey_processor"
+        assert count_params["max_retries"] == 3
 
         # Verify second call (reset query)
         second_call = self.mock_rpa_db.execute_query.call_args_list[1]
@@ -1697,15 +1832,23 @@ class TestResetFailedRecords:
         assert "WHERE flow_name = :flow_name" in reset_query
         assert "AND status = 'failed'" in reset_query
         assert "AND retry_count < :max_retries" in reset_query
-        assert reset_params['flow_name'] == "survey_processor"
-        assert reset_params['max_retries'] == 3
-        assert reset_kwargs.get('return_count') is True
+        assert reset_params["flow_name"] == "survey_processor"
+        assert reset_params["max_retries"] == 3
+        assert reset_kwargs.get("return_count") is True
 
         # Verify logging
         info_calls = [call.args[0] for call in self.mock_logger.info.call_args_list]
-        assert any("Found 7 failed records for flow 'survey_processor'" in call for call in info_calls)
-        assert any("5 can be reset, 2 exceeded retry limit" in call for call in info_calls)
-        assert any("Successfully reset 5 failed records to pending" in call for call in info_calls)
+        assert any(
+            "Found 7 failed records for flow 'survey_processor'" in call
+            for call in info_calls
+        )
+        assert any(
+            "5 can be reset, 2 exceeded retry limit" in call for call in info_calls
+        )
+        assert any(
+            "Successfully reset 5 failed records to pending" in call
+            for call in info_calls
+        )
 
     def test_reset_failed_records_no_eligible_records(self):
         """Test reset when no records are eligible for reset."""
@@ -1725,7 +1868,9 @@ class TestResetFailedRecords:
 
         # Verify debug logging
         debug_calls = [call.args[0] for call in self.mock_logger.debug.call_args_list]
-        assert any("No failed records eligible for reset found" in call for call in debug_calls)
+        assert any(
+            "No failed records eligible for reset found" in call for call in debug_calls
+        )
 
     def test_reset_failed_records_no_failed_records(self):
         """Test reset when no failed records exist for the flow."""
@@ -1745,7 +1890,10 @@ class TestResetFailedRecords:
 
         # Verify appropriate logging
         info_calls = [call.args[0] for call in self.mock_logger.info.call_args_list]
-        assert any("Found 0 failed records for flow 'empty_flow'" in call for call in info_calls)
+        assert any(
+            "Found 0 failed records for flow 'empty_flow'" in call
+            for call in info_calls
+        )
 
     def test_reset_failed_records_invalid_flow_name(self):
         """Test reset with invalid flow_name parameter."""
@@ -1788,10 +1936,14 @@ class TestResetFailedRecords:
     def test_reset_failed_records_database_error_count_query(self):
         """Test reset when count query fails."""
         # Mock database error on count query
-        self.mock_rpa_db.execute_query.side_effect = Exception("Database connection failed")
+        self.mock_rpa_db.execute_query.side_effect = Exception(
+            "Database connection failed"
+        )
 
         # Call reset_failed_records and expect RuntimeError
-        with pytest.raises(RuntimeError, match="Failed to reset failed records for flow 'test_flow'"):
+        with pytest.raises(
+            RuntimeError, match="Failed to reset failed records for flow 'test_flow'"
+        ):
             self.processor.reset_failed_records("test_flow", max_retries=3)
 
         # Verify error logging
@@ -1806,11 +1958,13 @@ class TestResetFailedRecords:
         count_result = [(3, 1, 4)]
         self.mock_rpa_db.execute_query.side_effect = [
             count_result,
-            Exception("Update query failed")
+            Exception("Update query failed"),
         ]
 
         # Call reset_failed_records and expect RuntimeError
-        with pytest.raises(RuntimeError, match="Failed to reset failed records for flow 'test_flow'"):
+        with pytest.raises(
+            RuntimeError, match="Failed to reset failed records for flow 'test_flow'"
+        ):
             self.processor.reset_failed_records("test_flow", max_retries=5)
 
         # Verify error logging
@@ -1832,8 +1986,8 @@ class TestResetFailedRecords:
         # Verify max_retries parameter was used correctly
         count_call = self.mock_rpa_db.execute_query.call_args_list[0]
         reset_call = self.mock_rpa_db.execute_query.call_args_list[1]
-        assert count_call[0][1]['max_retries'] == 1
-        assert reset_call[0][1]['max_retries'] == 1
+        assert count_call[0][1]["max_retries"] == 1
+        assert reset_call[0][1]["max_retries"] == 1
 
         # Reset mocks and test with max_retries=10
         self.mock_rpa_db.reset_mock()
@@ -1847,8 +2001,8 @@ class TestResetFailedRecords:
         # Verify max_retries parameter was used correctly
         count_call = self.mock_rpa_db.execute_query.call_args_list[0]
         reset_call = self.mock_rpa_db.execute_query.call_args_list[1]
-        assert count_call[0][1]['max_retries'] == 10
-        assert reset_call[0][1]['max_retries'] == 10
+        assert count_call[0][1]["max_retries"] == 10
+        assert reset_call[0][1]["max_retries"] == 10
 
     def test_reset_failed_records_sql_filter_conditions(self):
         """Test that SQL queries use correct filter conditions."""
@@ -1906,12 +2060,21 @@ class TestResetFailedRecords:
         info_calls = [call.args[0] for call in self.mock_logger.info.call_args_list]
 
         # Check initial status log
-        status_log = next((call for call in info_calls if "Found 5 failed records" in call), None)
+        status_log = next(
+            (call for call in info_calls if "Found 5 failed records" in call), None
+        )
         assert status_log is not None
         assert "3 can be reset, 2 exceeded retry limit" in status_log
 
         # Check success log
-        success_log = next((call for call in info_calls if "Successfully reset 3 failed records" in call), None)
+        success_log = next(
+            (
+                call
+                for call in info_calls
+                if "Successfully reset 3 failed records" in call
+            ),
+            None,
+        )
         assert success_log is not None
         assert "max_retries: 4" in success_log
 
@@ -1929,24 +2092,26 @@ class TestHealthCheck:
         self.mock_source_db = Mock(spec=DatabaseManager)
         self.mock_source_db.database_name = "SurveyHub"
 
-    @patch('socket.gethostname')
-    @patch('datetime.datetime')
+    @patch("socket.gethostname")
+    @patch("datetime.datetime")
     def test_health_check_all_healthy(self, mock_datetime, mock_gethostname):
         """Test health check when all components are healthy."""
         # Setup mocks
         mock_gethostname.return_value = "test-container-1"
-        mock_datetime.now.return_value.isoformat.return_value = "2024-01-15T10:30:00.000000+00:00"
+        mock_datetime.now.return_value.isoformat.return_value = (
+            "2024-01-15T10:30:00.000000+00:00"
+        )
 
         # Mock healthy database responses
         rpa_db_health = {
             "status": "healthy",
             "connection": True,
-            "response_time_ms": 45.2
+            "response_time_ms": 45.2,
         }
         source_db_health = {
             "status": "healthy",
             "connection": True,
-            "response_time_ms": 32.1
+            "response_time_ms": 32.1,
         }
 
         self.mock_rpa_db.health_check.return_value = rpa_db_health
@@ -1959,13 +2124,12 @@ class TestHealthCheck:
             "processing_records": 25,
             "completed_records": 1072,
             "failed_records": 3,
-            "flow_name": None
+            "flow_name": None,
         }
 
         # Create processor with both databases
         processor = DistributedProcessor(
-            rpa_db_manager=self.mock_rpa_db,
-            source_db_manager=self.mock_source_db
+            rpa_db_manager=self.mock_rpa_db, source_db_manager=self.mock_source_db
         )
         processor.get_queue_status = Mock(return_value=queue_status)
 
@@ -1986,7 +2150,7 @@ class TestHealthCheck:
             "processing_records": 25,
             "completed_records": 1072,
             "failed_records": 3,
-            "total_records": 1250
+            "total_records": 1250,
         }
         assert result["queue_status"] == expected_queue_status
 
@@ -2009,7 +2173,7 @@ class TestHealthCheck:
         info_calls = [call.args[0] for call in self.mock_logger.info.call_args_list]
         assert any("Health check completed: healthy" in call for call in info_calls)
 
-    @patch('socket.gethostname')
+    @patch("socket.gethostname")
     def test_health_check_rpa_db_unhealthy(self, mock_gethostname):
         """Test health check when rpa_db is unhealthy (system unhealthy)."""
         # Setup mocks
@@ -2019,7 +2183,7 @@ class TestHealthCheck:
         rpa_db_health = {
             "status": "unhealthy",
             "connection": False,
-            "error": "Connection timeout after 30 seconds"
+            "error": "Connection timeout after 30 seconds",
         }
 
         self.mock_rpa_db.health_check.return_value = rpa_db_health
@@ -2055,7 +2219,7 @@ class TestHealthCheck:
         error_calls = [call.args[0] for call in self.mock_logger.error.call_args_list]
         assert any("Health check completed: unhealthy" in call for call in error_calls)
 
-    @patch('socket.gethostname')
+    @patch("socket.gethostname")
     def test_health_check_source_db_unhealthy(self, mock_gethostname):
         """Test health check when source_db is unhealthy (system degraded)."""
         # Setup mocks
@@ -2065,12 +2229,12 @@ class TestHealthCheck:
         rpa_db_health = {
             "status": "healthy",
             "connection": True,
-            "response_time_ms": 45.2
+            "response_time_ms": 45.2,
         }
         source_db_health = {
             "status": "unhealthy",
             "connection": False,
-            "error": "Authentication failed"
+            "error": "Authentication failed",
         }
 
         self.mock_rpa_db.health_check.return_value = rpa_db_health
@@ -2083,13 +2247,12 @@ class TestHealthCheck:
             "processing_records": 5,
             "completed_records": 85,
             "failed_records": 0,
-            "flow_name": None
+            "flow_name": None,
         }
 
         # Create processor with both databases
         processor = DistributedProcessor(
-            rpa_db_manager=self.mock_rpa_db,
-            source_db_manager=self.mock_source_db
+            rpa_db_manager=self.mock_rpa_db, source_db_manager=self.mock_source_db
         )
         processor.get_queue_status = Mock(return_value=queue_status)
 
@@ -2110,7 +2273,7 @@ class TestHealthCheck:
             "processing_records": 5,
             "completed_records": 85,
             "failed_records": 0,
-            "total_records": 100
+            "total_records": 100,
         }
         assert result["queue_status"] == expected_queue_status
 
@@ -2121,10 +2284,12 @@ class TestHealthCheck:
 
         # Verify warning logging
         self.mock_logger.warning.assert_called()
-        warning_calls = [call.args[0] for call in self.mock_logger.warning.call_args_list]
+        warning_calls = [
+            call.args[0] for call in self.mock_logger.warning.call_args_list
+        ]
         assert any("Health check completed: degraded" in call for call in warning_calls)
 
-    @patch('socket.gethostname')
+    @patch("socket.gethostname")
     def test_health_check_rpa_db_degraded(self, mock_gethostname):
         """Test health check when rpa_db is degraded (system degraded)."""
         # Setup mocks
@@ -2135,7 +2300,7 @@ class TestHealthCheck:
             "status": "degraded",
             "connection": True,
             "response_time_ms": 2500.0,  # Slow response
-            "warning": "High response time detected"
+            "warning": "High response time detected",
         }
 
         self.mock_rpa_db.health_check.return_value = rpa_db_health
@@ -2147,7 +2312,7 @@ class TestHealthCheck:
             "processing_records": 2,
             "completed_records": 43,
             "failed_records": 0,
-            "flow_name": None
+            "flow_name": None,
         }
 
         # Create processor
@@ -2169,18 +2334,20 @@ class TestHealthCheck:
             "processing_records": 2,
             "completed_records": 43,
             "failed_records": 0,
-            "total_records": 50
+            "total_records": 50,
         }
         assert result["queue_status"] == expected_queue_status
 
-    @patch('socket.gethostname')
+    @patch("socket.gethostname")
     def test_health_check_rpa_db_exception(self, mock_gethostname):
         """Test health check when rpa_db health_check raises exception."""
         # Setup mocks
         mock_gethostname.return_value = "test-container-1"
 
         # Mock rpa_db health_check exception
-        self.mock_rpa_db.health_check.side_effect = Exception("Database connection failed")
+        self.mock_rpa_db.health_check.side_effect = Exception(
+            "Database connection failed"
+        )
 
         # Create processor
         processor = DistributedProcessor(rpa_db_manager=self.mock_rpa_db)
@@ -2205,7 +2372,7 @@ class TestHealthCheck:
         # Verify error logging
         self.mock_logger.error.assert_called()
 
-    @patch('socket.gethostname')
+    @patch("socket.gethostname")
     def test_health_check_source_db_exception(self, mock_gethostname):
         """Test health check when source_db health_check raises exception."""
         # Setup mocks
@@ -2215,12 +2382,14 @@ class TestHealthCheck:
         rpa_db_health = {
             "status": "healthy",
             "connection": True,
-            "response_time_ms": 45.2
+            "response_time_ms": 45.2,
         }
         self.mock_rpa_db.health_check.return_value = rpa_db_health
 
         # Mock source_db health_check exception
-        self.mock_source_db.health_check.side_effect = Exception("SQL Server connection failed")
+        self.mock_source_db.health_check.side_effect = Exception(
+            "SQL Server connection failed"
+        )
 
         # Mock queue status
         queue_status = {
@@ -2229,13 +2398,12 @@ class TestHealthCheck:
             "processing_records": 1,
             "completed_records": 22,
             "failed_records": 0,
-            "flow_name": None
+            "flow_name": None,
         }
 
         # Create processor with both databases
         processor = DistributedProcessor(
-            rpa_db_manager=self.mock_rpa_db,
-            source_db_manager=self.mock_source_db
+            rpa_db_manager=self.mock_rpa_db, source_db_manager=self.mock_source_db
         )
         processor.get_queue_status = Mock(return_value=queue_status)
 
@@ -2249,7 +2417,9 @@ class TestHealthCheck:
         assert result["databases"]["rpa_db"] == rpa_db_health
         assert result["databases"]["source_db"]["status"] == "unhealthy"
         assert result["databases"]["source_db"]["connection"] is False
-        assert "SQL Server connection failed" in result["databases"]["source_db"]["error"]
+        assert (
+            "SQL Server connection failed" in result["databases"]["source_db"]["error"]
+        )
 
         # Verify queue status is still available
         expected_queue_status = {
@@ -2257,14 +2427,14 @@ class TestHealthCheck:
             "processing_records": 1,
             "completed_records": 22,
             "failed_records": 0,
-            "total_records": 25
+            "total_records": 25,
         }
         assert result["queue_status"] == expected_queue_status
 
         # Verify warning logging for source_db
         self.mock_logger.warning.assert_called()
 
-    @patch('socket.gethostname')
+    @patch("socket.gethostname")
     def test_health_check_queue_status_exception(self, mock_gethostname):
         """Test health check when get_queue_status raises exception."""
         # Setup mocks
@@ -2274,7 +2444,7 @@ class TestHealthCheck:
         rpa_db_health = {
             "status": "healthy",
             "connection": True,
-            "response_time_ms": 45.2
+            "response_time_ms": 45.2,
         }
         self.mock_rpa_db.health_check.return_value = rpa_db_health
 
@@ -2299,7 +2469,7 @@ class TestHealthCheck:
         # Verify warning logging
         self.mock_logger.warning.assert_called()
 
-    @patch('socket.gethostname')
+    @patch("socket.gethostname")
     def test_health_check_critical_exception(self, mock_gethostname):
         """Test health check when critical exception occurs."""
         # Setup mocks
@@ -2330,7 +2500,7 @@ class TestHealthCheck:
         rpa_db_health = {
             "status": "healthy",
             "connection": True,
-            "response_time_ms": 45.2
+            "response_time_ms": 45.2,
         }
         self.mock_rpa_db.health_check.return_value = rpa_db_health
 
@@ -2341,7 +2511,7 @@ class TestHealthCheck:
             "processing_records": 0,
             "completed_records": 9,
             "failed_records": 0,
-            "flow_name": None
+            "flow_name": None,
         }
 
         # Create processor with only rpa_db
@@ -2365,7 +2535,7 @@ class TestHealthCheck:
         self.mock_rpa_db.health_check.assert_called_once()
         processor.get_queue_status.assert_called_once()
 
-    @patch('socket.gethostname')
+    @patch("socket.gethostname")
     def test_health_check_timestamp_format(self, mock_gethostname):
         """Test that health check timestamp is in correct ISO format."""
         # Setup mocks
@@ -2375,19 +2545,21 @@ class TestHealthCheck:
         self.mock_rpa_db.health_check.return_value = {
             "status": "healthy",
             "connection": True,
-            "response_time_ms": 45.2
+            "response_time_ms": 45.2,
         }
 
         # Create processor
         processor = DistributedProcessor(rpa_db_manager=self.mock_rpa_db)
-        processor.get_queue_status = Mock(return_value={
-            "total_records": 0,
-            "pending_records": 0,
-            "processing_records": 0,
-            "completed_records": 0,
-            "failed_records": 0,
-            "flow_name": None
-        })
+        processor.get_queue_status = Mock(
+            return_value={
+                "total_records": 0,
+                "pending_records": 0,
+                "processing_records": 0,
+                "completed_records": 0,
+                "failed_records": 0,
+                "flow_name": None,
+            }
+        )
 
         # Call health_check
         result = processor.health_check()
@@ -2400,6 +2572,7 @@ class TestHealthCheck:
 
         # Verify timestamp can be parsed
         from datetime import datetime
+
         try:
             datetime.fromisoformat(timestamp)
         except ValueError:
@@ -2419,7 +2592,7 @@ class TestHealthCheckIntegration:
         self.mock_source_db = Mock(spec=DatabaseManager)
         self.mock_source_db.database_name = "SurveyHub"
 
-    @patch('socket.gethostname')
+    @patch("socket.gethostname")
     def test_health_check_production_scenario(self, mock_gethostname):
         """Test health check with realistic production scenario."""
         # Setup realistic production environment
@@ -2434,15 +2607,15 @@ class TestHealthCheckIntegration:
                 "size": 10,
                 "checked_in": 8,
                 "checked_out": 2,
-                "overflow": 0
-            }
+                "overflow": 0,
+            },
         }
 
         source_db_health = {
             "status": "degraded",
             "connection": True,
             "response_time_ms": 1850.3,  # Slow but functional
-            "warning": "High response time detected"
+            "warning": "High response time detected",
         }
 
         self.mock_rpa_db.health_check.return_value = rpa_db_health
@@ -2462,22 +2635,21 @@ class TestHealthCheckIntegration:
                     "processing": 25,
                     "completed": 8500,
                     "failed": 30,
-                    "total": 9755
+                    "total": 9755,
                 },
                 "order_processor": {
                     "pending": 1140,
                     "processing": 20,
                     "completed": 4480,
                     "failed": 25,
-                    "total": 5665
-                }
-            }
+                    "total": 5665,
+                },
+            },
         }
 
         # Create processor
         processor = DistributedProcessor(
-            rpa_db_manager=self.mock_rpa_db,
-            source_db_manager=self.mock_source_db
+            rpa_db_manager=self.mock_rpa_db, source_db_manager=self.mock_source_db
         )
         processor.get_queue_status = Mock(return_value=queue_status)
 
@@ -2504,7 +2676,10 @@ class TestHealthCheckIntegration:
         assert result["queue_status"]["failed_records"] == 55
 
         # Verify instance information
-        assert result["instance_info"]["hostname"] == "rpa-processor-deployment-7d4b8c9f5d-x7k2m"
+        assert (
+            result["instance_info"]["hostname"]
+            == "rpa-processor-deployment-7d4b8c9f5d-x7k2m"
+        )
         assert result["instance_info"]["rpa_db_name"] == "rpa_db"
         assert result["instance_info"]["source_db_name"] == "SurveyHub"
 
@@ -2517,12 +2692,13 @@ class TestHealthCheckIntegration:
         """Test health check during system disaster (all components failing)."""
         # Mock all database health checks failing
         self.mock_rpa_db.health_check.side_effect = Exception("PostgreSQL cluster down")
-        self.mock_source_db.health_check.side_effect = Exception("SQL Server unreachable")
+        self.mock_source_db.health_check.side_effect = Exception(
+            "SQL Server unreachable"
+        )
 
         # Create processor
         processor = DistributedProcessor(
-            rpa_db_manager=self.mock_rpa_db,
-            source_db_manager=self.mock_source_db
+            rpa_db_manager=self.mock_rpa_db, source_db_manager=self.mock_source_db
         )
 
         # Call health_check
@@ -2554,7 +2730,7 @@ class TestHealthCheckIntegration:
         rpa_db_health = {
             "status": "healthy",
             "connection": True,
-            "response_time_ms": 25.1
+            "response_time_ms": 25.1,
         }
         self.mock_rpa_db.health_check.return_value = rpa_db_health
 
@@ -2565,7 +2741,7 @@ class TestHealthCheckIntegration:
             "processing_records": 0,
             "completed_records": 0,
             "failed_records": 0,
-            "flow_name": None
+            "flow_name": None,
         }
 
         # Create minimal processor
@@ -2585,12 +2761,15 @@ class TestHealthCheckIntegration:
 
         # Verify empty queue is handled correctly
         assert result["queue_status"]["total_records"] == 0
-        assert all(count == 0 for count in [
-            result["queue_status"]["pending_records"],
-            result["queue_status"]["processing_records"],
-            result["queue_status"]["completed_records"],
-            result["queue_status"]["failed_records"]
-        ])
+        assert all(
+            count == 0
+            for count in [
+                result["queue_status"]["pending_records"],
+                result["queue_status"]["processing_records"],
+                result["queue_status"]["completed_records"],
+                result["queue_status"]["failed_records"],
+            ]
+        )
 
         # Verify successful logging
         self.mock_logger.info.assert_called()
@@ -2612,15 +2791,20 @@ class TestMultiDatabaseProcessing:
 
         # Create processor with both databases
         self.processor = DistributedProcessor(
-            rpa_db_manager=self.mock_rpa_db,
-            source_db_manager=self.mock_source_db
+            rpa_db_manager=self.mock_rpa_db, source_db_manager=self.mock_source_db
         )
 
     def test_process_survey_logic_success(self):
         """Test successful survey processing with multi-database pattern."""
         # Mock source database response
         source_data = [
-            ("SURV-001", "CUST-001", {"overall_satisfaction": 8.5}, "2024-01-15 10:30:00", "Customer Satisfaction")
+            (
+                "SURV-001",
+                "CUST-001",
+                {"overall_satisfaction": 8.5},
+                "2024-01-15 10:30:00",
+                "Customer Satisfaction",
+            )
         ]
         self.mock_source_db.execute_query.return_value = source_data
 
@@ -2631,7 +2815,7 @@ class TestMultiDatabaseProcessing:
         payload = {
             "survey_id": "SURV-001",
             "customer_name": "Alice Johnson",
-            "flow_run_id": "test-flow-001"
+            "flow_run_id": "test-flow-001",
         }
 
         # Execute processing
@@ -2652,7 +2836,10 @@ class TestMultiDatabaseProcessing:
         # Verify source database was queried
         self.mock_source_db.execute_query.assert_called_once()
         source_call_args = self.mock_source_db.execute_query.call_args
-        assert "SELECT survey_id, customer_id, response_data, submitted_at, survey_type" in source_call_args[0][0]
+        assert (
+            "SELECT survey_id, customer_id, response_data, submitted_at, survey_type"
+            in source_call_args[0][0]
+        )
         assert source_call_args[0][1]["survey_id"] == "SURV-001"
 
         # Verify rpa_db was updated
@@ -2672,7 +2859,9 @@ class TestMultiDatabaseProcessing:
         payload = {"survey_id": "NONEXISTENT"}
 
         # Execute and verify exception
-        with pytest.raises(RuntimeError, match="Survey NONEXISTENT not found in source database"):
+        with pytest.raises(
+            RuntimeError, match="Survey NONEXISTENT not found in source database"
+        ):
             self.processor.process_survey_logic(payload)
 
         # Verify source database was queried but rpa_db was not updated
@@ -2687,7 +2876,10 @@ class TestMultiDatabaseProcessing:
         payload = {"survey_id": "SURV-001"}
 
         # Execute and verify exception
-        with pytest.raises(TypeError, match="source_db_manager is required for multi-database processing"):
+        with pytest.raises(
+            TypeError,
+            match="source_db_manager is required for multi-database processing",
+        ):
             processor_no_source.process_survey_logic(payload)
 
     def test_process_survey_logic_invalid_payload(self):
@@ -2711,7 +2903,9 @@ class TestMultiDatabaseProcessing:
     def test_process_survey_logic_source_db_error(self):
         """Test survey processing when source database query fails."""
         # Mock source database error
-        self.mock_source_db.execute_query.side_effect = Exception("Database connection failed")
+        self.mock_source_db.execute_query.side_effect = Exception(
+            "Database connection failed"
+        )
 
         payload = {"survey_id": "SURV-001"}
 
@@ -2727,7 +2921,13 @@ class TestMultiDatabaseProcessing:
         """Test survey processing when rpa_db insert fails."""
         # Mock successful source database response
         source_data = [
-            ("SURV-001", "CUST-001", {"overall_satisfaction": 7.0}, "2024-01-15 10:30:00", "Customer Satisfaction")
+            (
+                "SURV-001",
+                "CUST-001",
+                {"overall_satisfaction": 7.0},
+                "2024-01-15 10:30:00",
+                "Customer Satisfaction",
+            )
         ]
         self.mock_source_db.execute_query.return_value = source_data
 
@@ -2748,56 +2948,75 @@ class TestMultiDatabaseProcessing:
         """Test satisfaction score calculation for Customer Satisfaction surveys."""
         # Test with overall_satisfaction field
         response_data = {"overall_satisfaction": 9.2}
-        score = self.processor._calculate_satisfaction_score(response_data, "Customer Satisfaction")
+        score = self.processor._calculate_satisfaction_score(
+            response_data, "Customer Satisfaction"
+        )
         assert score == 9.2
 
         # Test with multiple ratings (fallback)
-        response_data = {"service_rating": 8.0, "product_rating": 7.5, "support_rating": 9.0}
-        score = self.processor._calculate_satisfaction_score(response_data, "Customer Satisfaction")
+        response_data = {
+            "service_rating": 8.0,
+            "product_rating": 7.5,
+            "support_rating": 9.0,
+        }
+        score = self.processor._calculate_satisfaction_score(
+            response_data, "Customer Satisfaction"
+        )
         expected_score = (8.0 + 7.5 + 9.0) / 3
         assert score == expected_score
 
         # Test with no valid ratings
         response_data = {"comments": "Great service!"}
-        score = self.processor._calculate_satisfaction_score(response_data, "Customer Satisfaction")
+        score = self.processor._calculate_satisfaction_score(
+            response_data, "Customer Satisfaction"
+        )
         assert score == 5.0  # Default neutral score
 
     def test_calculate_satisfaction_score_product_feedback(self):
         """Test satisfaction score calculation for Product Feedback surveys."""
-        response_data = {
-            "product_rating": 8.0,
-            "recommendation_likelihood": 6.0
-        }
-        score = self.processor._calculate_satisfaction_score(response_data, "Product Feedback")
+        response_data = {"product_rating": 8.0, "recommendation_likelihood": 6.0}
+        score = self.processor._calculate_satisfaction_score(
+            response_data, "Product Feedback"
+        )
         expected_score = (8.0 * 0.7) + (6.0 * 0.3)  # Weighted average
         assert score == expected_score
 
     def test_calculate_satisfaction_score_market_research(self):
         """Test satisfaction score calculation for Market Research surveys."""
         response_data = {"interest_level": 7.5}
-        score = self.processor._calculate_satisfaction_score(response_data, "Market Research")
+        score = self.processor._calculate_satisfaction_score(
+            response_data, "Market Research"
+        )
         assert score == 7.5
 
     def test_calculate_satisfaction_score_unknown_type(self):
         """Test satisfaction score calculation for unknown survey types."""
         response_data = {"rating1": 8.0, "rating2": 6.0, "rating3": 9.0}
-        score = self.processor._calculate_satisfaction_score(response_data, "Unknown Type")
+        score = self.processor._calculate_satisfaction_score(
+            response_data, "Unknown Type"
+        )
         expected_score = (8.0 + 6.0 + 9.0) / 3
         assert score == expected_score
 
     def test_calculate_satisfaction_score_invalid_data(self):
         """Test satisfaction score calculation with invalid response data."""
         # Test with non-dict response_data
-        score = self.processor._calculate_satisfaction_score("invalid", "Customer Satisfaction")
+        score = self.processor._calculate_satisfaction_score(
+            "invalid", "Customer Satisfaction"
+        )
         assert score == 5.0
 
         # Test with empty dict
-        score = self.processor._calculate_satisfaction_score({}, "Customer Satisfaction")
+        score = self.processor._calculate_satisfaction_score(
+            {}, "Customer Satisfaction"
+        )
         assert score == 5.0
 
         # Test with exception during calculation
         response_data = {"invalid_rating": "not_a_number"}
-        score = self.processor._calculate_satisfaction_score(response_data, "Customer Satisfaction")
+        score = self.processor._calculate_satisfaction_score(
+            response_data, "Customer Satisfaction"
+        )
         assert score == 5.0
 
     def test_transform_survey_data_success(self):
@@ -2806,12 +3025,9 @@ class TestMultiDatabaseProcessing:
             "survey_id": "SURV-001",
             "customer_id": "CUST-001",
             "response_data": {"overall_satisfaction": 8.5},
-            "survey_type": "Customer Satisfaction"
+            "survey_type": "Customer Satisfaction",
         }
-        payload = {
-            "customer_name": "Alice Johnson",
-            "flow_run_id": "test-flow-001"
-        }
+        payload = {"customer_name": "Alice Johnson", "flow_run_id": "test-flow-001"}
 
         result = self.processor._transform_survey_data(survey_data, payload)
 
@@ -2829,7 +3045,7 @@ class TestMultiDatabaseProcessing:
             "survey_id": "SURV-002",
             "customer_id": "CUST-002",
             "response_data": {"overall_satisfaction": 7.0},
-            "survey_type": "Product Feedback"
+            "survey_type": "Product Feedback",
         }
         payload = {"flow_run_id": "test-flow-002"}
 
@@ -2844,12 +3060,14 @@ class TestMultiDatabaseProcessing:
             "survey_id": "SURV-003",
             "customer_id": "CUST-003",
             "response_data": {},  # Empty response data
-            "survey_type": "Customer Satisfaction"
+            "survey_type": "Customer Satisfaction",
         }
         payload = {}
 
         # Mock _calculate_satisfaction_score to return None (failure)
-        with patch.object(self.processor, '_calculate_satisfaction_score', return_value=None):
+        with patch.object(
+            self.processor, "_calculate_satisfaction_score", return_value=None
+        ):
             result = self.processor._transform_survey_data(survey_data, payload)
 
         assert result["processing_status"] == "failed"
@@ -2867,7 +3085,7 @@ class TestMultiDatabaseProcessing:
             "processing_status": "completed",
             "processed_at": datetime.now(timezone.utc),
             "processing_duration_ms": 1250,
-            "flow_run_id": "test-flow-001"
+            "flow_run_id": "test-flow-001",
         }
 
         # Mock successful insert
@@ -2900,14 +3118,18 @@ class TestMultiDatabaseProcessing:
             "customer_name": "Alice Johnson",
             "survey_type": "Customer Satisfaction",
             "processing_status": "completed",
-            "flow_run_id": "test-flow-001"
+            "flow_run_id": "test-flow-001",
         }
 
         # Mock database error
-        self.mock_rpa_db.execute_query.side_effect = Exception("Insert constraint violation")
+        self.mock_rpa_db.execute_query.side_effect = Exception(
+            "Insert constraint violation"
+        )
 
         # Execute and verify exception
-        with pytest.raises(RuntimeError, match="Failed to store survey results for SURV-001"):
+        with pytest.raises(
+            RuntimeError, match="Failed to store survey results for SURV-001"
+        ):
             self.processor._store_survey_results(processed_result)
 
         # Verify database was called
@@ -2930,8 +3152,7 @@ class TestMultiDatabaseIntegration:
         self.mock_source_db.database_name = "test_surveyhub"
 
         self.processor = DistributedProcessor(
-            rpa_db_manager=self.mock_rpa_db,
-            source_db_manager=self.mock_source_db
+            rpa_db_manager=self.mock_rpa_db, source_db_manager=self.mock_source_db
         )
 
     def test_end_to_end_survey_processing_workflow(self):
@@ -2946,10 +3167,10 @@ class TestMultiDatabaseIntegration:
                     "service_rating": 9.0,
                     "product_rating": 8.5,
                     "recommendation_likelihood": 8.0,
-                    "comments": "Excellent service and product quality!"
+                    "comments": "Excellent service and product quality!",
                 },
                 "2024-01-15 14:30:00",
-                "Customer Satisfaction"
+                "Customer Satisfaction",
             )
         ]
         self.mock_source_db.execute_query.return_value = source_survey_data
@@ -2961,7 +3182,7 @@ class TestMultiDatabaseIntegration:
         payload = {
             "survey_id": "SURV-E2E-001",
             "customer_name": "John Doe",
-            "flow_run_id": "e2e-test-flow-001"
+            "flow_run_id": "e2e-test-flow-001",
         }
 
         result = self.processor.process_survey_logic(payload)
@@ -3001,19 +3222,43 @@ class TestMultiDatabaseIntegration:
         test_surveys = [
             {
                 "payload": {"survey_id": "SURV-BATCH-001", "customer_name": "Alice"},
-                "source_data": [("SURV-BATCH-001", "CUST-001", {"overall_satisfaction": 9.0}, "2024-01-15", "Customer Satisfaction")],
-                "expected_score": 9.0
+                "source_data": [
+                    (
+                        "SURV-BATCH-001",
+                        "CUST-001",
+                        {"overall_satisfaction": 9.0},
+                        "2024-01-15",
+                        "Customer Satisfaction",
+                    )
+                ],
+                "expected_score": 9.0,
             },
             {
                 "payload": {"survey_id": "SURV-BATCH-002", "customer_name": "Bob"},
-                "source_data": [("SURV-BATCH-002", "CUST-002", {"product_rating": 7.5, "recommendation_likelihood": 8.0}, "2024-01-15", "Product Feedback")],
-                "expected_score": 7.65  # (7.5 * 0.7) + (8.0 * 0.3) = 5.25 + 2.4 = 7.65
+                "source_data": [
+                    (
+                        "SURV-BATCH-002",
+                        "CUST-002",
+                        {"product_rating": 7.5, "recommendation_likelihood": 8.0},
+                        "2024-01-15",
+                        "Product Feedback",
+                    )
+                ],
+                "expected_score": 7.65,  # (7.5 * 0.7) + (8.0 * 0.3) = 5.25 + 2.4 = 7.65
             },
             {
                 "payload": {"survey_id": "SURV-BATCH-003", "customer_name": "Charlie"},
-                "source_data": [("SURV-BATCH-003", "CUST-003", {"interest_level": 6.5}, "2024-01-15", "Market Research")],
-                "expected_score": 6.5
-            }
+                "source_data": [
+                    (
+                        "SURV-BATCH-003",
+                        "CUST-003",
+                        {"interest_level": 6.5},
+                        "2024-01-15",
+                        "Market Research",
+                    )
+                ],
+                "expected_score": 6.5,
+            },
         ]
 
         # Mock rpa_db insert success for all surveys
@@ -3047,7 +3292,13 @@ class TestMultiDatabaseIntegration:
 
         # First survey - success
         self.mock_source_db.execute_query.return_value = [
-            ("SURV-MIX-001", "CUST-001", {"overall_satisfaction": 8.0}, "2024-01-15", "Customer Satisfaction")
+            (
+                "SURV-MIX-001",
+                "CUST-001",
+                {"overall_satisfaction": 8.0},
+                "2024-01-15",
+                "Customer Satisfaction",
+            )
         ]
         self.mock_rpa_db.execute_query.return_value = None
 
@@ -3062,7 +3313,13 @@ class TestMultiDatabaseIntegration:
 
         # Third survey - success (system recovers)
         self.mock_source_db.execute_query.return_value = [
-            ("SURV-MIX-003", "CUST-003", {"overall_satisfaction": 7.5}, "2024-01-15", "Customer Satisfaction")
+            (
+                "SURV-MIX-003",
+                "CUST-003",
+                {"overall_satisfaction": 7.5},
+                "2024-01-15",
+                "Customer Satisfaction",
+            )
         ]
 
         result3 = self.processor.process_survey_logic({"survey_id": "SURV-MIX-003"})
@@ -3076,12 +3333,19 @@ class TestMultiDatabaseIntegration:
         """Test that performance metrics are properly tracked."""
         # Mock source database with slight delay simulation
         self.mock_source_db.execute_query.return_value = [
-            ("SURV-PERF-001", "CUST-001", {"overall_satisfaction": 8.5}, "2024-01-15", "Customer Satisfaction")
+            (
+                "SURV-PERF-001",
+                "CUST-001",
+                {"overall_satisfaction": 8.5},
+                "2024-01-15",
+                "Customer Satisfaction",
+            )
         ]
         self.mock_rpa_db.execute_query.return_value = None
 
         # Process survey and measure timing
         import time
+
         start_time = time.time()
 
         result = self.processor.process_survey_logic({"survey_id": "SURV-PERF-001"})
@@ -3121,7 +3385,7 @@ class TestRetryLogicAndResilience:
         # Mock successful database response
         mock_results = [
             (1, {"survey_id": 1001}, 0, "2024-01-15 10:00:00"),
-            (2, {"survey_id": 1002}, 0, "2024-01-15 10:01:00")
+            (2, {"survey_id": 1002}, 0, "2024-01-15 10:01:00"),
         ]
         self.mock_rpa_db.execute_query.return_value = mock_results
 
@@ -3130,8 +3394,8 @@ class TestRetryLogicAndResilience:
 
         # Verify results
         assert len(result) == 2
-        assert result[0]['id'] == 1
-        assert result[1]['id'] == 2
+        assert result[0]["id"] == 1
+        assert result[1]["id"] == 2
 
         # Verify database was called once (no retries needed)
         self.mock_rpa_db.execute_query.assert_called_once()
@@ -3144,12 +3408,14 @@ class TestRetryLogicAndResilience:
         """Test record claiming with retry after transient failures."""
         # Mock transient failure followed by success
         call_count = 0
+
         def side_effect(*args, **kwargs):
             nonlocal call_count
             call_count += 1
             if call_count <= 2:
                 # First two calls fail with transient error
                 from sqlalchemy.exc import OperationalError
+
                 raise OperationalError("Connection timeout", None, None)
             else:
                 # Third call succeeds
@@ -3162,7 +3428,7 @@ class TestRetryLogicAndResilience:
 
         # Verify final success
         assert len(result) == 1
-        assert result[0]['id'] == 1
+        assert result[0]["id"] == 1
 
         # Verify multiple attempts were made
         assert call_count == 3
@@ -3174,7 +3440,9 @@ class TestRetryLogicAndResilience:
 
         # Call retry-enabled method and expect failure
         with pytest.raises(RuntimeError, match="Record claiming with retry failed"):
-            self.processor.claim_records_batch_with_retry("test_flow", 1, max_attempts=2)
+            self.processor.claim_records_batch_with_retry(
+                "test_flow", 1, max_attempts=2
+            )
 
         # Verify error logging (should be called twice - once by original method, once by retry wrapper)
         assert self.mock_logger.error.call_count >= 1
@@ -3189,10 +3457,7 @@ class TestRetryLogicAndResilience:
 
         # Call with custom retry parameters
         result = self.processor.claim_records_batch_with_retry(
-            "test_flow", 1,
-            max_attempts=5,
-            min_wait=2.0,
-            max_wait=20.0
+            "test_flow", 1, max_attempts=5, min_wait=2.0, max_wait=20.0
         )
 
         # Verify success
@@ -3200,7 +3465,9 @@ class TestRetryLogicAndResilience:
 
         # Verify debug logging includes custom parameters
         debug_calls = [call.args[0] for call in self.mock_logger.debug.call_args_list]
-        retry_log = next((call for call in debug_calls if "max_attempts: 5" in call), None)
+        retry_log = next(
+            (call for call in debug_calls if "max_attempts: 5" in call), None
+        )
         assert retry_log is not None
 
     def test_mark_record_completed_with_retry_success(self):
@@ -3220,12 +3487,15 @@ class TestRetryLogicAndResilience:
 
         # Verify debug logging
         debug_calls = [call.args[0] for call in self.mock_logger.debug.call_args_list]
-        assert any("Marking record 123 as completed with retry" in call for call in debug_calls)
+        assert any(
+            "Marking record 123 as completed with retry" in call for call in debug_calls
+        )
 
     def test_mark_record_completed_with_retry_transient_failure(self):
         """Test record completion with retry after transient failures."""
         # Mock transient failure followed by success
         call_count = 0
+
         def side_effect(*args, **kwargs):
             nonlocal call_count
             call_count += 1
@@ -3234,6 +3504,7 @@ class TestRetryLogicAndResilience:
                 class MockConnectionError(Exception):
                     def __str__(self):
                         return "connection timeout"
+
                 raise MockConnectionError("connection timeout")
             else:
                 return 1
@@ -3259,7 +3530,9 @@ class TestRetryLogicAndResilience:
 
         # Verify debug logging
         debug_calls = [call.args[0] for call in self.mock_logger.debug.call_args_list]
-        assert any("Marking record 123 as failed with retry" in call for call in debug_calls)
+        assert any(
+            "Marking record 123 as failed with retry" in call for call in debug_calls
+        )
 
     def test_cleanup_orphaned_records_with_retry_success(self):
         """Test successful orphaned record cleanup with retry."""
@@ -3277,16 +3550,23 @@ class TestRetryLogicAndResilience:
 
         # Verify debug logging
         debug_calls = [call.args[0] for call in self.mock_logger.debug.call_args_list]
-        assert any("Cleaning up orphaned records with retry" in call for call in debug_calls)
+        assert any(
+            "Cleaning up orphaned records with retry" in call for call in debug_calls
+        )
 
     def test_reset_failed_records_with_retry_success(self):
         """Test successful failed record reset with retry."""
         # Mock count query and reset query responses
         count_results = [(3, 2, 5)]  # 3 resettable, 2 exceeded limit, 5 total
-        self.mock_rpa_db.execute_query.side_effect = [count_results, 3]  # count query, then reset query
+        self.mock_rpa_db.execute_query.side_effect = [
+            count_results,
+            3,
+        ]  # count query, then reset query
 
         # Call retry-enabled method
-        result = self.processor.reset_failed_records_with_retry("test_flow", max_retries=3)
+        result = self.processor.reset_failed_records_with_retry(
+            "test_flow", max_retries=3
+        )
 
         # Verify result
         assert result == 3
@@ -3296,7 +3576,9 @@ class TestRetryLogicAndResilience:
 
         # Verify debug logging
         debug_calls = [call.args[0] for call in self.mock_logger.debug.call_args_list]
-        assert any("Resetting failed records with retry" in call for call in debug_calls)
+        assert any(
+            "Resetting failed records with retry" in call for call in debug_calls
+        )
 
     def test_retry_methods_parameter_validation(self):
         """Test that retry methods validate parameters correctly."""
@@ -3332,7 +3614,7 @@ class TestRetryLogicAndResilience:
         with pytest.raises((ValueError, RuntimeError)):
             self.processor.reset_failed_records_with_retry("test_flow", max_retries=0)
 
-    @patch('core.distributed._create_retry_decorator')
+    @patch("core.distributed._create_retry_decorator")
     def test_retry_decorator_configuration(self, mock_retry_decorator):
         """Test that retry decorators are configured with correct parameters."""
         # Mock decorator and successful response
@@ -3342,20 +3624,20 @@ class TestRetryLogicAndResilience:
         # Test each retry method with custom parameters
         test_cases = [
             {
-                'method': 'claim_records_batch_with_retry',
-                'args': ('test_flow', 1),
-                'kwargs': {'max_attempts': 5, 'min_wait': 2.0, 'max_wait': 30.0}
+                "method": "claim_records_batch_with_retry",
+                "args": ("test_flow", 1),
+                "kwargs": {"max_attempts": 5, "min_wait": 2.0, "max_wait": 30.0},
             },
             {
-                'method': 'mark_record_completed_with_retry',
-                'args': (123, {}),
-                'kwargs': {'max_attempts': 4, 'min_wait': 1.5, 'max_wait': 15.0}
+                "method": "mark_record_completed_with_retry",
+                "args": (123, {}),
+                "kwargs": {"max_attempts": 4, "min_wait": 1.5, "max_wait": 15.0},
             },
             {
-                'method': 'mark_record_failed_with_retry',
-                'args': (123, 'error'),
-                'kwargs': {'max_attempts': 2, 'min_wait': 0.5, 'max_wait': 5.0}
-            }
+                "method": "mark_record_failed_with_retry",
+                "args": (123, "error"),
+                "kwargs": {"max_attempts": 2, "min_wait": 0.5, "max_wait": 5.0},
+            },
         ]
 
         for case in test_cases:
@@ -3363,22 +3645,22 @@ class TestRetryLogicAndResilience:
             mock_retry_decorator.reset_mock()
 
             # Mock appropriate response for each method
-            if 'completed' in case['method']:
+            if "completed" in case["method"]:
                 self.mock_rpa_db.execute_query.return_value = 1
-            elif 'failed' in case['method']:
+            elif "failed" in case["method"]:
                 self.mock_rpa_db.execute_query.return_value = 1
             else:
                 self.mock_rpa_db.execute_query.return_value = []
 
             # Call method
-            method = getattr(self.processor, case['method'])
-            method(*case['args'], **case['kwargs'])
+            method = getattr(self.processor, case["method"])
+            method(*case["args"], **case["kwargs"])
 
             # Verify retry decorator was configured correctly
             mock_retry_decorator.assert_called_once_with(
-                max_attempts=case['kwargs']['max_attempts'],
-                min_wait=case['kwargs']['min_wait'],
-                max_wait=case['kwargs']['max_wait']
+                max_attempts=case["kwargs"]["max_attempts"],
+                min_wait=case["kwargs"]["min_wait"],
+                max_wait=case["kwargs"]["max_wait"],
             )
 
     def test_retry_methods_preserve_original_functionality(self):
@@ -3392,7 +3674,7 @@ class TestRetryLogicAndResilience:
 
         # Results should be identical (both call the same underlying method)
         assert len(result) == len(expected)
-        assert result[0]['id'] == expected[0]['id']
+        assert result[0]["id"] == expected[0]["id"]
 
         # Test mark_record_completed_with_retry
         self.mock_rpa_db.execute_query.return_value = 1
@@ -3413,22 +3695,35 @@ class TestRetryLogicAndResilience:
 
         # All retry methods should raise RuntimeError with descriptive messages
         with pytest.raises(RuntimeError, match="Record claiming with retry failed"):
-            self.processor.claim_records_batch_with_retry("test_flow", 1, max_attempts=1)
+            self.processor.claim_records_batch_with_retry(
+                "test_flow", 1, max_attempts=1
+            )
 
-        with pytest.raises(RuntimeError, match="Mark record completed with retry failed"):
+        with pytest.raises(
+            RuntimeError, match="Mark record completed with retry failed"
+        ):
             self.processor.mark_record_completed_with_retry(123, {}, max_attempts=1)
 
         with pytest.raises(RuntimeError, match="Mark record failed with retry failed"):
             self.processor.mark_record_failed_with_retry(123, "error", max_attempts=1)
 
-        with pytest.raises(RuntimeError, match="Cleanup orphaned records with retry failed"):
-            self.processor.cleanup_orphaned_records_with_retry(timeout_hours=1, max_attempts=1)
+        with pytest.raises(
+            RuntimeError, match="Cleanup orphaned records with retry failed"
+        ):
+            self.processor.cleanup_orphaned_records_with_retry(
+                timeout_hours=1, max_attempts=1
+            )
 
-        with pytest.raises(RuntimeError, match="Reset failed records with retry failed"):
-            self.processor.reset_failed_records_with_retry("test_flow", max_retries=3, max_attempts=1)
+        with pytest.raises(
+            RuntimeError, match="Reset failed records with retry failed"
+        ):
+            self.processor.reset_failed_records_with_retry(
+                "test_flow", max_retries=3, max_attempts=1
+            )
 
     def test_retry_methods_logging_consistency(self):
         """Test that retry methods maintain consistent logging patterns."""
+
         # Mock successful responses for different methods
         def mock_execute_query(*args, **kwargs):
             # Return appropriate response based on the query
@@ -3459,10 +3754,18 @@ class TestRetryLogicAndResilience:
         debug_calls = [call.args[0] for call in self.mock_logger.debug.call_args_list]
 
         assert any("Claiming records with retry" in call for call in debug_calls)
-        assert any("Marking record 123 as completed with retry" in call for call in debug_calls)
-        assert any("Marking record 124 as failed with retry" in call for call in debug_calls)
-        assert any("Cleaning up orphaned records with retry" in call for call in debug_calls)
-        assert any("Resetting failed records with retry" in call for call in debug_calls)
+        assert any(
+            "Marking record 123 as completed with retry" in call for call in debug_calls
+        )
+        assert any(
+            "Marking record 124 as failed with retry" in call for call in debug_calls
+        )
+        assert any(
+            "Cleaning up orphaned records with retry" in call for call in debug_calls
+        )
+        assert any(
+            "Resetting failed records with retry" in call for call in debug_calls
+        )
 
     def test_retry_logic_does_not_conflict_with_database_retry_counting(self):
         """Test that retry logic doesn't interfere with database-level retry counting."""
@@ -3490,17 +3793,24 @@ class TestRetryLogicAndResilience:
         """Test that retry logic only retries on transient errors."""
         # Test with transient error (should be retried by tenacity)
         from sqlalchemy.exc import OperationalError
-        self.mock_rpa_db.execute_query.side_effect = OperationalError("Connection timeout", None, None)
+
+        self.mock_rpa_db.execute_query.side_effect = OperationalError(
+            "Connection timeout", None, None
+        )
 
         with pytest.raises(RuntimeError):
-            self.processor.claim_records_batch_with_retry("test_flow", 1, max_attempts=2)
+            self.processor.claim_records_batch_with_retry(
+                "test_flow", 1, max_attempts=2
+            )
 
         # Reset mock for next test
         self.mock_rpa_db.execute_query.side_effect = ValueError("Invalid SQL syntax")
 
         # Test with non-transient error (should fail immediately without retries)
         with pytest.raises(RuntimeError):
-            self.processor.claim_records_batch_with_retry("test_flow", 1, max_attempts=2)
+            self.processor.claim_records_batch_with_retry(
+                "test_flow", 1, max_attempts=2
+            )
 
         # Both should result in RuntimeError, but transient errors get retried while non-transient don't
 
@@ -3509,23 +3819,18 @@ class TestRetryLogicAndResilience:
         # This test verifies that the retry decorator uses exponential backoff
         # by checking the parameters passed to _create_retry_decorator
 
-        with patch('core.distributed._create_retry_decorator') as mock_create_retry:
+        with patch("core.distributed._create_retry_decorator") as mock_create_retry:
             mock_create_retry.return_value = lambda func: func
             self.mock_rpa_db.execute_query.return_value = []
 
             # Call retry method with custom backoff parameters
             self.processor.claim_records_batch_with_retry(
-                "test_flow", 1,
-                max_attempts=5,
-                min_wait=2.0,
-                max_wait=60.0
+                "test_flow", 1, max_attempts=5, min_wait=2.0, max_wait=60.0
             )
 
             # Verify exponential backoff configuration
             mock_create_retry.assert_called_once_with(
-                max_attempts=5,
-                min_wait=2.0,
-                max_wait=60.0
+                max_attempts=5, min_wait=2.0, max_wait=60.0
             )
 
     def test_retry_methods_thread_safety(self):
@@ -3546,7 +3851,10 @@ class TestRetryLogicAndResilience:
                 # Simulate concurrent record completion
                 self.processor.mark_record_completed_with_retry(
                     record_id,
-                    {"status": "success", "thread_id": threading.current_thread().ident}
+                    {
+                        "status": "success",
+                        "thread_id": threading.current_thread().ident,
+                    },
                 )
                 results.append(record_id)
             except Exception as e:

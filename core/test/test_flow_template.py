@@ -34,9 +34,15 @@ class TestFlowTemplate:
         self.mock_processor = Mock()
 
         # Patch the module-level instances
-        self.rpa_db_patcher = patch.object(flow_template, 'rpa_db_manager', self.mock_rpa_db)
-        self.source_db_patcher = patch.object(flow_template, 'source_db_manager', self.mock_source_db)
-        self.processor_patcher = patch.object(flow_template, 'processor', self.mock_processor)
+        self.rpa_db_patcher = patch.object(
+            flow_template, "rpa_db_manager", self.mock_rpa_db
+        )
+        self.source_db_patcher = patch.object(
+            flow_template, "source_db_manager", self.mock_source_db
+        )
+        self.processor_patcher = patch.object(
+            flow_template, "processor", self.mock_processor
+        )
 
         self.rpa_db_patcher.start()
         self.source_db_patcher.start()
@@ -64,21 +70,31 @@ class TestDistributedProcessingFlow(TestFlowTemplate):
         # Mock health check - healthy
         self.mock_processor.health_check.return_value = {
             "status": "healthy",
-            "databases": {"rpa_db": {"status": "healthy"}}
+            "databases": {"rpa_db": {"status": "healthy"}},
         }
 
         # Mock record claiming
         mock_records = [
-            {"id": 1, "payload": {"data": "test1"}, "retry_count": 0, "created_at": "2024-01-01"},
-            {"id": 2, "payload": {"data": "test2"}, "retry_count": 0, "created_at": "2024-01-01"}
+            {
+                "id": 1,
+                "payload": {"data": "test1"},
+                "retry_count": 0,
+                "created_at": "2024-01-01",
+            },
+            {
+                "id": 2,
+                "payload": {"data": "test2"},
+                "retry_count": 0,
+                "created_at": "2024-01-01",
+            },
         ]
         self.mock_processor.claim_records_batch_with_retry.return_value = mock_records
 
         # Mock successful processing results
-        with patch('core.flow_template.process_record_with_status') as mock_task:
+        with patch("core.flow_template.process_record_with_status") as mock_task:
             mock_task.map.return_value = [
                 {"record_id": 1, "status": "completed", "result": {"processed": True}},
-                {"record_id": 2, "status": "completed", "result": {"processed": True}}
+                {"record_id": 2, "status": "completed", "result": {"processed": True}},
             ]
 
             # Act
@@ -95,7 +111,9 @@ class TestDistributedProcessingFlow(TestFlowTemplate):
 
         # Verify method calls
         self.mock_processor.health_check.assert_called_once()
-        self.mock_processor.claim_records_batch_with_retry.assert_called_once_with(flow_name, batch_size)
+        self.mock_processor.claim_records_batch_with_retry.assert_called_once_with(
+            flow_name, batch_size
+        )
 
     def test_flow_fails_on_unhealthy_database(self):
         """Test that flow fails fast when database health check fails."""
@@ -106,7 +124,7 @@ class TestDistributedProcessingFlow(TestFlowTemplate):
         # Mock health check - unhealthy
         self.mock_processor.health_check.return_value = {
             "status": "unhealthy",
-            "error": "Database connection failed"
+            "error": "Database connection failed",
         }
 
         # Act & Assert
@@ -126,7 +144,10 @@ class TestDistributedProcessingFlow(TestFlowTemplate):
         # Mock health check - degraded
         self.mock_processor.health_check.return_value = {
             "status": "degraded",
-            "databases": {"rpa_db": {"status": "healthy"}, "source_db": {"status": "degraded"}}
+            "databases": {
+                "rpa_db": {"status": "healthy"},
+                "source_db": {"status": "degraded"},
+            },
         }
 
         # Mock no records available
@@ -141,7 +162,9 @@ class TestDistributedProcessingFlow(TestFlowTemplate):
 
         # Verify health check was called and records were attempted to be claimed
         self.mock_processor.health_check.assert_called_once()
-        self.mock_processor.claim_records_batch_with_retry.assert_called_once_with(flow_name, batch_size)
+        self.mock_processor.claim_records_batch_with_retry.assert_called_once_with(
+            flow_name, batch_size
+        )
 
     def test_flow_handles_no_available_records(self):
         """Test flow behavior when no records are available for processing."""
@@ -180,13 +203,24 @@ class TestDistributedProcessingFlow(TestFlowTemplate):
         self.mock_processor.health_check.return_value = {"status": "healthy"}
 
         # Mock record claiming
-        mock_records = [{"id": 1, "payload": {"data": "test"}, "retry_count": 0, "created_at": "2024-01-01"}]
+        mock_records = [
+            {
+                "id": 1,
+                "payload": {"data": "test"},
+                "retry_count": 0,
+                "created_at": "2024-01-01",
+            }
+        ]
         self.mock_processor.claim_records_batch_with_retry.return_value = mock_records
 
         # Mock custom processing results
-        with patch('core.flow_template.process_record_with_status_custom') as mock_task:
+        with patch("core.flow_template.process_record_with_status_custom") as mock_task:
             mock_task.map.return_value = [
-                {"record_id": 1, "status": "completed", "result": {"custom_result": "TEST"}}
+                {
+                    "record_id": 1,
+                    "status": "completed",
+                    "result": {"custom_result": "TEST"},
+                }
             ]
 
             # Act
@@ -223,17 +257,17 @@ class TestProcessRecordWithStatus(TestFlowTemplate):
             "id": 123,
             "payload": {"survey_id": 1001, "customer_id": "CUST001"},
             "retry_count": 0,
-            "created_at": "2024-01-01"
+            "created_at": "2024-01-01",
         }
 
         # Mock successful business logic
         expected_result = {
             "processed": True,
             "original_payload": record["payload"],
-            "processor_instance": "test-instance-123"
+            "processor_instance": "test-instance-123",
         }
 
-        with patch('core.flow_template.process_default_business_logic') as mock_logic:
+        with patch("core.flow_template.process_default_business_logic") as mock_logic:
             mock_logic.return_value = expected_result
 
             # Act
@@ -245,7 +279,9 @@ class TestProcessRecordWithStatus(TestFlowTemplate):
         assert result["result"] == expected_result
 
         # Verify processor methods were called
-        self.mock_processor.mark_record_completed_with_retry.assert_called_once_with(123, expected_result)
+        self.mock_processor.mark_record_completed_with_retry.assert_called_once_with(
+            123, expected_result
+        )
         mock_logic.assert_called_once_with(record["payload"])
 
     def test_failed_record_processing(self):
@@ -255,12 +291,12 @@ class TestProcessRecordWithStatus(TestFlowTemplate):
             "id": 456,
             "payload": {"invalid": "data"},
             "retry_count": 1,
-            "created_at": "2024-01-01"
+            "created_at": "2024-01-01",
         }
 
         # Mock business logic failure
         error_message = "Invalid data format"
-        with patch('core.flow_template.process_default_business_logic') as mock_logic:
+        with patch("core.flow_template.process_default_business_logic") as mock_logic:
             mock_logic.side_effect = ValueError(error_message)
 
             # Act
@@ -272,7 +308,9 @@ class TestProcessRecordWithStatus(TestFlowTemplate):
         assert result["error"] == error_message
 
         # Verify processor methods were called
-        self.mock_processor.mark_record_failed_with_retry.assert_called_once_with(456, error_message)
+        self.mock_processor.mark_record_failed_with_retry.assert_called_once_with(
+            456, error_message
+        )
         self.mock_processor.mark_record_completed_with_retry.assert_not_called()
 
     def test_custom_record_processing_success(self):
@@ -282,7 +320,7 @@ class TestProcessRecordWithStatus(TestFlowTemplate):
             "id": 789,
             "payload": {"rating": 5},
             "retry_count": 0,
-            "created_at": "2024-01-01"
+            "created_at": "2024-01-01",
         }
 
         def custom_logic(payload):
@@ -299,7 +337,9 @@ class TestProcessRecordWithStatus(TestFlowTemplate):
         assert result["result"] == expected_result
 
         # Verify processor methods were called
-        self.mock_processor.mark_record_completed_with_retry.assert_called_once_with(789, expected_result)
+        self.mock_processor.mark_record_completed_with_retry.assert_called_once_with(
+            789, expected_result
+        )
 
     def test_custom_record_processing_failure(self):
         """Test handling of failures in custom business logic."""
@@ -308,7 +348,7 @@ class TestProcessRecordWithStatus(TestFlowTemplate):
             "id": 999,
             "payload": {"missing_field": True},
             "retry_count": 2,
-            "created_at": "2024-01-01"
+            "created_at": "2024-01-01",
         }
 
         def failing_logic(payload):
@@ -323,7 +363,9 @@ class TestProcessRecordWithStatus(TestFlowTemplate):
         assert "Required field missing" in result["error"]
 
         # Verify processor methods were called
-        self.mock_processor.mark_record_failed_with_retry.assert_called_once_with(999, "'Required field missing'")
+        self.mock_processor.mark_record_failed_with_retry.assert_called_once_with(
+            999, "'Required field missing'"
+        )
 
 
 class TestDefaultBusinessLogic(TestFlowTemplate):
@@ -345,6 +387,7 @@ class TestDefaultBusinessLogic(TestFlowTemplate):
 
         # Verify timestamp format (ISO format)
         import datetime
+
         datetime.datetime.fromisoformat(result["processed_at"])  # Should not raise
 
 
@@ -357,14 +400,16 @@ class TestGenerateProcessingSummary(TestFlowTemplate):
         results = [
             {"record_id": 1, "status": "completed", "result": {"processed": True}},
             {"record_id": 2, "status": "completed", "result": {"processed": True}},
-            {"record_id": 3, "status": "completed", "result": {"processed": True}}
+            {"record_id": 3, "status": "completed", "result": {"processed": True}},
         ]
         flow_name = "test_flow"
         batch_size = 10
         records_claimed = 3
 
         # Act
-        summary = generate_processing_summary(results, flow_name, batch_size, records_claimed)
+        summary = generate_processing_summary(
+            results, flow_name, batch_size, records_claimed
+        )
 
         # Assert
         assert summary["flow_name"] == flow_name
@@ -385,14 +430,16 @@ class TestGenerateProcessingSummary(TestFlowTemplate):
             {"record_id": 1, "status": "completed", "result": {"processed": True}},
             {"record_id": 2, "status": "failed", "error": "Invalid data"},
             {"record_id": 3, "status": "completed", "result": {"processed": True}},
-            {"record_id": 4, "status": "failed", "error": "Network timeout"}
+            {"record_id": 4, "status": "failed", "error": "Network timeout"},
         ]
         flow_name = "mixed_flow"
         batch_size = 5
         records_claimed = 4
 
         # Act
-        summary = generate_processing_summary(results, flow_name, batch_size, records_claimed)
+        summary = generate_processing_summary(
+            results, flow_name, batch_size, records_claimed
+        )
 
         # Assert
         assert summary["records_processed"] == 4
@@ -416,7 +463,9 @@ class TestGenerateProcessingSummary(TestFlowTemplate):
         records_claimed = 0
 
         # Act
-        summary = generate_processing_summary(results, flow_name, batch_size, records_claimed)
+        summary = generate_processing_summary(
+            results, flow_name, batch_size, records_claimed
+        )
 
         # Assert
         assert summary["records_processed"] == 0
@@ -431,18 +480,18 @@ class TestGenerateProcessingSummary(TestFlowTemplate):
         # Arrange - Create 15 failed results
         results = []
         for i in range(15):
-            results.append({
-                "record_id": i + 1,
-                "status": "failed",
-                "error": f"Error {i + 1}"
-            })
+            results.append(
+                {"record_id": i + 1, "status": "failed", "error": f"Error {i + 1}"}
+            )
 
         flow_name = "error_flow"
         batch_size = 20
         records_claimed = 15
 
         # Act
-        summary = generate_processing_summary(results, flow_name, batch_size, records_claimed)
+        summary = generate_processing_summary(
+            results, flow_name, batch_size, records_claimed
+        )
 
         # Assert
         assert summary["records_failed"] == 15
@@ -455,6 +504,7 @@ class TestUtilityFunctions(TestFlowTemplate):
 
     def test_create_custom_distributed_flow(self):
         """Test creation of custom distributed flows."""
+
         # Arrange
         def custom_logic(payload):
             return {"custom": True, "data": payload}
@@ -463,7 +513,9 @@ class TestUtilityFunctions(TestFlowTemplate):
         default_batch_size = 25
 
         # Act
-        custom_flow = create_custom_distributed_flow(flow_name, custom_logic, default_batch_size)
+        custom_flow = create_custom_distributed_flow(
+            flow_name, custom_logic, default_batch_size
+        )
 
         # Assert
         assert callable(custom_flow)
@@ -477,7 +529,7 @@ class TestUtilityFunctions(TestFlowTemplate):
         # Arrange
         expected_health = {
             "status": "healthy",
-            "databases": {"rpa_db": {"status": "healthy"}}
+            "databases": {"rpa_db": {"status": "healthy"}},
         }
         self.mock_processor.health_check.return_value = expected_health
 
@@ -496,7 +548,7 @@ class TestUtilityFunctions(TestFlowTemplate):
             "pending_records": 50,
             "processing_records": 10,
             "completed_records": 35,
-            "failed_records": 5
+            "failed_records": 5,
         }
         self.mock_processor.get_queue_status.return_value = expected_status
 
@@ -514,8 +566,8 @@ class TestUtilityFunctions(TestFlowTemplate):
             "total_records": 200,
             "by_flow": {
                 "flow1": {"pending": 25, "processing": 5, "completed": 20, "failed": 0},
-                "flow2": {"pending": 30, "processing": 8, "completed": 40, "failed": 2}
-            }
+                "flow2": {"pending": 30, "processing": 8, "completed": 40, "failed": 2},
+            },
         }
         self.mock_processor.get_queue_status.return_value = expected_status
 
@@ -530,8 +582,8 @@ class TestUtilityFunctions(TestFlowTemplate):
 class TestModuleLevelInstances(TestFlowTemplate):
     """Test cases for module-level instance initialization."""
 
-    @patch('core.flow_template.DatabaseManager')
-    @patch('core.flow_template.DistributedProcessor')
+    @patch("core.flow_template.DatabaseManager")
+    @patch("core.flow_template.DistributedProcessor")
     def test_module_instances_initialization(self, mock_processor_class, mock_db_class):
         """Test that module-level instances are properly initialized."""
         # This test verifies the module initialization pattern

@@ -171,8 +171,11 @@ def validate_file_exists(file_path: str) -> bool:
 
 # Database Monitoring and Operational Utilities
 
+
 @task
-def database_health_check(database_name: str, include_retry: bool = True) -> dict[str, Any]:
+def database_health_check(
+    database_name: str, include_retry: bool = True
+) -> dict[str, Any]:
     """
     Perform comprehensive database health check that can be used across multiple flows.
 
@@ -235,7 +238,7 @@ def database_health_check(database_name: str, include_retry: bool = True) -> dic
             "response_time_ms": None,
             "timestamp": datetime.now().isoformat() + "Z",
             "error": error_msg,
-            "task_execution_error": True
+            "task_execution_error": True,
         }
 
 
@@ -275,14 +278,18 @@ def connection_pool_monitoring(database_name: str) -> dict[str, Any]:
                 recommendation = "Pool utilization is healthy"
             elif utilization < 80:
                 pool_health = "moderate"
-                recommendation = "Monitor pool usage, consider increasing pool size if sustained"
+                recommendation = (
+                    "Monitor pool usage, consider increasing pool size if sustained"
+                )
             else:
                 pool_health = "high"
                 recommendation = "High pool utilization detected, consider increasing pool_size or max_overflow"
 
             # Add overflow analysis
             if overflow > 0:
-                overflow_analysis = f"Using {overflow} overflow connections beyond base pool"
+                overflow_analysis = (
+                    f"Using {overflow} overflow connections beyond base pool"
+                )
             else:
                 overflow_analysis = "No overflow connections in use"
 
@@ -292,7 +299,7 @@ def connection_pool_monitoring(database_name: str) -> dict[str, Any]:
                 "pool_health": pool_health,
                 "recommendation": recommendation,
                 "overflow_analysis": overflow_analysis,
-                "monitoring_timestamp": datetime.now().isoformat() + "Z"
+                "monitoring_timestamp": datetime.now().isoformat() + "Z",
             }
 
             logger.info(
@@ -304,7 +311,9 @@ def connection_pool_monitoring(database_name: str) -> dict[str, Any]:
             return monitoring_result
 
     except Exception as e:
-        error_msg = f"Connection pool monitoring failed for database '{database_name}': {e}"
+        error_msg = (
+            f"Connection pool monitoring failed for database '{database_name}': {e}"
+        )
         logger.error(error_msg)
         raise RuntimeError(error_msg) from e
 
@@ -313,7 +322,7 @@ def connection_pool_monitoring(database_name: str) -> dict[str, Any]:
 def database_prerequisite_validation(
     database_names: list[str],
     check_migrations: bool = True,
-    performance_threshold_ms: float = 1000.0
+    performance_threshold_ms: float = 1000.0,
 ) -> dict[str, Any]:
     """
     Validate database prerequisites for flow startup checks.
@@ -334,7 +343,9 @@ def database_prerequisite_validation(
     """
     logger = get_run_logger()
 
-    logger.info(f"Validating database prerequisites for {len(database_names)} databases")
+    logger.info(
+        f"Validating database prerequisites for {len(database_names)} databases"
+    )
 
     validation_results = {
         "overall_status": "passed",
@@ -344,8 +355,8 @@ def database_prerequisite_validation(
             "total_databases": len(database_names),
             "passed": 0,
             "failed": 0,
-            "warnings": 0
-        }
+            "warnings": 0,
+        },
     }
 
     for database_name in database_names:
@@ -358,7 +369,7 @@ def database_prerequisite_validation(
             "performance_ok": False,
             "migrations_ok": False,
             "issues": [],
-            "warnings": []
+            "warnings": [],
         }
 
         try:
@@ -373,12 +384,16 @@ def database_prerequisite_validation(
                     )
 
                 # Test 2: Performance validation
-                response_time = health_result.get("response_time_ms", float('inf'))
-                db_validation["performance_ok"] = response_time <= performance_threshold_ms
+                response_time = health_result.get("response_time_ms", float("inf"))
+                db_validation["performance_ok"] = (
+                    response_time <= performance_threshold_ms
+                )
 
                 if not db_validation["performance_ok"]:
-                    if response_time == float('inf'):
-                        db_validation["issues"].append("Could not measure response time")
+                    if response_time == float("inf"):
+                        db_validation["issues"].append(
+                            "Could not measure response time"
+                        )
                     else:
                         db_validation["warnings"].append(
                             f"Response time ({response_time}ms) exceeds threshold ({performance_threshold_ms}ms)"
@@ -388,7 +403,9 @@ def database_prerequisite_validation(
                 if check_migrations:
                     try:
                         migration_status = db.get_migration_status()
-                        pending_migrations = migration_status.get("pending_migrations", [])
+                        pending_migrations = migration_status.get(
+                            "pending_migrations", []
+                        )
 
                         if pending_migrations:
                             db_validation["warnings"].append(
@@ -407,9 +424,11 @@ def database_prerequisite_validation(
                     db_validation["migrations_ok"] = True  # Skip migration check
 
                 # Determine overall database status
-                if (db_validation["connectivity"] and
-                    db_validation["performance_ok"] and
-                    db_validation["migrations_ok"]):
+                if (
+                    db_validation["connectivity"]
+                    and db_validation["performance_ok"]
+                    and db_validation["migrations_ok"]
+                ):
                     db_validation["status"] = "passed"
                     validation_results["summary"]["passed"] += 1
                 elif db_validation["connectivity"] and not db_validation["issues"]:
@@ -426,7 +445,9 @@ def database_prerequisite_validation(
             validation_results["summary"]["failed"] += 1
             validation_results["overall_status"] = "failed"
 
-            logger.error(f"Prerequisite validation failed for database '{database_name}': {e}")
+            logger.error(
+                f"Prerequisite validation failed for database '{database_name}': {e}"
+            )
 
         validation_results["databases"][database_name] = db_validation
 
@@ -434,9 +455,13 @@ def database_prerequisite_validation(
         if db_validation["status"] == "passed":
             logger.info(f"Database '{database_name}' passed prerequisite validation")
         elif db_validation["status"] == "warning":
-            logger.warning(f"Database '{database_name}' passed with warnings: {db_validation['warnings']}")
+            logger.warning(
+                f"Database '{database_name}' passed with warnings: {db_validation['warnings']}"
+            )
         else:
-            logger.error(f"Database '{database_name}' failed prerequisite validation: {db_validation['issues']}")
+            logger.error(
+                f"Database '{database_name}' failed prerequisite validation: {db_validation['issues']}"
+            )
 
     # Log overall results
     summary = validation_results["summary"]
@@ -475,12 +500,13 @@ def database_connectivity_diagnostics(database_name: str) -> dict[str, Any]:
         "configuration": {},
         "connectivity": {},
         "performance": {},
-        "recommendations": []
+        "recommendations": [],
     }
 
     try:
         # Configuration diagnostics
         from .database import validate_database_configuration
+
         config_validation = validate_database_configuration(database_name)
         diagnostics["configuration"] = config_validation.get(database_name, {})
 
@@ -502,7 +528,7 @@ def database_connectivity_diagnostics(database_name: str) -> dict[str, Any]:
                 "query_test_successful": health_result.get("query_test", False),
                 "total_time_ms": round((end_time - start_time) * 1000, 2),
                 "response_time_ms": health_result.get("response_time_ms"),
-                "error": health_result.get("error")
+                "error": health_result.get("error"),
             }
 
             # Pool diagnostics
@@ -511,7 +537,9 @@ def database_connectivity_diagnostics(database_name: str) -> dict[str, Any]:
                 diagnostics["performance"] = {
                     "pool_status": pool_status,
                     "pool_utilization": pool_status.get("utilization_percent", 0),
-                    "connection_efficiency": "good" if pool_status.get("utilization_percent", 0) < 80 else "concerning"
+                    "connection_efficiency": "good"
+                    if pool_status.get("utilization_percent", 0) < 80
+                    else "concerning",
                 }
 
                 # Performance recommendations
@@ -552,7 +580,9 @@ def database_connectivity_diagnostics(database_name: str) -> dict[str, Any]:
                             "Database does not exist - verify database name in connection string"
                         )
 
-        logger.info(f"Connectivity diagnostics completed for database '{database_name}'")
+        logger.info(
+            f"Connectivity diagnostics completed for database '{database_name}'"
+        )
 
     except Exception as e:
         error_msg = f"Diagnostics failed for database '{database_name}': {e}"
@@ -568,9 +598,7 @@ def database_connectivity_diagnostics(database_name: str) -> dict[str, Any]:
 
 @task
 def database_performance_monitoring(
-    database_name: str,
-    test_queries: Optional[list[str]] = None,
-    iterations: int = 3
+    database_name: str, test_queries: Optional[list[str]] = None, iterations: int = 3
 ) -> dict[str, Any]:
     """
     Collect performance monitoring and metrics for database operations.
@@ -604,12 +632,12 @@ def database_performance_monitoring(
         "monitoring_timestamp": datetime.now().isoformat() + "Z",
         "test_configuration": {
             "iterations": iterations,
-            "test_queries_count": len(test_queries)
+            "test_queries_count": len(test_queries),
         },
         "connection_metrics": {},
         "query_performance": {},
         "pool_efficiency": {},
-        "overall_assessment": {}
+        "overall_assessment": {},
     }
 
     try:
@@ -626,11 +654,13 @@ def database_performance_monitoring(
 
             if connection_times:
                 performance_metrics["connection_metrics"] = {
-                    "avg_connection_time_ms": round(sum(connection_times) / len(connection_times), 2),
+                    "avg_connection_time_ms": round(
+                        sum(connection_times) / len(connection_times), 2
+                    ),
                     "min_connection_time_ms": round(min(connection_times), 2),
                     "max_connection_time_ms": round(max(connection_times), 2),
                     "successful_connections": len(connection_times),
-                    "total_attempts": iterations
+                    "total_attempts": iterations,
                 }
 
             # Query performance metrics
@@ -649,17 +679,23 @@ def database_performance_monitoring(
                         successful_executions += 1
 
                     except Exception as query_error:
-                        logger.warning(f"Query {query_idx + 1} failed on iteration {i + 1}: {query_error}")
+                        logger.warning(
+                            f"Query {query_idx + 1} failed on iteration {i + 1}: {query_error}"
+                        )
 
                 if query_times:
                     query_metrics[f"query_{query_idx + 1}"] = {
                         "query": query[:50] + "..." if len(query) > 50 else query,
-                        "avg_execution_time_ms": round(sum(query_times) / len(query_times), 2),
+                        "avg_execution_time_ms": round(
+                            sum(query_times) / len(query_times), 2
+                        ),
                         "min_execution_time_ms": round(min(query_times), 2),
                         "max_execution_time_ms": round(max(query_times), 2),
                         "successful_executions": successful_executions,
                         "total_attempts": iterations,
-                        "success_rate": round((successful_executions / iterations) * 100, 2)
+                        "success_rate": round(
+                            (successful_executions / iterations) * 100, 2
+                        ),
                     }
 
             performance_metrics["query_performance"] = query_metrics
@@ -672,17 +708,24 @@ def database_performance_monitoring(
                 "max_connections": pool_status.get("max_connections", 0),
                 "checked_out": pool_status.get("checked_out", 0),
                 "overflow_connections": pool_status.get("overflow", 0),
-                "efficiency_rating": "excellent" if pool_status.get("utilization_percent", 0) < 50 else
-                                   "good" if pool_status.get("utilization_percent", 0) < 80 else "concerning"
+                "efficiency_rating": "excellent"
+                if pool_status.get("utilization_percent", 0) < 50
+                else "good"
+                if pool_status.get("utilization_percent", 0) < 80
+                else "concerning",
             }
 
             # Overall assessment
-            avg_connection_time = performance_metrics["connection_metrics"].get("avg_connection_time_ms", 0)
+            avg_connection_time = performance_metrics["connection_metrics"].get(
+                "avg_connection_time_ms", 0
+            )
             avg_query_times = [
                 metrics.get("avg_execution_time_ms", 0)
                 for metrics in query_metrics.values()
             ]
-            avg_query_time = sum(avg_query_times) / len(avg_query_times) if avg_query_times else 0
+            avg_query_time = (
+                sum(avg_query_times) / len(avg_query_times) if avg_query_times else 0
+            )
 
             # Performance assessment
             if avg_connection_time < 100 and avg_query_time < 50:
@@ -698,20 +741,28 @@ def database_performance_monitoring(
                 "performance_rating": performance_rating,
                 "avg_connection_time_ms": avg_connection_time,
                 "avg_query_time_ms": round(avg_query_time, 2),
-                "recommendations": []
+                "recommendations": [],
             }
 
             # Add recommendations based on performance
-            recommendations = performance_metrics["overall_assessment"]["recommendations"]
+            recommendations = performance_metrics["overall_assessment"][
+                "recommendations"
+            ]
 
             if avg_connection_time > 500:
-                recommendations.append("High connection times detected - check network latency")
+                recommendations.append(
+                    "High connection times detected - check network latency"
+                )
 
             if avg_query_time > 200:
-                recommendations.append("Slow query performance - consider query optimization")
+                recommendations.append(
+                    "Slow query performance - consider query optimization"
+                )
 
             if pool_status.get("utilization_percent", 0) > 80:
-                recommendations.append("High pool utilization - consider increasing pool size")
+                recommendations.append(
+                    "High pool utilization - consider increasing pool size"
+                )
 
             if not recommendations:
                 recommendations.append("Performance is within acceptable ranges")
@@ -728,7 +779,9 @@ def database_performance_monitoring(
         performance_metrics["overall_assessment"] = {
             "performance_rating": "error",
             "error": error_msg,
-            "recommendations": ["Fix connectivity issues before performance monitoring"]
+            "recommendations": [
+                "Fix connectivity issues before performance monitoring"
+            ],
         }
 
     return performance_metrics
@@ -758,14 +811,10 @@ def multi_database_health_summary(database_names: list[str]) -> dict[str, Any]:
         "summary_timestamp": datetime.now().isoformat() + "Z",
         "overall_status": "healthy",
         "database_count": len(database_names),
-        "status_breakdown": {
-            "healthy": 0,
-            "degraded": 0,
-            "unhealthy": 0
-        },
+        "status_breakdown": {"healthy": 0, "degraded": 0, "unhealthy": 0},
         "databases": {},
         "alerts": [],
-        "recommendations": []
+        "recommendations": [],
     }
 
     for database_name in database_names:
@@ -778,7 +827,7 @@ def multi_database_health_summary(database_names: list[str]) -> dict[str, Any]:
                 "status": status,
                 "response_time_ms": health_result.get("response_time_ms"),
                 "connection": health_result.get("connection", False),
-                "error": health_result.get("error")
+                "error": health_result.get("error"),
             }
 
             # Update status breakdown
@@ -798,17 +847,21 @@ def multi_database_health_summary(database_names: list[str]) -> dict[str, Any]:
                     summary["overall_status"] = "degraded"
 
         except Exception as e:
-            logger.error(f"Failed to get health status for database '{database_name}': {e}")
+            logger.error(
+                f"Failed to get health status for database '{database_name}': {e}"
+            )
 
             summary["databases"][database_name] = {
                 "status": "unhealthy",
                 "response_time_ms": None,
                 "connection": False,
-                "error": f"Health check failed: {e}"
+                "error": f"Health check failed: {e}",
             }
 
             summary["status_breakdown"]["unhealthy"] += 1
-            summary["alerts"].append(f"Database '{database_name}' health check failed: {e}")
+            summary["alerts"].append(
+                f"Database '{database_name}' health check failed: {e}"
+            )
             summary["overall_status"] = "unhealthy"
 
     # Generate recommendations

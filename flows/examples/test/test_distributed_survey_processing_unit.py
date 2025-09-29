@@ -20,14 +20,15 @@ class TestSurveyBusinessLogic:
     def test_process_survey_business_logic_success(self):
         """Test successful survey business logic processing."""
         # Mock the database managers and logger
-        with patch(
-            'flows.examples.distributed_survey_processing.get_run_logger'
-        ) as mock_logger, \
-             patch(
-                 'flows.examples.distributed_survey_processing.rpa_db_manager'
-             ) as mock_rpa_db, \
-             patch('flows.examples.distributed_survey_processing.source_db_manager'):
-
+        with (
+            patch(
+                "flows.examples.distributed_survey_processing.get_run_logger"
+            ) as mock_logger,
+            patch(
+                "flows.examples.distributed_survey_processing.rpa_db_manager"
+            ) as mock_rpa_db,
+            patch("flows.examples.distributed_survey_processing.source_db_manager"),
+        ):
             mock_logger.return_value = MagicMock()
             mock_rpa_db.execute_query.return_value = None  # Successful insert
 
@@ -43,12 +44,9 @@ class TestSurveyBusinessLogic:
                     "service_rating": 5,
                     "product_rating": 4,
                     "comments": "Excellent service!",
-                    "completion_time_seconds": 300
+                    "completion_time_seconds": 300,
                 },
-                "metadata": {
-                    "source_system": "test_system",
-                    "survey_version": "v1.0"
-                }
+                "metadata": {"source_system": "test_system", "survey_version": "v1.0"},
             }
 
             # Process the survey
@@ -80,7 +78,9 @@ class TestSurveyBusinessLogic:
 
     def test_process_survey_business_logic_validation_errors(self):
         """Test survey business logic with validation errors."""
-        with patch('flows.examples.distributed_survey_processing.get_run_logger') as mock_logger:
+        with patch(
+            "flows.examples.distributed_survey_processing.get_run_logger"
+        ) as mock_logger:
             mock_logger.return_value = MagicMock()
 
             # Test missing required fields
@@ -97,7 +97,7 @@ class TestSurveyBusinessLogic:
                 "survey_id": "TEST-INVALID-002",
                 "customer_id": "CUST-INVALID-002",
                 "survey_type": "Test Survey",
-                "response_data": "not_a_dict"  # Should be dict
+                "response_data": "not_a_dict",  # Should be dict
             }
 
             with pytest.raises(ValueError, match="response_data must be a dictionary"):
@@ -111,7 +111,7 @@ class TestSurveyBusinessLogic:
                 "response_data": {
                     "overall_satisfaction": 8
                     # Missing likelihood_to_recommend
-                }
+                },
             }
 
             with pytest.raises(ValueError, match="Missing required response fields"):
@@ -119,9 +119,14 @@ class TestSurveyBusinessLogic:
 
     def test_nps_category_calculation(self):
         """Test NPS category calculation logic."""
-        with patch('flows.examples.distributed_survey_processing.get_run_logger') as mock_logger, \
-             patch('flows.examples.distributed_survey_processing.rpa_db_manager') as mock_rpa_db:
-
+        with (
+            patch(
+                "flows.examples.distributed_survey_processing.get_run_logger"
+            ) as mock_logger,
+            patch(
+                "flows.examples.distributed_survey_processing.rpa_db_manager"
+            ) as mock_rpa_db,
+        ):
             mock_logger.return_value = MagicMock()
             mock_rpa_db.execute_query.return_value = None
 
@@ -133,8 +138,8 @@ class TestSurveyBusinessLogic:
                 "response_data": {
                     "overall_satisfaction": 8,
                     "service_rating": 4,
-                    "product_rating": 4
-                }
+                    "product_rating": 4,
+                },
             }
 
             # Test promoter (9-10)
@@ -155,13 +160,20 @@ class TestSurveyBusinessLogic:
             detractor_payload["survey_id"] = "TEST-NPS-003"
             detractor_payload["response_data"]["likelihood_to_recommend"] = 5
             detractor_result = process_survey_business_logic(detractor_payload)
-            assert detractor_result["satisfaction_metrics"]["nps_category"] == "detractor"
+            assert (
+                detractor_result["satisfaction_metrics"]["nps_category"] == "detractor"
+            )
 
     def test_satisfaction_level_calculation(self):
         """Test satisfaction level calculation based on composite score."""
-        with patch('flows.examples.distributed_survey_processing.get_run_logger') as mock_logger, \
-             patch('flows.examples.distributed_survey_processing.rpa_db_manager') as mock_rpa_db:
-
+        with (
+            patch(
+                "flows.examples.distributed_survey_processing.get_run_logger"
+            ) as mock_logger,
+            patch(
+                "flows.examples.distributed_survey_processing.rpa_db_manager"
+            ) as mock_rpa_db,
+        ):
             mock_logger.return_value = MagicMock()
             mock_rpa_db.execute_query.return_value = None
 
@@ -175,8 +187,8 @@ class TestSurveyBusinessLogic:
                     "overall_satisfaction": 10,  # High score
                     "likelihood_to_recommend": 9,
                     "service_rating": 5,  # Max rating
-                    "product_rating": 5   # Max rating
-                }
+                    "product_rating": 5,  # Max rating
+                },
             }
 
             high_result = process_survey_business_logic(high_payload)
@@ -193,12 +205,14 @@ class TestSurveyBusinessLogic:
                     "overall_satisfaction": 7,  # Medium score
                     "likelihood_to_recommend": 6,
                     "service_rating": 3,  # Medium rating
-                    "product_rating": 3   # Medium rating
-                }
+                    "product_rating": 3,  # Medium rating
+                },
             }
 
             medium_result = process_survey_business_logic(medium_payload)
-            assert medium_result["satisfaction_metrics"]["satisfaction_level"] == "medium"
+            assert (
+                medium_result["satisfaction_metrics"]["satisfaction_level"] == "medium"
+            )
             composite_score = medium_result["satisfaction_metrics"]["composite_score"]
             assert 6.0 <= composite_score < 8.0
 
@@ -212,8 +226,8 @@ class TestSurveyBusinessLogic:
                     "overall_satisfaction": 3,  # Low score
                     "likelihood_to_recommend": 2,
                     "service_rating": 1,  # Low rating
-                    "product_rating": 1   # Low rating
-                }
+                    "product_rating": 1,  # Low rating
+                },
             }
 
             low_result = process_survey_business_logic(low_payload)
@@ -222,10 +236,17 @@ class TestSurveyBusinessLogic:
 
     def test_customer_segment_weighting(self):
         """Test customer segment impact on weighted scoring."""
-        with patch('flows.examples.distributed_survey_processing.get_run_logger') as mock_logger, \
-             patch('flows.examples.distributed_survey_processing.rpa_db_manager') as mock_rpa_db, \
-             patch('flows.examples.distributed_survey_processing.source_db_manager') as mock_source_db:
-
+        with (
+            patch(
+                "flows.examples.distributed_survey_processing.get_run_logger"
+            ) as mock_logger,
+            patch(
+                "flows.examples.distributed_survey_processing.rpa_db_manager"
+            ) as mock_rpa_db,
+            patch(
+                "flows.examples.distributed_survey_processing.source_db_manager"
+            ) as mock_source_db,
+        ):
             mock_logger.return_value = MagicMock()
             mock_rpa_db.execute_query.return_value = None
             mock_source_db = MagicMock()
@@ -239,19 +260,26 @@ class TestSurveyBusinessLogic:
                     "overall_satisfaction": 8,
                     "likelihood_to_recommend": 8,
                     "service_rating": 4,
-                    "product_rating": 4
-                }
+                    "product_rating": 4,
+                },
             }
 
             # Test enterprise customer (1.5x multiplier)
 
             # Mock the source database to return enterprise customer data
-            with patch('flows.examples.distributed_survey_processing.source_db_manager', mock_source_db):
+            with patch(
+                "flows.examples.distributed_survey_processing.source_db_manager",
+                mock_source_db,
+            ):
                 enterprise_result = process_survey_business_logic(base_payload)
 
                 # The weighted score should be higher than composite score for enterprise
-                composite_score = enterprise_result["satisfaction_metrics"]["composite_score"]
-                weighted_score = enterprise_result["satisfaction_metrics"]["weighted_score"]
+                composite_score = enterprise_result["satisfaction_metrics"][
+                    "composite_score"
+                ]
+                weighted_score = enterprise_result["satisfaction_metrics"][
+                    "weighted_score"
+                ]
 
                 # For enterprise customers, weighted score should be composite_score * 1.5
                 # But since we're mocking the source DB, it might not have the customer data
@@ -262,12 +290,19 @@ class TestSurveyBusinessLogic:
 
     def test_database_storage_error_handling(self):
         """Test error handling when database storage fails."""
-        with patch('flows.examples.distributed_survey_processing.get_run_logger') as mock_logger, \
-             patch('flows.examples.distributed_survey_processing.rpa_db_manager') as mock_rpa_db:
-
+        with (
+            patch(
+                "flows.examples.distributed_survey_processing.get_run_logger"
+            ) as mock_logger,
+            patch(
+                "flows.examples.distributed_survey_processing.rpa_db_manager"
+            ) as mock_rpa_db,
+        ):
             mock_logger.return_value = MagicMock()
             # Mock database to raise an exception on insert
-            mock_rpa_db.execute_query.side_effect = Exception("Database connection failed")
+            mock_rpa_db.execute_query.side_effect = Exception(
+                "Database connection failed"
+            )
 
             test_payload = {
                 "survey_id": "TEST-DB-ERROR-001",
@@ -278,8 +313,8 @@ class TestSurveyBusinessLogic:
                     "overall_satisfaction": 7,
                     "likelihood_to_recommend": 8,
                     "service_rating": 3,
-                    "product_rating": 4
-                }
+                    "product_rating": 4,
+                },
             }
 
             # Should still process successfully but mark storage error
@@ -292,9 +327,14 @@ class TestSurveyBusinessLogic:
 
     def test_missing_optional_fields(self):
         """Test processing with missing optional fields."""
-        with patch('flows.examples.distributed_survey_processing.get_run_logger') as mock_logger, \
-             patch('flows.examples.distributed_survey_processing.rpa_db_manager') as mock_rpa_db:
-
+        with (
+            patch(
+                "flows.examples.distributed_survey_processing.get_run_logger"
+            ) as mock_logger,
+            patch(
+                "flows.examples.distributed_survey_processing.rpa_db_manager"
+            ) as mock_rpa_db,
+        ):
             mock_logger.return_value = MagicMock()
             mock_rpa_db.execute_query.return_value = None
 
@@ -305,9 +345,9 @@ class TestSurveyBusinessLogic:
                 "survey_type": "Minimal Test",
                 "response_data": {
                     "overall_satisfaction": 6,
-                    "likelihood_to_recommend": 7
+                    "likelihood_to_recommend": 7,
                     # Missing service_rating, product_rating, comments, etc.
-                }
+                },
             }
 
             # Should process successfully with default values for missing fields
@@ -334,7 +374,9 @@ class TestSurveyRecordPreparation:
             prepare_survey_records_for_queue,
         )
 
-        with patch('flows.examples.distributed_survey_processing.get_run_logger') as mock_logger:
+        with patch(
+            "flows.examples.distributed_survey_processing.get_run_logger"
+        ) as mock_logger:
             mock_logger.return_value = MagicMock()
 
             records = prepare_survey_records_for_queue(survey_count=3)
@@ -349,8 +391,14 @@ class TestSurveyRecordPreparation:
 
                 # Required fields
                 required_fields = [
-                    "survey_id", "customer_id", "customer_name", "survey_type",
-                    "priority", "submitted_at", "response_data", "metadata"
+                    "survey_id",
+                    "customer_id",
+                    "customer_name",
+                    "survey_type",
+                    "priority",
+                    "submitted_at",
+                    "response_data",
+                    "metadata",
                 ]
                 for field in required_fields:
                     assert field in payload, f"Missing required field: {field}"
@@ -377,15 +425,16 @@ class TestSurveyRecordPreparation:
             prepare_survey_records_for_queue,
         )
 
-        with patch('flows.examples.distributed_survey_processing.get_run_logger') as mock_logger:
+        with patch(
+            "flows.examples.distributed_survey_processing.get_run_logger"
+        ) as mock_logger:
             mock_logger.return_value = MagicMock()
 
             # Test with custom priority distribution
             priority_distribution = {"high": 1.0, "normal": 0.0, "low": 0.0}
 
             records = prepare_survey_records_for_queue(
-                survey_count=5,
-                priority_distribution=priority_distribution
+                survey_count=5, priority_distribution=priority_distribution
             )
 
             # All records should have high priority
@@ -398,13 +447,17 @@ class TestSurveyRecordPreparation:
             prepare_survey_records_for_queue,
         )
 
-        with patch('flows.examples.distributed_survey_processing.get_run_logger') as mock_logger:
+        with patch(
+            "flows.examples.distributed_survey_processing.get_run_logger"
+        ) as mock_logger:
             mock_logger.return_value = MagicMock()
 
             records = prepare_survey_records_for_queue(survey_count=10)
 
             survey_ids = [record["payload"]["survey_id"] for record in records]
-            assert len(survey_ids) == len(set(survey_ids)), "Survey IDs should be unique"
+            assert len(survey_ids) == len(set(survey_ids)), (
+                "Survey IDs should be unique"
+            )
 
     def test_customer_data_variety(self):
         """Test that prepared records include variety in customer data."""
@@ -412,7 +465,9 @@ class TestSurveyRecordPreparation:
             prepare_survey_records_for_queue,
         )
 
-        with patch('flows.examples.distributed_survey_processing.get_run_logger') as mock_logger:
+        with patch(
+            "flows.examples.distributed_survey_processing.get_run_logger"
+        ) as mock_logger:
             mock_logger.return_value = MagicMock()
 
             records = prepare_survey_records_for_queue(survey_count=15)

@@ -1,0 +1,38 @@
+{
+  "pipeline_id": "pipeline_20250929_185049",
+  "start_time": "2025-09-29T18:50:49.728224",
+  "end_time": "2025-09-29T18:50:57.292912",
+  "total_duration": 7.564688,
+  "status": "failed",
+  "categories_executed": [
+    "unit"
+  ],
+  "categories_passed": [],
+  "categories_failed": [
+    "unit"
+  ],
+  "chaos_tests_executed": 0,
+  "chaos_tests_passed": 0,
+  "total_tests": 0,
+  "total_passed": 0,
+  "total_failed": 0,
+  "coverage_percentage": null,
+  "performance_metrics": {
+    "system_metrics": {
+      "cpu_usage_percent": 13.2,
+      "memory_usage_percent": 80.8,
+      "memory_available_gb": 4.6038360595703125,
+      "disk_usage_percent": 2.2,
+      "disk_free_gb": 466.302490234375
+    },
+    "test_execution_metrics": {
+      "average_test_duration": 0,
+      "parallel_efficiency": 0,
+      "resource_utilization": 53.599999999999994
+    }
+  },
+  "recommendations": [
+    "Failed test categories: unit - investigate and fix",
+    "Critical test failures in: unit - immediate attention required"
+  ]
+}

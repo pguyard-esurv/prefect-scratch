@@ -37,9 +37,7 @@ class TestDistributedProcessorConfigIntegration:
 
         with patch.dict(os.environ, env_vars, clear=True):
             processor = DistributedProcessor(
-                rpa_db_manager,
-                source_db_manager,
-                config_manager
+                rpa_db_manager, source_db_manager, config_manager
             )
 
             assert processor.config["default_batch_size"] == 75
@@ -62,7 +60,10 @@ class TestDistributedProcessorConfigIntegration:
         }
 
         with patch.dict(os.environ, env_vars, clear=True):
-            with pytest.raises(RuntimeError, match="Failed to load distributed processing configuration"):
+            with pytest.raises(
+                RuntimeError,
+                match="Failed to load distributed processing configuration",
+            ):
                 DistributedProcessor(rpa_db_manager, None, config_manager)
 
     def test_distributed_processor_missing_database_config(self):
@@ -98,11 +99,9 @@ class TestDistributedProcessorConfigIntegration:
             # Global configuration
             "DEVELOPMENT_GLOBAL_DISTRIBUTED_PROCESSOR_DEFAULT_BATCH_SIZE": "100",
             "DEVELOPMENT_GLOBAL_DISTRIBUTED_PROCESSOR_MAX_RETRIES": "3",
-
             # RPA1-specific overrides
             "DEVELOPMENT_RPA1_DISTRIBUTED_PROCESSOR_DEFAULT_BATCH_SIZE": "25",
             "DEVELOPMENT_RPA1_DISTRIBUTED_PROCESSOR_MAX_RETRIES": "2",
-
             # Required database config
             "DEVELOPMENT_GLOBAL_RPA_DB_TYPE": "postgresql",
             "DEVELOPMENT_GLOBAL_RPA_DB_CONNECTION_STRING": "postgresql://test",
@@ -122,7 +121,7 @@ class TestDistributedProcessorConfigIntegration:
         environments = [
             ("development", 50, 1),
             ("staging", 100, 2),
-            ("production", 200, 4)
+            ("production", 200, 4),
         ]
 
         for env, expected_batch_size, expected_timeout in environments:
@@ -133,8 +132,12 @@ class TestDistributedProcessorConfigIntegration:
             config_manager = ConfigManager("test_flow", env)
 
             env_vars = {
-                f"{env.upper()}_GLOBAL_DISTRIBUTED_PROCESSOR_DEFAULT_BATCH_SIZE": str(expected_batch_size),
-                f"{env.upper()}_GLOBAL_DISTRIBUTED_PROCESSOR_CLEANUP_TIMEOUT_HOURS": str(expected_timeout),
+                f"{env.upper()}_GLOBAL_DISTRIBUTED_PROCESSOR_DEFAULT_BATCH_SIZE": str(
+                    expected_batch_size
+                ),
+                f"{env.upper()}_GLOBAL_DISTRIBUTED_PROCESSOR_CLEANUP_TIMEOUT_HOURS": str(
+                    expected_timeout
+                ),
                 f"{env.upper()}_GLOBAL_RPA_DB_TYPE": "postgresql",
                 f"{env.upper()}_GLOBAL_RPA_DB_CONNECTION_STRING": "postgresql://test",
                 f"{env.upper()}_GLOBAL_SURVEYHUB_TYPE": "sqlserver",
@@ -193,7 +196,10 @@ class TestDistributedProcessorConfigIntegration:
             log_calls = [call.args[0] for call in mock_logger.info.call_args_list]
 
             # Should log initialization with config
-            init_log = next((log for log in log_calls if "DistributedProcessor initialized" in log), None)
+            init_log = next(
+                (log for log in log_calls if "DistributedProcessor initialized" in log),
+                None,
+            )
             assert init_log is not None
             assert "config:" in init_log
 
@@ -222,7 +228,9 @@ class TestDistributedProcessorConfigIntegration:
             assert processor.config["cleanup_timeout_hours"] == 3
 
             # Test config manager access
-            validation_result = processor.config_manager.validate_distributed_processing_setup()
+            validation_result = (
+                processor.config_manager.validate_distributed_processing_setup()
+            )
             assert validation_result["valid"] is True
             assert validation_result["config"]["default_batch_size"] == 80
 
@@ -249,6 +257,10 @@ class TestDistributedProcessorConfigIntegration:
             assert processor.config["enable_distributed_processing"] is False
 
             # Validation should show warnings
-            validation_result = processor.config_manager.validate_distributed_processing_setup()
+            validation_result = (
+                processor.config_manager.validate_distributed_processing_setup()
+            )
             assert validation_result["valid"] is True
-            assert any("disabled" in warning for warning in validation_result["warnings"])
+            assert any(
+                "disabled" in warning for warning in validation_result["warnings"]
+            )

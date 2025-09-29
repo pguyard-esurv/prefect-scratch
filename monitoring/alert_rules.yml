@@ -1,0 +1,135 @@
+# Prometheus Alert Rules for Container Testing System
+# Defines alerts for container health, performance, and error conditions
+
+groups:
+  - name: container_health
+    rules:
+      # Container Health Alerts
+      - alert: ContainerDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.instance }} is down"
+          description: "Container {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: ContainerHighMemoryUsage
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Container {{ $labels.instance }} memory usage is above 80% for more than 5 minutes."
+
+      - alert: ContainerHighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "Container {{ $labels.instance }} CPU usage is above 80% for more than 5 minutes."
+
+  - name: database_health
+    rules:
+      # Database Health Alerts
+      - alert: DatabaseConnectionFailure
+        expr: pg_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database {{ $labels.instance }} connection failure"
+          description: "Cannot connect to database {{ $labels.instance }} for more than 2 minutes."
+
+      - alert: DatabaseHighConnections
+        expr: (pg_stat_database_numbackends / pg_settings_max_connections) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connections on {{ $labels.instance }}"
+          description: "Database {{ $labels.instance }} connection usage is above 80% for more than 5 minutes."
+
+      - alert: DatabaseSlowQueries
+        expr: rate(pg_stat_database_tup_returned[5m]) / rate(pg_stat_database_tup_fetched[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow queries detected on {{ $labels.instance }}"
+          description: "Database {{ $labels.instance }} has slow query performance for more than 10 minutes."
+
+  - name: application_health
+    rules:
+      # Application Performance Alerts
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.instance }}"
+          description: "Application {{ $labels.instance }} error rate is above 5% for more than 5 minutes."
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time on {{ $labels.instance }}"
+          description: "Application {{ $labels.instance }} 95th percentile response time is above 2 seconds for more than 5 minutes."
+
+      - alert: ProcessingQueueBacklog
+        expr: rpa_processing_queue_size > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Processing queue backlog on {{ $labels.instance }}"
+          description: "Processing queue on {{ $labels.instance }} has more than 1000 items for more than 10 minutes."
+
+  - name: prefect_health
+    rules:
+      # Prefect Server Alerts
+      - alert: PrefectServerDown
+        expr: up{job="prefect-server"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prefect server is down"
+          description: "Prefect server has been down for more than 2 minutes."
+
+      - alert: PrefectFlowFailures
+        expr: rate(prefect_flow_run_state_total{state="Failed"}[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Prefect flow failure rate"
+          description: "Prefect flow failure rate is above 10% for more than 5 minutes."
+
+  - name: resource_health
+    rules:
+      # Resource Usage Alerts
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk space on {{ $labels.instance }} is below 10% for more than 5 minutes."
+
+      - alert: HighNetworkErrors
+        expr: rate(node_network_receive_errs_total[5m]) + rate(node_network_transmit_errs_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High network errors on {{ $labels.instance }}"
+          description: "Network error rate on {{ $labels.instance }} is above 10 errors/second for more than 5 minutes."

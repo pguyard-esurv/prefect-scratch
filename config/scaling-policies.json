@@ -1,0 +1,35 @@
+{
+  "rpa1-worker": {
+    "min_replicas": 1,
+    "max_replicas": 8,
+    "target_cpu_utilization": 70.0,
+    "target_memory_utilization": 80.0,
+    "scale_up_threshold": 85.0,
+    "scale_down_threshold": 30.0,
+    "cooldown_period": 300,
+    "scale_up_step": 2,
+    "scale_down_step": 1
+  },
+  "rpa2-worker": {
+    "min_replicas": 1,
+    "max_replicas": 6,
+    "target_cpu_utilization": 70.0,
+    "target_memory_utilization": 80.0,
+    "scale_up_threshold": 85.0,
+    "scale_down_threshold": 30.0,
+    "cooldown_period": 300,
+    "scale_up_step": 1,
+    "scale_down_step": 1
+  },
+  "rpa3-worker": {
+    "min_replicas": 1,
+    "max_replicas": 4,
+    "target_cpu_utilization": 75.0,
+    "target_memory_utilization": 85.0,
+    "scale_up_threshold": 90.0,
+    "scale_down_threshold": 25.0,
+    "cooldown_period": 600,
+    "scale_up_step": 1,
+    "scale_down_step": 1
+  }
+}

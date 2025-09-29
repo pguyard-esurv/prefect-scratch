@@ -23,7 +23,7 @@ def demonstrate_retry_functionality():
                 "SELECT COUNT(*) as total FROM processed_surveys",
                 max_attempts=3,
                 min_wait=1.0,
-                max_wait=5.0
+                max_wait=5.0,
             )
             print(f"   Query results: {results}")
     except Exception as e:
@@ -41,7 +41,7 @@ def demonstrate_retry_functionality():
                 timeout=30,
                 max_attempts=2,
                 min_wait=0.5,
-                max_wait=3.0
+                max_wait=3.0,
             )
             print(f"   Query results count: {len(results)}")
     except Exception as e:
@@ -54,17 +54,18 @@ def demonstrate_retry_functionality():
     try:
         with DatabaseManager("rpa_db") as db:
             queries = [
-                ("INSERT INTO processed_surveys (survey_id, status) VALUES (:id, :status)",
-                 {"id": "test_001", "status": "processed"}),
-                ("UPDATE processed_surveys SET processed_at = NOW() WHERE survey_id = :id",
-                 {"id": "test_001"})
+                (
+                    "INSERT INTO processed_surveys (survey_id, status) VALUES (:id, :status)",
+                    {"id": "test_001", "status": "processed"},
+                ),
+                (
+                    "UPDATE processed_surveys SET processed_at = NOW() WHERE survey_id = :id",
+                    {"id": "test_001"},
+                ),
             ]
 
             results = db.execute_transaction_with_retry(
-                queries,
-                max_attempts=2,
-                min_wait=1.0,
-                max_wait=8.0
+                queries, max_attempts=2, min_wait=1.0, max_wait=8.0
             )
             print(f"   Transaction completed, results: {len(results)} operations")
     except Exception as e:
@@ -77,9 +78,7 @@ def demonstrate_retry_functionality():
     try:
         with DatabaseManager("rpa_db") as db:
             health_status = db.health_check_with_retry(
-                max_attempts=2,
-                min_wait=0.5,
-                max_wait=3.0
+                max_attempts=2, min_wait=0.5, max_wait=3.0
             )
             print(f"   Health status: {health_status['status']}")
             print(f"   Connection: {health_status['connection']}")
@@ -93,11 +92,7 @@ def demonstrate_retry_functionality():
     print("5. Run migrations with retry")
     try:
         with DatabaseManager("rpa_db") as db:
-            db.run_migrations_with_retry(
-                max_attempts=2,
-                min_wait=2.0,
-                max_wait=10.0
-            )
+            db.run_migrations_with_retry(max_attempts=2, min_wait=2.0, max_wait=10.0)
             print("   Migrations completed successfully")
     except Exception as e:
         print(f"   Migration failed: {e}")
@@ -115,14 +110,14 @@ def demonstrate_retry_functionality():
         DisconnectionError("Connection lost", None, None),
         OperationalError("Connection timeout", None, None),
         Exception("connection refused"),
-        Exception("network error occurred")
+        Exception("network error occurred"),
     ]
 
     # Non-transient errors (will not trigger retry)
     permanent_errors = [
         ValueError("Invalid SQL syntax"),
         Exception("Permission denied"),
-        Exception("Table does not exist")
+        Exception("Table does not exist"),
     ]
 
     print("   Transient errors (will retry):")
@@ -147,9 +142,9 @@ def demonstrate_custom_retry_configuration():
         with DatabaseManager("rpa_db") as db:
             results = db.execute_query_with_retry(
                 "SELECT 1 as test",
-                max_attempts=2,      # Only 2 attempts
-                min_wait=3.0,        # Wait at least 3 seconds
-                max_wait=15.0        # Up to 15 seconds between retries
+                max_attempts=2,  # Only 2 attempts
+                min_wait=3.0,  # Wait at least 3 seconds
+                max_wait=15.0,  # Up to 15 seconds between retries
             )
             print(f"   Conservative retry result: {results}")
     except Exception as e:
@@ -163,9 +158,9 @@ def demonstrate_custom_retry_configuration():
         with DatabaseManager("rpa_db") as db:
             results = db.execute_query_with_retry(
                 "SELECT 1 as test",
-                max_attempts=5,      # More attempts
-                min_wait=0.1,        # Very short initial wait
-                max_wait=2.0         # Short maximum wait
+                max_attempts=5,  # More attempts
+                min_wait=0.1,  # Very short initial wait
+                max_wait=2.0,  # Short maximum wait
             )
             print(f"   Aggressive retry result: {results}")
     except Exception as e:
@@ -178,9 +173,9 @@ def demonstrate_custom_retry_configuration():
     try:
         with DatabaseManager("rpa_db") as db:
             health_status = db.health_check_with_retry(
-                max_attempts=2,      # Quick failure detection
-                min_wait=0.2,        # Very fast retry
-                max_wait=1.0         # Don't wait too long for health checks
+                max_attempts=2,  # Quick failure detection
+                min_wait=0.2,  # Very fast retry
+                max_wait=1.0,  # Don't wait too long for health checks
             )
             print(f"   Health check result: {health_status['status']}")
     except Exception as e:

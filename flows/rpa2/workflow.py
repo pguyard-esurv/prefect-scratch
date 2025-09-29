@@ -17,6 +17,7 @@ from core.config import rpa2_config
 try:
     from core.database import DatabaseManager
     from core.distributed import DistributedProcessor
+
     DISTRIBUTED_AVAILABLE = True
 except ImportError:
     DISTRIBUTED_AVAILABLE = False
@@ -130,8 +131,7 @@ def generate_validation_report(validation_results: dict[str, Any]) -> str:
     description="RPA2: Data validation and reporting workflow",
 )
 def rpa2_workflow(
-    use_distributed: Optional[bool] = None,
-    batch_size: Optional[int] = None
+    use_distributed: Optional[bool] = None, batch_size: Optional[int] = None
 ) -> dict[str, Any]:
     """
     RPA2 workflow that validates data and generates reports.
@@ -153,30 +153,45 @@ def rpa2_workflow(
     cleanup_temp_files = rpa2_config.get_variable("cleanup_temp_files", "true")
 
     # Distributed processing configuration
-    config_use_distributed = rpa2_config.get_variable("use_distributed_processing", "false").lower() == "true"
-    config_distributed_batch_size = int(rpa2_config.get_variable("distributed_batch_size", 10))
+    config_use_distributed = (
+        rpa2_config.get_variable("use_distributed_processing", "false").lower()
+        == "true"
+    )
+    config_distributed_batch_size = int(
+        rpa2_config.get_variable("distributed_batch_size", 10)
+    )
 
     # Override with parameters if provided
-    final_use_distributed = use_distributed if use_distributed is not None else config_use_distributed
-    final_batch_size = batch_size if batch_size is not None else config_distributed_batch_size
+    final_use_distributed = (
+        use_distributed if use_distributed is not None else config_use_distributed
+    )
+    final_batch_size = (
+        batch_size if batch_size is not None else config_distributed_batch_size
+    )
 
     logger.info(f"Environment: {rpa2_config.environment}")
     logger.info(f"Validation strict mode: {validation_strict}")
     logger.info(f"Max retries: {max_retries}")
     logger.info(f"Timeout: {timeout} seconds")
     logger.info(f"Cleanup temp files: {cleanup_temp_files}")
-    logger.info(f"Distributed processing: {'Enabled' if final_use_distributed else 'Disabled'}")
+    logger.info(
+        f"Distributed processing: {'Enabled' if final_use_distributed else 'Disabled'}"
+    )
     if final_use_distributed:
         logger.info(f"Distributed batch size: {final_batch_size}")
 
     # Check distributed processing availability
     if final_use_distributed and not DISTRIBUTED_AVAILABLE:
-        logger.warning("Distributed processing requested but not available. Falling back to standard processing.")
+        logger.warning(
+            "Distributed processing requested but not available. Falling back to standard processing."
+        )
         final_use_distributed = False
 
     # Choose processing mode
     if final_use_distributed:
-        return _run_distributed_rpa2_workflow(final_batch_size, validation_strict, logger)
+        return _run_distributed_rpa2_workflow(
+            final_batch_size, validation_strict, logger
+        )
     else:
         return _run_standard_rpa2_workflow(logger)
 
@@ -210,7 +225,9 @@ def _run_standard_rpa2_workflow(logger) -> dict[str, Any]:
             logger.warning(f"File not found for cleanup: {data_file}")
 
 
-def _run_distributed_rpa2_workflow(batch_size: int, validation_strict: str, logger) -> dict[str, Any]:
+def _run_distributed_rpa2_workflow(
+    batch_size: int, validation_strict: str, logger
+) -> dict[str, Any]:
     """Run the distributed RPA2 workflow."""
     logger.info("Running distributed RPA2 workflow")
 
@@ -234,7 +251,7 @@ def _run_distributed_rpa2_workflow(batch_size: int, validation_strict: str, logg
         return {
             "flow_name": flow_name,
             "records_processed": 0,
-            "message": "No records to process"
+            "message": "No records to process",
         }
 
     # Process records using .map()
@@ -245,8 +262,16 @@ def _run_distributed_rpa2_workflow(batch_size: int, validation_strict: str, logg
     failed_count = sum(1 for r in results if r["status"] == "failed")
 
     # Aggregate validation results
-    total_valid = sum(r.get("result", {}).get("valid_users", 0) for r in results if r["status"] == "completed")
-    total_invalid = sum(r.get("result", {}).get("invalid_users", 0) for r in results if r["status"] == "completed")
+    total_valid = sum(
+        r.get("result", {}).get("valid_users", 0)
+        for r in results
+        if r["status"] == "completed"
+    )
+    total_invalid = sum(
+        r.get("result", {}).get("invalid_users", 0)
+        for r in results
+        if r["status"] == "completed"
+    )
 
     summary = {
         "flow_name": flow_name,
@@ -256,19 +281,23 @@ def _run_distributed_rpa2_workflow(batch_size: int, validation_strict: str, logg
         "success_rate": (completed_count / len(records) * 100) if records else 0,
         "total_valid_users": total_valid,
         "total_invalid_users": total_invalid,
-        "processor_instance": processor.instance_id
+        "processor_instance": processor.instance_id,
     }
 
-    logger.info(f"Distributed RPA2 workflow completed: {completed_count}/{len(records)} successful")
+    logger.info(
+        f"Distributed RPA2 workflow completed: {completed_count}/{len(records)} successful"
+    )
     return summary
 
 
 @task(name="process-rpa2-record", retries=0)
-def process_rpa2_record(record: dict[str, Any], validation_strict: str = "true") -> dict[str, Any]:
+def process_rpa2_record(
+    record: dict[str, Any], validation_strict: str = "true"
+) -> dict[str, Any]:
     """Process individual RPA2 record with distributed processing."""
     logger = get_run_logger()
-    record_id = record['id']
-    payload = record['payload']
+    record_id = record["id"]
+    payload = record["payload"]
 
     logger.info(f"Processing RPA2 record {record_id}")
 
@@ -294,14 +323,18 @@ def process_rpa2_record(record: dict[str, Any], validation_strict: str = "true")
         result = {
             "validation_results": validation_results,
             "report_file": str(report_file),
-            "processed_at": datetime.now().isoformat()
+            "processed_at": datetime.now().isoformat(),
         }
 
         # Mark as completed
         processor.mark_record_completed(record_id, result)
 
         logger.info(f"Successfully processed RPA2 record {record_id}")
-        return {"record_id": record_id, "status": "completed", "result": validation_results}
+        return {
+            "record_id": record_id,
+            "status": "completed",
+            "result": validation_results,
+        }
 
     except Exception as e:
         # Mark as failed

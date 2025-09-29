@@ -88,7 +88,7 @@ def _create_retry_decorator(
     max_attempts: int = 3,
     min_wait: float = 1.0,
     max_wait: float = 10.0,
-    multiplier: float = 2.0
+    multiplier: float = 2.0,
 ):
     """
     Create a retry decorator with exponential backoff for database operations.
@@ -104,13 +104,9 @@ def _create_retry_decorator(
     """
     return retry(
         stop=stop_after_attempt(max_attempts),
-        wait=wait_exponential(
-            multiplier=multiplier,
-            min=min_wait,
-            max=max_wait
-        ),
+        wait=wait_exponential(multiplier=multiplier, min=min_wait, max=max_wait),
         retry=retry_if_exception(_is_transient_error),
-        reraise=True
+        reraise=True,
     )
 
 
@@ -306,16 +302,28 @@ class DatabaseManager:
                 sql_text = text(query)
                 result = conn.execute(sql_text, params or {})
 
-                # Convert results to list of dictionaries
-                rows = result.fetchall()
-                results = [dict(row._mapping) for row in rows]
+                # Check if this is a query that returns rows (SELECT) or not (INSERT/UPDATE/DELETE)
+                if result.returns_rows:
+                    # Convert results to list of dictionaries
+                    rows = result.fetchall()
+                    results = [dict(row._mapping) for row in rows]
 
-                self.logger.debug(
-                    f"Query executed successfully for database '{self.database_name}', "
-                    f"returned {len(results)} rows"
-                )
+                    self.logger.debug(
+                        f"Query executed successfully for database '{self.database_name}', "
+                        f"returned {len(results)} rows"
+                    )
 
-                return results
+                    return results
+                else:
+                    # For INSERT/UPDATE/DELETE, return the number of affected rows
+                    affected_rows = result.rowcount
+
+                    self.logger.debug(
+                        f"Query executed successfully for database '{self.database_name}', "
+                        f"affected {affected_rows} rows"
+                    )
+
+                    return [{"affected_rows": affected_rows}]
 
         except Exception as e:
             error_msg = (
@@ -374,15 +382,11 @@ class DatabaseManager:
                 return results
 
         except SQLTimeoutError as e:
-            error_msg = (
-                f"Query timeout ({timeout}s) exceeded for database '{self.database_name}': {e}"  # noqa E501
-            )
+            error_msg = f"Query timeout ({timeout}s) exceeded for database '{self.database_name}': {e}"  # noqa E501
             self.logger.error(error_msg)
             raise RuntimeError(error_msg) from e
         except Exception as e:
-            error_msg = (
-                f"Query execution with timeout failed for database '{self.database_name}': {e}"  # noqa E501
-            )
+            error_msg = f"Query execution with timeout failed for database '{self.database_name}': {e}"  # noqa E501
             self.logger.error(error_msg)
             raise RuntimeError(error_msg) from e
 
@@ -412,9 +416,13 @@ class DatabaseManager:
                 )
             query_str, params = query_tuple
             if not query_str or not isinstance(query_str, str):
-                raise ValueError(f"Query string at index {i} must be a non-empty string")  # noqa E501
+                raise ValueError(
+                    f"Query string at index {i} must be a non-empty string"
+                )  # noqa E501
             if params is not None and not isinstance(params, dict):
-                raise ValueError(f"Parameters at index {i} must be a dictionary or None")  # noqa E501
+                raise ValueError(
+                    f"Parameters at index {i} must be a dictionary or None"
+                )  # noqa E501
 
         try:
             self.logger.debug(
@@ -429,7 +437,7 @@ class DatabaseManager:
                 with conn.begin():
                     for i, (query_str, params) in enumerate(queries):
                         self.logger.debug(
-                            f"Executing query {i+1}/{len(queries)} in transaction "
+                            f"Executing query {i + 1}/{len(queries)} in transaction "
                             f"for database '{self.database_name}'"
                         )
 
@@ -443,7 +451,7 @@ class DatabaseManager:
                         all_results.extend(query_results)
 
                         self.logger.debug(
-                            f"Query {i+1}/{len(queries)} completed, "
+                            f"Query {i + 1}/{len(queries)} completed, "
                             f"returned {len(query_results)} rows"
                         )
 
@@ -499,7 +507,7 @@ class DatabaseManager:
             pyway = Migrate(
                 database_url=database_url,
                 migration_dir=str(migration_dir),
-                schema_version_table="schema_version"
+                schema_version_table="schema_version",
             )
 
             # Execute migrations
@@ -523,9 +531,7 @@ class DatabaseManager:
                 )
 
         except FileNotFoundError as e:
-            error_msg = (
-                f"Migration directory not found for database '{self.database_name}': {e}"  # noqa E501
-            )
+            error_msg = f"Migration directory not found for database '{self.database_name}': {e}"  # noqa E501
             self.logger.error(error_msg)
             raise FileNotFoundError(error_msg) from e
         except Exception as e:
@@ -566,7 +572,7 @@ class DatabaseManager:
                 "migration_directory": str(migration_dir),
                 "current_version": None,
                 "pending_migrations": [],
-                "total_applied": 0
+                "total_applied": 0,
             }
 
             # Check if migration directory exists
@@ -584,7 +590,7 @@ class DatabaseManager:
             pyway = Migrate(
                 database_url=database_url,
                 migration_dir=str(migration_dir),
-                schema_version_table="schema_version"
+                schema_version_table="schema_version",
             )
 
             # Get current migration info
@@ -604,11 +610,13 @@ class DatabaseManager:
             if migration_dir.exists():
                 # Look for SQL migration files following V{version}__{description}.sql pattern  # noqa E501
                 for migration_file in sorted(migration_dir.glob("V*__*.sql")):
-                    pending_migrations.append({
-                        "filename": migration_file.name,
-                        "path": str(migration_file),
-                        "size": migration_file.stat().st_size
-                    })
+                    pending_migrations.append(
+                        {
+                            "filename": migration_file.name,
+                            "path": str(migration_file),
+                            "size": migration_file.stat().st_size,
+                        }
+                    )
 
             status["pending_migrations"] = pending_migrations
 
@@ -622,9 +630,7 @@ class DatabaseManager:
             return status
 
         except Exception as e:
-            error_msg = (
-                f"Failed to retrieve migration status for database '{self.database_name}': {e}"  # noqa E501
-            )
+            error_msg = f"Failed to retrieve migration status for database '{self.database_name}': {e}"  # noqa E501
             self.logger.error(error_msg)
             raise RuntimeError(error_msg) from e
 
@@ -680,11 +686,13 @@ class DatabaseManager:
             "migration_status": None,
             "response_time_ms": None,
             "timestamp": timestamp,
-            "error": None
+            "error": None,
         }
 
         try:
-            self.logger.debug(f"Starting health check for database '{self.database_name}'")  # noqa E501
+            self.logger.debug(
+                f"Starting health check for database '{self.database_name}'"
+            )  # noqa E501
 
             # Test 1: Database connectivity
             try:
@@ -694,7 +702,9 @@ class DatabaseManager:
                 # Test basic connection
                 with engine.connect() as conn:
                     health_status["connection"] = True
-                    self.logger.debug(f"Connection test passed for database '{self.database_name}'")  # noqa E501
+                    self.logger.debug(
+                        f"Connection test passed for database '{self.database_name}'"
+                    )  # noqa E501
 
                     # Test 2: Basic query execution
                     query_start = time.time()
@@ -704,7 +714,9 @@ class DatabaseManager:
 
                     if rows and len(rows) > 0:
                         health_status["query_test"] = True
-                        health_status["response_time_ms"] = round((query_end - query_start) * 1000, 2)  # noqa E501
+                        health_status["response_time_ms"] = round(
+                            (query_end - query_start) * 1000, 2
+                        )  # noqa E501
                         self.logger.debug(
                             f"Query test passed for database '{self.database_name}' "
                             f"in {health_status['response_time_ms']}ms"
@@ -716,7 +728,9 @@ class DatabaseManager:
                         )
 
             except Exception as conn_error:
-                health_status["error"] = f"Connection or query test failed: {str(conn_error)}"  # noqa E501
+                health_status["error"] = (
+                    f"Connection or query test failed: {str(conn_error)}"  # noqa E501
+                )
                 self.logger.error(
                     f"Connection/query test failed for database '{self.database_name}': {conn_error}"  # noqa E501
                 )
@@ -725,7 +739,9 @@ class DatabaseManager:
             try:
                 migration_status = self.get_migration_status()
                 health_status["migration_status"] = migration_status
-                self.logger.debug(f"Migration status retrieved for database '{self.database_name}'")  # noqa E501
+                self.logger.debug(
+                    f"Migration status retrieved for database '{self.database_name}'"
+                )  # noqa E501
             except Exception as migration_error:
                 # Migration status failure shouldn't fail entire health check
                 health_status["migration_status"] = {
@@ -751,7 +767,9 @@ class DatabaseManager:
                     self.logger.info(f"Database '{self.database_name}' is healthy")
             elif health_status["connection"]:
                 health_status["status"] = "degraded"
-                self.logger.warning(f"Database '{self.database_name}' is degraded (connection ok, query failed)")  # noqa E501
+                self.logger.warning(
+                    f"Database '{self.database_name}' is degraded (connection ok, query failed)"
+                )  # noqa E501
             else:
                 health_status["status"] = "unhealthy"
                 self.logger.error(f"Database '{self.database_name}' is unhealthy")
@@ -805,7 +823,9 @@ class DatabaseManager:
         try:
             timestamp = datetime.now(UTC).isoformat() + "Z"
 
-            self.logger.debug(f"Retrieving pool status for database '{self.database_name}'")  # noqa E501
+            self.logger.debug(
+                f"Retrieving pool status for database '{self.database_name}'"
+            )  # noqa E501
 
             # Initialize engine if not already done
             engine = self.db_engine
@@ -822,13 +842,19 @@ class DatabaseManager:
 
             # Calculate derived metrics
             total_connections = checked_in + checked_out + overflow
-            max_overflow_attr = getattr(pool, '_max_overflow', 0)
+            max_overflow_attr = getattr(pool, "_max_overflow", 0)
             # Handle case where _max_overflow might be a Mock object in tests
-            max_overflow_value = max_overflow_attr if isinstance(max_overflow_attr, int) else 0  # noqa E501
+            max_overflow_value = (
+                max_overflow_attr if isinstance(max_overflow_attr, int) else 0
+            )  # noqa E501
             max_possible_connections = pool_size + max_overflow_value
             utilization_percent = round(
-                (checked_out / max_possible_connections * 100) if max_possible_connections > 0 else 0,  # noqa E501
-                2
+                (
+                    (checked_out / max_possible_connections * 100)
+                    if max_possible_connections > 0
+                    else 0
+                ),  # noqa E501
+                2,
             )
 
             pool_status = {
@@ -842,7 +868,7 @@ class DatabaseManager:
                 "max_connections": max_possible_connections,
                 "utilization_percent": utilization_percent,
                 "timestamp": timestamp,
-                "pool_class": pool.__class__.__name__
+                "pool_class": pool.__class__.__name__,
             }
 
             self.logger.debug(
@@ -866,7 +892,7 @@ class DatabaseManager:
         params: Optional[dict] = None,
         max_attempts: int = 3,
         min_wait: float = 1.0,
-        max_wait: float = 10.0
+        max_wait: float = 10.0,
     ) -> list[dict]:
         """
         Execute a SQL query with automatic retry for transient failures.
@@ -890,9 +916,7 @@ class DatabaseManager:
             ValueError: If query parameters are invalid
         """
         retry_decorator = _create_retry_decorator(
-            max_attempts=max_attempts,
-            min_wait=min_wait,
-            max_wait=max_wait
+            max_attempts=max_attempts, min_wait=min_wait, max_wait=max_wait
         )
 
         @retry_decorator
@@ -920,7 +944,7 @@ class DatabaseManager:
         timeout: int = 30,
         max_attempts: int = 3,
         min_wait: float = 1.0,
-        max_wait: float = 10.0
+        max_wait: float = 10.0,
     ) -> list[dict]:
         """
         Execute a SQL query with timeout control and automatic retry for transient failures.
@@ -945,9 +969,7 @@ class DatabaseManager:
             ValueError: If query or timeout parameters are invalid
         """
         retry_decorator = _create_retry_decorator(
-            max_attempts=max_attempts,
-            min_wait=min_wait,
-            max_wait=max_wait
+            max_attempts=max_attempts, min_wait=min_wait, max_wait=max_wait
         )
 
         @retry_decorator
@@ -973,7 +995,7 @@ class DatabaseManager:
         queries: list[tuple],
         max_attempts: int = 3,
         min_wait: float = 1.0,
-        max_wait: float = 10.0
+        max_wait: float = 10.0,
     ) -> list[dict]:
         """
         Execute multiple queries within a transaction with automatic retry for transient failures.
@@ -996,9 +1018,7 @@ class DatabaseManager:
             ValueError: If queries parameter is invalid
         """  # noqa E501
         retry_decorator = _create_retry_decorator(
-            max_attempts=max_attempts,
-            min_wait=min_wait,
-            max_wait=max_wait
+            max_attempts=max_attempts, min_wait=min_wait, max_wait=max_wait
         )
 
         @retry_decorator
@@ -1020,10 +1040,7 @@ class DatabaseManager:
             raise RuntimeError(error_msg) from e
 
     def health_check_with_retry(
-        self,
-        max_attempts: int = 2,
-        min_wait: float = 0.5,
-        max_wait: float = 5.0
+        self, max_attempts: int = 2, min_wait: float = 0.5, max_wait: float = 5.0
     ) -> dict[str, Any]:
         """
         Perform database health check with retry for transient failures.
@@ -1044,9 +1061,7 @@ class DatabaseManager:
             RuntimeError: If health check fails after all retry attempts
         """
         retry_decorator = _create_retry_decorator(
-            max_attempts=max_attempts,
-            min_wait=min_wait,
-            max_wait=max_wait
+            max_attempts=max_attempts, min_wait=min_wait, max_wait=max_wait
         )
 
         @retry_decorator
@@ -1060,7 +1075,9 @@ class DatabaseManager:
             # Only retry if the health check indicates a connection failure
             # Don't retry for degraded status or query test failures
             if not result.get("connection", False):
-                raise RuntimeError(f"Health check connection failed: {result.get('error', 'Unknown error')}")  # noqa E501
+                raise RuntimeError(
+                    f"Health check connection failed: {result.get('error', 'Unknown error')}"
+                )  # noqa E501
 
             return result
 
@@ -1086,14 +1103,11 @@ class DatabaseManager:
                 "response_time_ms": None,
                 "timestamp": datetime.now(UTC).isoformat() + "Z",
                 "error": error_msg,
-                "retry_exhausted": True
+                "retry_exhausted": True,
             }
 
     def run_migrations_with_retry(
-        self,
-        max_attempts: int = 2,
-        min_wait: float = 2.0,
-        max_wait: float = 15.0
+        self, max_attempts: int = 2, min_wait: float = 2.0, max_wait: float = 15.0
     ) -> None:
         """
         Execute database migrations with retry for transient failures.
@@ -1112,9 +1126,7 @@ class DatabaseManager:
             FileNotFoundError: If migration directory doesn't exist
         """
         retry_decorator = _create_retry_decorator(
-            max_attempts=max_attempts,
-            min_wait=min_wait,
-            max_wait=max_wait
+            max_attempts=max_attempts, min_wait=min_wait, max_wait=max_wait
         )
 
         @retry_decorator
@@ -1219,6 +1231,7 @@ def test_database_connectivity(database_name: str) -> dict:
     from core.database_config_validator import (
         test_database_connectivity as _test_connectivity,
     )
+
     return _test_connectivity(database_name)
 
 
@@ -1230,4 +1243,5 @@ def generate_database_config_report() -> str:
         Formatted configuration report string
     """
     from core.database_config_validator import generate_configuration_report
+
     return generate_configuration_report()

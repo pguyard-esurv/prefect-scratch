@@ -30,8 +30,7 @@ class TestConcurrentRecordClaiming:
 
         # Create multiple processor instances (simulating containers)
         self.processors = [
-            DistributedProcessor(rpa_db_manager=self.mock_rpa_db)
-            for _ in range(5)
+            DistributedProcessor(rpa_db_manager=self.mock_rpa_db) for _ in range(5)
         ]
 
     def test_no_duplicate_record_claiming(self):
@@ -43,8 +42,8 @@ class TestConcurrentRecordClaiming:
 
         def mock_claim_query(query, params, **kwargs):
             """Mock database query that simulates atomic claiming."""
-            batch_size = params.get('batch_size', 1)
-            params.get('instance_id')
+            batch_size = params.get("batch_size", 1)
+            params.get("instance_id")
 
             with claim_lock:
                 # Simulate atomic claiming - take records from available pool
@@ -53,12 +52,14 @@ class TestConcurrentRecordClaiming:
                     if available_records:
                         record_id = available_records.pop(0)
                         claimed_records.add(record_id)
-                        claimed_batch.append((
-                            record_id,
-                            {"data": f"test_{record_id}"},
-                            0,
-                            datetime.now()
-                        ))
+                        claimed_batch.append(
+                            (
+                                record_id,
+                                {"data": f"test_{record_id}"},
+                                0,
+                                datetime.now(),
+                            )
+                        )
 
                 return claimed_batch
 
@@ -90,8 +91,12 @@ class TestConcurrentRecordClaiming:
             all_claimed.extend(result)
 
         # Check for duplicates
-        assert len(all_claimed) == len(set(all_claimed)), "Duplicate records were claimed"
-        assert len(claimed_records) == len(all_claimed), "Mismatch in claimed record tracking"
+        assert len(all_claimed) == len(set(all_claimed)), (
+            "Duplicate records were claimed"
+        )
+        assert len(claimed_records) == len(all_claimed), (
+            "Mismatch in claimed record tracking"
+        )
 
     def test_concurrent_claiming_with_different_batch_sizes(self):
         """Test concurrent claiming with varying batch sizes."""
@@ -100,7 +105,7 @@ class TestConcurrentRecordClaiming:
         claim_lock = threading.Lock()
 
         def mock_claim_with_batch_size(query, params, **kwargs):
-            batch_size = params.get('batch_size', 1)
+            batch_size = params.get("batch_size", 1)
 
             with claim_lock:
                 claimed_batch = []
@@ -108,12 +113,14 @@ class TestConcurrentRecordClaiming:
                     if available_records:
                         record_id = available_records.pop(0)
                         claimed_records.append(record_id)
-                        claimed_batch.append((
-                            record_id,
-                            {"data": f"test_{record_id}"},
-                            0,
-                            datetime.now()
-                        ))
+                        claimed_batch.append(
+                            (
+                                record_id,
+                                {"data": f"test_{record_id}"},
+                                0,
+                                datetime.now(),
+                            )
+                        )
                 return claimed_batch
 
         self.mock_rpa_db.execute_query.side_effect = mock_claim_with_batch_size
@@ -131,7 +138,9 @@ class TestConcurrentRecordClaiming:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [
-                executor.submit(claim_with_batch_size, self.processors[i], batch_sizes[i])
+                executor.submit(
+                    claim_with_batch_size, self.processors[i], batch_sizes[i]
+                )
                 for i in range(5)
             ]
 
@@ -149,8 +158,7 @@ class TestConcurrentRecordClaiming:
         """Test behavior under high contention with many processors."""
         # Create more processors for high contention
         processors = [
-            DistributedProcessor(rpa_db_manager=self.mock_rpa_db)
-            for _ in range(20)
+            DistributedProcessor(rpa_db_manager=self.mock_rpa_db) for _ in range(20)
         ]
 
         available_records = list(range(1, 21))  # Only 20 records for 20 processors
@@ -162,7 +170,9 @@ class TestConcurrentRecordClaiming:
                 if available_records:
                     record_id = available_records.pop(0)
                     claimed_records.append(record_id)
-                    return [(record_id, {"data": f"test_{record_id}"}, 0, datetime.now())]
+                    return [
+                        (record_id, {"data": f"test_{record_id}"}, 0, datetime.now())
+                    ]
                 return []  # No records available
 
         self.mock_rpa_db.execute_query.side_effect = mock_high_contention_claim
@@ -230,8 +240,7 @@ class TestConcurrentStatusUpdates:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = [
-                executor.submit(complete_record, record_id)
-                for record_id in record_ids
+                executor.submit(complete_record, record_id) for record_id in record_ids
             ]
 
             completed_ids = [future.result() for future in futures]
@@ -253,10 +262,12 @@ class TestConcurrentStatusUpdates:
         def track_failures(query, params, **kwargs):
             with failure_lock:
                 if "SET status = 'failed'" in query:
-                    failure_calls.append({
-                        "record_id": params["record_id"],
-                        "error": params["error_message"]
-                    })
+                    failure_calls.append(
+                        {
+                            "record_id": params["record_id"],
+                            "error": params["error_message"],
+                        }
+                    )
             return 1
 
         self.mock_rpa_db.execute_query.side_effect = track_failures
@@ -271,8 +282,7 @@ class TestConcurrentStatusUpdates:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             futures = [
-                executor.submit(fail_record, record_id)
-                for record_id in record_ids
+                executor.submit(fail_record, record_id) for record_id in record_ids
             ]
 
             [future.result() for future in futures]
@@ -368,8 +378,7 @@ class TestConcurrentQueueOperations:
         # Concurrent addition operations
         def add_records_worker(worker_id):
             records = [
-                {"payload": {"worker_id": worker_id, "record_id": i}}
-                for i in range(10)
+                {"payload": {"worker_id": worker_id, "record_id": i}} for i in range(10)
             ]
             flow_name = f"worker_{worker_id}_flow"
             count = self.processor.add_records_to_queue(flow_name, records)
@@ -377,8 +386,7 @@ class TestConcurrentQueueOperations:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             futures = [
-                executor.submit(add_records_worker, worker_id)
-                for worker_id in range(8)
+                executor.submit(add_records_worker, worker_id) for worker_id in range(8)
             ]
 
             results = [future.result() for future in futures]
@@ -390,6 +398,7 @@ class TestConcurrentQueueOperations:
 
     def test_concurrent_status_queries(self):
         """Test concurrent queue status queries."""
+
         # Mock status responses
         def mock_status_query(query, params, **kwargs):
             if "SELECT status, COUNT(*)" in query:
@@ -397,7 +406,7 @@ class TestConcurrentQueueOperations:
                     ("pending", random.randint(10, 50)),
                     ("processing", random.randint(1, 10)),
                     ("completed", random.randint(50, 200)),
-                    ("failed", random.randint(0, 5))
+                    ("failed", random.randint(0, 5)),
                 ]
             return []
 
@@ -469,7 +478,13 @@ class TestConcurrentQueueOperations:
             return "fail"
 
         # Submit mixed operations
-        workers = [add_worker, claim_worker, status_worker, complete_worker, fail_worker]
+        workers = [
+            add_worker,
+            claim_worker,
+            status_worker,
+            complete_worker,
+            fail_worker,
+        ]
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
             futures = []

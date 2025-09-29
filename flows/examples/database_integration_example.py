@@ -47,24 +47,32 @@ def perform_database_health_checks(database_names: list[str]) -> dict[str, Any]:
 
                 if health_status["status"] == "unhealthy":
                     unhealthy_databases.append(db_name)
-                    logger.error(f"Database '{db_name}' is unhealthy: {health_status.get('error', 'Unknown error')}")
+                    logger.error(
+                        f"Database '{db_name}' is unhealthy: {health_status.get('error', 'Unknown error')}"
+                    )
                 elif health_status["status"] == "degraded":
-                    logger.warning(f"Database '{db_name}' is degraded (response time: {health_status.get('response_time_ms', 'unknown')}ms)")
+                    logger.warning(
+                        f"Database '{db_name}' is degraded (response time: {health_status.get('response_time_ms', 'unknown')}ms)"
+                    )
                 else:
-                    logger.info(f"Database '{db_name}' is healthy (response time: {health_status.get('response_time_ms', 'unknown')}ms)")
+                    logger.info(
+                        f"Database '{db_name}' is healthy (response time: {health_status.get('response_time_ms', 'unknown')}ms)"
+                    )
 
         except Exception as e:
             logger.error(f"Health check failed for database '{db_name}': {e}")
             health_results[db_name] = {
                 "status": "unhealthy",
                 "error": str(e),
-                "database_name": db_name
+                "database_name": db_name,
             }
             unhealthy_databases.append(db_name)
 
     # Fail fast if critical databases are unhealthy
     if unhealthy_databases:
-        error_msg = f"Critical databases are unhealthy: {', '.join(unhealthy_databases)}"
+        error_msg = (
+            f"Critical databases are unhealthy: {', '.join(unhealthy_databases)}"
+        )
         logger.error(error_msg)
         raise RuntimeError(error_msg)
 
@@ -93,7 +101,9 @@ def run_database_migrations(database_names: list[str]) -> dict[str, Any]:
             with DatabaseManager(db_name) as db:
                 # Check migration status before running
                 status_before = db.get_migration_status()
-                logger.info(f"Database '{db_name}' current version: {status_before.get('current_version', 'None')}")
+                logger.info(
+                    f"Database '{db_name}' current version: {status_before.get('current_version', 'None')}"
+                )
 
                 # Run migrations
                 db.run_migrations()
@@ -104,17 +114,16 @@ def run_database_migrations(database_names: list[str]) -> dict[str, Any]:
                 migration_results[db_name] = {
                     "before": status_before,
                     "after": status_after,
-                    "success": True
+                    "success": True,
                 }
 
-                logger.info(f"Migrations completed for database '{db_name}'. New version: {status_after.get('current_version', 'None')}")
+                logger.info(
+                    f"Migrations completed for database '{db_name}'. New version: {status_after.get('current_version', 'None')}"
+                )
 
         except Exception as e:
             logger.error(f"Migration failed for database '{db_name}': {e}")
-            migration_results[db_name] = {
-                "success": False,
-                "error": str(e)
-            }
+            migration_results[db_name] = {"success": False, "error": str(e)}
             # Continue with other databases even if one fails
 
     return migration_results
@@ -143,13 +152,21 @@ def fetch_survey_data_from_source(survey_hub_db: str) -> list[dict[str, Any]]:
             # For demo purposes, we'll create mock data
             surveys = []
             for i in range(1, 11):
-                surveys.append({
-                    'survey_id': f'SURV-{i:03d}',
-                    'customer_id': f'CUST-{i:03d}',
-                    'customer_name': ['Alice Johnson', 'Bob Smith', 'Charlie Brown'][i % 3],
-                    'survey_type': 'Customer Satisfaction' if i % 2 == 1 else 'Product Feedback',
-                    'survey_date': datetime.now().isoformat()
-                })
+                surveys.append(
+                    {
+                        "survey_id": f"SURV-{i:03d}",
+                        "customer_id": f"CUST-{i:03d}",
+                        "customer_name": [
+                            "Alice Johnson",
+                            "Bob Smith",
+                            "Charlie Brown",
+                        ][i % 3],
+                        "survey_type": "Customer Satisfaction"
+                        if i % 2 == 1
+                        else "Product Feedback",
+                        "survey_date": datetime.now().isoformat(),
+                    }
+                )
 
             logger.info(f"Fetched {len(surveys)} survey records from '{survey_hub_db}'")
             return surveys
@@ -160,7 +177,9 @@ def fetch_survey_data_from_source(survey_hub_db: str) -> list[dict[str, Any]]:
 
 
 @task
-def process_and_store_surveys(surveys: list[dict[str, Any]], target_db: str) -> dict[str, Any]:
+def process_and_store_surveys(
+    surveys: list[dict[str, Any]], target_db: str
+) -> dict[str, Any]:
     """
     Process survey data and store results in the target database.
 
@@ -183,15 +202,19 @@ def process_and_store_surveys(surveys: list[dict[str, Any]], target_db: str) -> 
             # Process surveys in batches using transactions
             batch_size = 5
             for i in range(0, len(surveys), batch_size):
-                batch = surveys[i:i + batch_size]
+                batch = surveys[i : i + batch_size]
 
                 try:
                     # Prepare batch insert queries
                     queries = []
                     for survey in batch:
                         # Simulate processing logic
-                        processing_status = 'completed' if survey['survey_id'][-1] != '3' else 'failed'
-                        processing_duration = 1000 + (int(survey['survey_id'][-3:]) * 100)
+                        processing_status = (
+                            "completed" if survey["survey_id"][-1] != "3" else "failed"
+                        )
+                        processing_duration = 1000 + (
+                            int(survey["survey_id"][-3:]) * 100
+                        )
 
                         query = """
                         INSERT INTO processed_surveys
@@ -202,14 +225,14 @@ def process_and_store_surveys(surveys: list[dict[str, Any]], target_db: str) -> 
                         """
 
                         params = {
-                            'survey_id': survey['survey_id'],
-                            'customer_id': survey['customer_id'],
-                            'customer_name': survey['customer_name'],
-                            'survey_type': survey['survey_type'],
-                            'processing_status': processing_status,
-                            'processed_at': datetime.now(),
-                            'processing_duration_ms': processing_duration,
-                            'flow_run_id': f'example-flow-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+                            "survey_id": survey["survey_id"],
+                            "customer_id": survey["customer_id"],
+                            "customer_name": survey["customer_name"],
+                            "survey_type": survey["survey_type"],
+                            "processing_status": processing_status,
+                            "processed_at": datetime.now(),
+                            "processing_duration_ms": processing_duration,
+                            "flow_run_id": f"example-flow-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
                         }
 
                         queries.append((query, params))
@@ -217,14 +240,20 @@ def process_and_store_surveys(surveys: list[dict[str, Any]], target_db: str) -> 
                     # Execute batch as transaction
                     db.execute_transaction(queries)
                     processed_count += len(batch)
-                    logger.info(f"Processed batch {i//batch_size + 1}: {len(batch)} surveys")
+                    logger.info(
+                        f"Processed batch {i // batch_size + 1}: {len(batch)} surveys"
+                    )
 
                 except Exception as batch_error:
-                    logger.error(f"Failed to process batch {i//batch_size + 1}: {batch_error}")
+                    logger.error(
+                        f"Failed to process batch {i // batch_size + 1}: {batch_error}"
+                    )
                     failed_count += len(batch)
 
             processing_end = datetime.now()
-            processing_duration = (processing_end - processing_start).total_seconds() * 1000
+            processing_duration = (
+                processing_end - processing_start
+            ).total_seconds() * 1000
 
             # Log execution summary to flow_execution_logs
             log_query = """
@@ -238,35 +267,39 @@ def process_and_store_surveys(surveys: list[dict[str, Any]], target_db: str) -> 
             """
 
             log_params = {
-                'flow_name': 'database-integration-example',
-                'flow_run_id': f'example-flow-{datetime.now().strftime("%Y%m%d-%H%M%S")}',
-                'database_name': target_db,
-                'execution_start': processing_start,
-                'execution_end': processing_end,
-                'execution_duration_ms': int(processing_duration),
-                'status': 'completed' if failed_count == 0 else 'partial_failure',
-                'records_processed': len(surveys),
-                'records_successful': processed_count,
-                'records_failed': failed_count,
-                'database_operations': len(surveys) + 1,  # +1 for this log entry
-                'metadata': json.dumps({
-                    'batch_size': batch_size,
-                    'source_database': 'SurveyHub',
-                    'target_database': target_db
-                })
+                "flow_name": "database-integration-example",
+                "flow_run_id": f"example-flow-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
+                "database_name": target_db,
+                "execution_start": processing_start,
+                "execution_end": processing_end,
+                "execution_duration_ms": int(processing_duration),
+                "status": "completed" if failed_count == 0 else "partial_failure",
+                "records_processed": len(surveys),
+                "records_successful": processed_count,
+                "records_failed": failed_count,
+                "database_operations": len(surveys) + 1,  # +1 for this log entry
+                "metadata": json.dumps(
+                    {
+                        "batch_size": batch_size,
+                        "source_database": "SurveyHub",
+                        "target_database": target_db,
+                    }
+                ),
             }
 
             db.execute_query(log_query, log_params)
 
             summary = {
-                'total_surveys': len(surveys),
-                'processed_successfully': processed_count,
-                'failed': failed_count,
-                'processing_duration_ms': int(processing_duration),
-                'batch_size': batch_size
+                "total_surveys": len(surveys),
+                "processed_successfully": processed_count,
+                "failed": failed_count,
+                "processing_duration_ms": int(processing_duration),
+                "batch_size": batch_size,
             }
 
-            logger.info(f"Survey processing completed: {processed_count} successful, {failed_count} failed")
+            logger.info(
+                f"Survey processing completed: {processed_count} successful, {failed_count} failed"
+            )
             return summary
 
     except Exception as e:
@@ -275,7 +308,9 @@ def process_and_store_surveys(surveys: list[dict[str, Any]], target_db: str) -> 
 
 
 @task
-def generate_processing_report(processing_summary: dict[str, Any], target_db: str) -> dict[str, Any]:
+def generate_processing_report(
+    processing_summary: dict[str, Any], target_db: str
+) -> dict[str, Any]:
     """
     Generate a comprehensive processing report with database statistics.
 
@@ -322,14 +357,16 @@ def generate_processing_report(processing_summary: dict[str, Any], target_db: st
             flow_stats = db.execute_query(flow_stats_query)
 
             report = {
-                'processing_summary': processing_summary,
-                'database_statistics': stats_results,
-                'flow_execution_metrics': flow_stats,
-                'report_generated_at': datetime.now().isoformat(),
-                'database_name': target_db
+                "processing_summary": processing_summary,
+                "database_statistics": stats_results,
+                "flow_execution_metrics": flow_stats,
+                "report_generated_at": datetime.now().isoformat(),
+                "database_name": target_db,
             }
 
-            logger.info(f"Generated processing report with {len(stats_results)} status categories and {len(flow_stats)} flow metrics")
+            logger.info(
+                f"Generated processing report with {len(stats_results)} status categories and {len(flow_stats)} flow metrics"
+            )
             return report
 
     except Exception as e:
@@ -340,13 +377,13 @@ def generate_processing_report(processing_summary: dict[str, Any], target_db: st
 @flow(
     name="database-integration-example",
     task_runner=ConcurrentTaskRunner(),
-    description="Example flow demonstrating DatabaseManager integration with multiple databases"
+    description="Example flow demonstrating DatabaseManager integration with multiple databases",
 )
 def database_integration_example_flow(
     source_database: str = "SurveyHub",
     target_database: str = "rpa_db",
     run_migrations: bool = True,
-    health_check_required: bool = True
+    health_check_required: bool = True,
 ) -> dict[str, Any]:
     """
     Example flow showing comprehensive DatabaseManager usage.
@@ -386,7 +423,9 @@ def database_integration_example_flow(
         migration_results = None
         if run_migrations:
             logger.info("Step 2: Running database migrations")
-            migration_results = run_database_migrations([target_database])  # Only migrate target DB
+            migration_results = run_database_migrations(
+                [target_database]
+            )  # Only migrate target DB
         else:
             logger.info("Step 2: Skipping migrations (not requested)")
 
@@ -404,15 +443,15 @@ def database_integration_example_flow(
 
         # Compile complete results
         complete_results = {
-            'flow_execution': {
-                'status': 'completed',
-                'execution_time': datetime.now().isoformat(),
-                'source_database': source_database,
-                'target_database': target_database
+            "flow_execution": {
+                "status": "completed",
+                "execution_time": datetime.now().isoformat(),
+                "source_database": source_database,
+                "target_database": target_database,
             },
-            'health_checks': health_results,
-            'migrations': migration_results,
-            'processing_report': final_report
+            "health_checks": health_results,
+            "migrations": migration_results,
+            "processing_report": final_report,
         }
 
         logger.info("Database integration example flow completed successfully")
@@ -423,15 +462,17 @@ def database_integration_example_flow(
 
         # Return error information for debugging
         error_results = {
-            'flow_execution': {
-                'status': 'failed',
-                'error': str(e),
-                'execution_time': datetime.now().isoformat(),
-                'source_database': source_database,
-                'target_database': target_database
+            "flow_execution": {
+                "status": "failed",
+                "error": str(e),
+                "execution_time": datetime.now().isoformat(),
+                "source_database": source_database,
+                "target_database": target_database,
             },
-            'health_checks': health_results,
-            'migrations': migration_results if 'migration_results' in locals() else None
+            "health_checks": health_results,
+            "migrations": migration_results
+            if "migration_results" in locals()
+            else None,
         }
 
         # Re-raise the exception after logging
@@ -442,9 +483,9 @@ if __name__ == "__main__":
     # Run the example flow
     try:
         result = database_integration_example_flow()
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print("DATABASE INTEGRATION EXAMPLE COMPLETED")
-        print("="*50)
+        print("=" * 50)
         print(json.dumps(result, indent=2, default=str))
     except Exception as e:
         print(f"\nFlow execution failed: {e}")

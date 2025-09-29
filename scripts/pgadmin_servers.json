@@ -1,0 +1,26 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "RPA Development Database",
+      "Group": "Development",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "rpa_db",
+      "Username": "rpa_user",
+      "Password": "rpa_dev_password",
+      "SSLMode": "prefer",
+      "Comment": "Main RPA database for development and testing"
+    },
+    "2": {
+      "Name": "Prefect Database",
+      "Group": "Development", 
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "prefect_db",
+      "Username": "prefect_user",
+      "Password": "prefect_dev_password",
+      "SSLMode": "prefer",
+      "Comment": "Prefect server database"
+    }
+  }
+}

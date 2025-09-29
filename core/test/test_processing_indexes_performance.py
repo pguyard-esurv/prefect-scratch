@@ -15,7 +15,7 @@ class TestProcessingIndexesPerformance:
     @pytest.fixture
     def db_manager(self):
         """Create a test DatabaseManager instance."""
-        with patch('core.database.DatabaseManager') as mock_db:
+        with patch("core.database.DatabaseManager") as mock_db:
             mock_instance = MagicMock()
             mock_db.return_value = mock_instance
             yield mock_instance
@@ -24,18 +24,18 @@ class TestProcessingIndexesPerformance:
         """Test that all required indexes are created properly."""
         # Mock the query to check index existence
         expected_indexes = [
-            'idx_processing_queue_status_created_at',
-            'idx_processing_queue_flow_name_status',
-            'idx_processing_queue_flow_instance_id',
-            'idx_processing_queue_pending',
-            'idx_processing_queue_processing_claimed_at',
-            'idx_processing_queue_failed_retry',
-            'idx_processing_queue_cleanup_timestamps',
-            'idx_processing_queue_monitoring'
+            "idx_processing_queue_status_created_at",
+            "idx_processing_queue_flow_name_status",
+            "idx_processing_queue_flow_instance_id",
+            "idx_processing_queue_pending",
+            "idx_processing_queue_processing_claimed_at",
+            "idx_processing_queue_failed_retry",
+            "idx_processing_queue_cleanup_timestamps",
+            "idx_processing_queue_monitoring",
         ]
 
         # Mock database response for index verification query
-        mock_indexes = [{'indexname': idx} for idx in expected_indexes]
+        mock_indexes = [{"indexname": idx} for idx in expected_indexes]
         db_manager.execute_query.return_value = mock_indexes
 
         # Query to check if indexes exist
@@ -51,7 +51,7 @@ class TestProcessingIndexesPerformance:
         db_manager.execute_query.assert_called_with(index_query)
 
         # Verify all expected indexes are present
-        actual_indexes = [row['indexname'] for row in result]
+        actual_indexes = [row["indexname"] for row in result]
         for expected_index in expected_indexes:
             assert expected_index in actual_indexes, f"Index {expected_index} not found"
 
@@ -59,9 +59,24 @@ class TestProcessingIndexesPerformance:
         """Test performance of pending records query (most critical for claiming)."""
         # Mock query execution for pending records
         mock_records = [
-            {'id': 1, 'flow_name': 'survey_processor', 'payload': {'survey_id': 1001}, 'created_at': '2024-01-15 10:00:00'},
-            {'id': 2, 'flow_name': 'survey_processor', 'payload': {'survey_id': 1002}, 'created_at': '2024-01-15 10:01:00'},
-            {'id': 3, 'flow_name': 'order_processor', 'payload': {'order_id': 2001}, 'created_at': '2024-01-15 10:02:00'}
+            {
+                "id": 1,
+                "flow_name": "survey_processor",
+                "payload": {"survey_id": 1001},
+                "created_at": "2024-01-15 10:00:00",
+            },
+            {
+                "id": 2,
+                "flow_name": "survey_processor",
+                "payload": {"survey_id": 1002},
+                "created_at": "2024-01-15 10:01:00",
+            },
+            {
+                "id": 3,
+                "flow_name": "order_processor",
+                "payload": {"order_id": 2001},
+                "created_at": "2024-01-15 10:02:00",
+            },
         ]
         db_manager.execute_query.return_value = mock_records
 
@@ -86,10 +101,10 @@ class TestProcessingIndexesPerformance:
         """Test performance of flow-specific status queries."""
         # Mock query execution for flow-specific queries
         mock_status_counts = [
-            {'status': 'pending', 'count': 150},
-            {'status': 'processing', 'count': 25},
-            {'status': 'completed', 'count': 1000},
-            {'status': 'failed', 'count': 5}
+            {"status": "pending", "count": 150},
+            {"status": "processing", "count": 25},
+            {"status": "completed", "count": 1000},
+            {"status": "failed", "count": 5},
         ]
         db_manager.execute_query.return_value = mock_status_counts
 
@@ -113,8 +128,16 @@ class TestProcessingIndexesPerformance:
         """Test performance of cleanup operations using flow_instance_id index."""
         # Mock query execution for cleanup operations
         mock_orphaned_records = [
-            {'id': 10, 'flow_instance_id': 'container-1-abc123', 'claimed_at': '2024-01-15 08:00:00'},
-            {'id': 15, 'flow_instance_id': 'container-2-def456', 'claimed_at': '2024-01-15 08:30:00'}
+            {
+                "id": 10,
+                "flow_instance_id": "container-1-abc123",
+                "claimed_at": "2024-01-15 08:00:00",
+            },
+            {
+                "id": 15,
+                "flow_instance_id": "container-2-def456",
+                "claimed_at": "2024-01-15 08:30:00",
+            },
         ]
         db_manager.execute_query.return_value = mock_orphaned_records
 
@@ -138,8 +161,18 @@ class TestProcessingIndexesPerformance:
         """Test performance of atomic record claiming query (FOR UPDATE SKIP LOCKED)."""
         # Mock query execution for atomic claiming
         mock_claimed_records = [
-            {'id': 1, 'payload': {'survey_id': 1001}, 'retry_count': 0, 'created_at': '2024-01-15 10:00:00'},
-            {'id': 2, 'payload': {'survey_id': 1002}, 'retry_count': 0, 'created_at': '2024-01-15 10:01:00'}
+            {
+                "id": 1,
+                "payload": {"survey_id": 1001},
+                "retry_count": 0,
+                "created_at": "2024-01-15 10:00:00",
+            },
+            {
+                "id": 2,
+                "payload": {"survey_id": 1002},
+                "retry_count": 0,
+                "created_at": "2024-01-15 10:01:00",
+            },
         ]
         db_manager.execute_query.return_value = mock_claimed_records
 
@@ -172,9 +205,24 @@ class TestProcessingIndexesPerformance:
         """Test performance of monitoring dashboard queries."""
         # Mock query execution for monitoring dashboard
         mock_dashboard_data = [
-            {'flow_name': 'survey_processor', 'status': 'pending', 'count': 150, 'oldest_created_at': '2024-01-15 09:00:00'},
-            {'flow_name': 'survey_processor', 'status': 'processing', 'count': 25, 'oldest_created_at': '2024-01-15 09:30:00'},
-            {'flow_name': 'order_processor', 'status': 'pending', 'count': 75, 'oldest_created_at': '2024-01-15 09:15:00'}
+            {
+                "flow_name": "survey_processor",
+                "status": "pending",
+                "count": 150,
+                "oldest_created_at": "2024-01-15 09:00:00",
+            },
+            {
+                "flow_name": "survey_processor",
+                "status": "processing",
+                "count": 25,
+                "oldest_created_at": "2024-01-15 09:30:00",
+            },
+            {
+                "flow_name": "order_processor",
+                "status": "pending",
+                "count": 75,
+                "oldest_created_at": "2024-01-15 09:15:00",
+            },
         ]
         db_manager.execute_query.return_value = mock_dashboard_data
 
@@ -203,8 +251,18 @@ class TestProcessingIndexesPerformance:
         """Test performance of failed record retry queries."""
         # Mock query execution for retry operations
         mock_retry_records = [
-            {'id': 20, 'retry_count': 1, 'error_message': 'Temporary network error', 'created_at': '2024-01-15 08:00:00'},
-            {'id': 25, 'retry_count': 2, 'error_message': 'Database timeout', 'created_at': '2024-01-15 08:15:00'}
+            {
+                "id": 20,
+                "retry_count": 1,
+                "error_message": "Temporary network error",
+                "created_at": "2024-01-15 08:00:00",
+            },
+            {
+                "id": 25,
+                "retry_count": 2,
+                "error_message": "Database timeout",
+                "created_at": "2024-01-15 08:15:00",
+            },
         ]
         db_manager.execute_query.return_value = mock_retry_records
 
@@ -230,9 +288,11 @@ class TestProcessingIndexesPerformance:
         """Test that queries use the expected indexes via EXPLAIN plans."""
         # Mock EXPLAIN output showing index usage
         mock_explain_plans = [
-            {'QUERY PLAN': 'Index Scan using idx_processing_queue_pending on processing_queue'},
-            {'QUERY PLAN': '  Index Cond: (status = \'pending\'::text)'},
-            {'QUERY PLAN': '  Buffers: shared hit=4'}
+            {
+                "QUERY PLAN": "Index Scan using idx_processing_queue_pending on processing_queue"
+            },
+            {"QUERY PLAN": "  Index Cond: (status = 'pending'::text)"},
+            {"QUERY PLAN": "  Buffers: shared hit=4"},
         ]
         db_manager.execute_query.return_value = mock_explain_plans
 
@@ -249,20 +309,23 @@ class TestProcessingIndexesPerformance:
         db_manager.execute_query.assert_called_with(explain_query)
 
         # Verify that the explain plan mentions our index
-        plan_text = ' '.join([row['QUERY PLAN'] for row in result])
-        assert 'idx_processing_queue_pending' in plan_text or 'idx_processing_queue_status_created_at' in plan_text
+        plan_text = " ".join([row["QUERY PLAN"] for row in result])
+        assert (
+            "idx_processing_queue_pending" in plan_text
+            or "idx_processing_queue_status_created_at" in plan_text
+        )
 
     def test_concurrent_access_simulation(self, db_manager):
         """Test that indexes perform well under concurrent access patterns."""
         # Mock concurrent query execution
-        db_manager.execute_query.return_value = [{'success': True}]
+        db_manager.execute_query.return_value = [{"success": True}]
 
         # Simulate multiple concurrent queries that would happen in production
         concurrent_queries = [
             "SELECT COUNT(*) FROM processing_queue WHERE status = 'pending'",
             "SELECT COUNT(*) FROM processing_queue WHERE flow_name = 'survey_processor' AND status = 'processing'",
             "UPDATE processing_queue SET status = 'processing' WHERE id = 1",
-            "SELECT id FROM processing_queue WHERE status = 'processing' AND claimed_at < NOW() - INTERVAL '1 hour'"
+            "SELECT id FROM processing_queue WHERE status = 'processing' AND claimed_at < NOW() - INTERVAL '1 hour'",
         ]
 
         start_time = time.time()
@@ -278,9 +341,9 @@ class TestProcessingIndexesPerformance:
         """Test that indexes are appropriately sized and efficient."""
         # Mock index size query results
         mock_index_sizes = [
-            {'indexname': 'idx_processing_queue_pending', 'size_mb': 2.1},
-            {'indexname': 'idx_processing_queue_status_created_at', 'size_mb': 5.8},
-            {'indexname': 'idx_processing_queue_flow_name_status', 'size_mb': 4.2}
+            {"indexname": "idx_processing_queue_pending", "size_mb": 2.1},
+            {"indexname": "idx_processing_queue_status_created_at", "size_mb": 5.8},
+            {"indexname": "idx_processing_queue_flow_name_status", "size_mb": 4.2},
         ]
         db_manager.execute_query.return_value = mock_index_sizes
 
@@ -299,9 +362,9 @@ class TestProcessingIndexesPerformance:
 
         # Verify reasonable index sizes (partial indexes should be smaller)
         for index_info in result:
-            if 'pending' in index_info['indexname']:
+            if "pending" in index_info["indexname"]:
                 # Partial indexes should be smaller
-                assert index_info['size_mb'] < 5.0
+                assert index_info["size_mb"] < 5.0
             else:
                 # Full indexes can be larger but should be reasonable
-                assert index_info['size_mb'] < 20.0
+                assert index_info["size_mb"] < 20.0

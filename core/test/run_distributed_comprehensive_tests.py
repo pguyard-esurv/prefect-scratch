@@ -90,14 +90,16 @@ def run_coverage_report():
     print("Generating coverage report for distributed processing...")
 
     coverage_cmd = [
-        "python", "-m", "pytest",
+        "python",
+        "-m",
+        "pytest",
         "--cov=core.distributed",
         "--cov=core.flow_template",
         "--cov-report=html:htmlcov/distributed",
         "--cov-report=term-missing",
         "core/test/test_distributed_comprehensive.py",
         "core/test/test_distributed.py",
-        "core/test/test_flow_template.py"
+        "core/test/test_flow_template.py",
     ]
 
     try:
@@ -121,7 +123,7 @@ def validate_test_environment():
         "core/database.py",
         "core/config.py",
         "core/test/test_distributed_comprehensive.py",
-        "core/test/conftest.py"
+        "core/test/conftest.py",
     ]
 
     missing_files = []
@@ -138,6 +140,7 @@ def validate_test_environment():
     # Check for required dependencies
     try:
         import pytest
+
         print(f"✅ pytest version: {pytest.__version__}")
     except ImportError as e:
         print(f"❌ Missing required dependency: {e}")
@@ -146,6 +149,7 @@ def validate_test_environment():
     # Check for optional dependencies
     try:
         import psutil
+
         print(f"✅ psutil version: {psutil.__version__}")
     except ImportError:
         print("⚠️  psutil not available - memory performance tests will be skipped")
@@ -161,34 +165,34 @@ def main():
     )
     parser.add_argument(
         "--type",
-        choices=["unit", "integration", "concurrent", "performance", "chaos", "flow", "all"],
+        choices=[
+            "unit",
+            "integration",
+            "concurrent",
+            "performance",
+            "chaos",
+            "flow",
+            "all",
+        ],
         default="unit",
-        help="Type of tests to run (default: unit)"
+        help="Type of tests to run (default: unit)",
     )
     parser.add_argument(
-        "--verbose", "-v",
-        action="store_true",
-        help="Run tests in verbose mode"
+        "--verbose", "-v", action="store_true", help="Run tests in verbose mode"
     )
     parser.add_argument(
         "--integration",
         action="store_true",
-        help="Run integration tests (requires test databases)"
+        help="Run integration tests (requires test databases)",
     )
     parser.add_argument(
-        "--coverage",
-        action="store_true",
-        help="Generate coverage report"
+        "--coverage", action="store_true", help="Generate coverage report"
     )
     parser.add_argument(
-        "--validate-env",
-        action="store_true",
-        help="Validate test environment setup"
+        "--validate-env", action="store_true", help="Validate test environment setup"
     )
     parser.add_argument(
-        "--list-tests",
-        action="store_true",
-        help="List available test categories"
+        "--list-tests", action="store_true", help="List available test categories"
     )
 
     args = parser.parse_args()

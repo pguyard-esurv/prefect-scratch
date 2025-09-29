@@ -1,0 +1,113 @@
+# Prometheus Configuration for Container Testing System
+# Monitors RPA flow containers, databases, and Prefect server
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'rpa-container-testing'
+    environment: 'development'
+
+# Alertmanager configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "alert_rules.yml"
+
+# Scrape configuration
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # PostgreSQL Database Monitoring
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    params:
+      format: ['prometheus']
+
+
+
+  # Prefect Server Monitoring
+  - job_name: 'prefect-server'
+    static_configs:
+      - targets: ['prefect-server:4200']
+    scrape_interval: 30s
+    metrics_path: /api/metrics
+    scheme: http
+
+  # RPA1 Worker Monitoring
+  - job_name: 'rpa1-worker'
+    static_configs:
+      - targets: ['rpa1-worker:8000']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scheme: http
+    params:
+      format: ['prometheus']
+
+  # RPA2 Worker Monitoring
+  - job_name: 'rpa2-worker'
+    static_configs:
+      - targets: ['rpa2-worker:8000']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scheme: http
+    params:
+      format: ['prometheus']
+
+  # RPA3 Worker Monitoring
+  - job_name: 'rpa3-worker'
+    static_configs:
+      - targets: ['rpa3-worker:8000']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scheme: http
+    params:
+      format: ['prometheus']
+
+  # Additional RPA1 Worker (Load Testing)
+  - job_name: 'rpa1-worker-2'
+    static_configs:
+      - targets: ['rpa1-worker-2:8000']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scheme: http
+    params:
+      format: ['prometheus']
+
+  # Container Health Monitoring
+  - job_name: 'container-health'
+    static_configs:
+      - targets: 
+          - 'rpa1-worker:8080'
+          - 'rpa2-worker:8080'
+          - 'rpa3-worker:8080'
+          - 'rpa1-worker-2:8080'
+    scrape_interval: 30s
+    metrics_path: /health
+    scheme: http
+
+  # Docker Container Metrics (if cAdvisor is available)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scheme: http
+
+# Remote write configuration (for external monitoring systems)
+remote_write: []
+
+# Remote read configuration (for external monitoring systems)
+remote_read: []

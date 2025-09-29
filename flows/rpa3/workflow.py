@@ -24,6 +24,7 @@ from core.config import ConfigManager
 try:
     from core.database import DatabaseManager
     from core.distributed import DistributedProcessor
+
     DISTRIBUTED_AVAILABLE = True
 except ImportError:
     DISTRIBUTED_AVAILABLE = False
@@ -424,7 +425,7 @@ def save_fulfillment_report(
 def rpa3_workflow(
     max_workers: Optional[int] = None,
     use_distributed: Optional[bool] = None,
-    batch_size: Optional[int] = None
+    batch_size: Optional[int] = None,
 ) -> dict[str, Any]:
     """
     RPA3 workflow demonstrating concurrent processing with .map().
@@ -453,23 +454,35 @@ def rpa3_workflow(
     timeout = config.get_variable("timeout", 60)
 
     # Distributed processing configuration
-    config_use_distributed = config.get_variable("use_distributed_processing", "false").lower() == "true"
-    config_distributed_batch_size = int(config.get_variable("distributed_batch_size", 10))
+    config_use_distributed = (
+        config.get_variable("use_distributed_processing", "false").lower() == "true"
+    )
+    config_distributed_batch_size = int(
+        config.get_variable("distributed_batch_size", 10)
+    )
 
     # Override with parameters if provided
-    final_use_distributed = use_distributed if use_distributed is not None else config_use_distributed
-    final_batch_size = batch_size if batch_size is not None else config_distributed_batch_size
+    final_use_distributed = (
+        use_distributed if use_distributed is not None else config_use_distributed
+    )
+    final_batch_size = (
+        batch_size if batch_size is not None else config_distributed_batch_size
+    )
 
     logger.info(f"Environment: {config.environment}")
     logger.info(f"Max concurrent tasks: {max_concurrent}")
     logger.info(f"Timeout: {timeout} seconds")
-    logger.info(f"Distributed processing: {'Enabled' if final_use_distributed else 'Disabled'}")
+    logger.info(
+        f"Distributed processing: {'Enabled' if final_use_distributed else 'Disabled'}"
+    )
     if final_use_distributed:
         logger.info(f"Distributed batch size: {final_batch_size}")
 
     # Check distributed processing availability
     if final_use_distributed and not DISTRIBUTED_AVAILABLE:
-        logger.warning("Distributed processing requested but not available. Falling back to standard processing.")
+        logger.warning(
+            "Distributed processing requested but not available. Falling back to standard processing."
+        )
         final_use_distributed = False
 
     # Note: In a real implementation, you would need to recreate the task runner
@@ -561,7 +574,7 @@ def _run_distributed_rpa3_workflow(batch_size: int, logger) -> dict[str, Any]:
         return {
             "flow_name": flow_name,
             "records_processed": 0,
-            "message": "No records to process"
+            "message": "No records to process",
         }
 
     # Process records using .map()
@@ -572,8 +585,16 @@ def _run_distributed_rpa3_workflow(batch_size: int, logger) -> dict[str, Any]:
     failed_count = sum(1 for r in results if r["status"] == "failed")
 
     # Aggregate order processing results
-    total_orders = sum(r.get("result", {}).get("total_orders", 0) for r in results if r["status"] == "completed")
-    approved_orders = sum(r.get("result", {}).get("approved_orders", 0) for r in results if r["status"] == "completed")
+    total_orders = sum(
+        r.get("result", {}).get("total_orders", 0)
+        for r in results
+        if r["status"] == "completed"
+    )
+    approved_orders = sum(
+        r.get("result", {}).get("approved_orders", 0)
+        for r in results
+        if r["status"] == "completed"
+    )
 
     summary = {
         "flow_name": flow_name,
@@ -583,11 +604,15 @@ def _run_distributed_rpa3_workflow(batch_size: int, logger) -> dict[str, Any]:
         "success_rate": (completed_count / len(records) * 100) if records else 0,
         "total_orders": total_orders,
         "approved_orders": approved_orders,
-        "approval_rate": (approved_orders / total_orders * 100) if total_orders > 0 else 0,
-        "processor_instance": processor.instance_id
+        "approval_rate": (approved_orders / total_orders * 100)
+        if total_orders > 0
+        else 0,
+        "processor_instance": processor.instance_id,
     }
 
-    logger.info(f"Distributed RPA3 workflow completed: {completed_count}/{len(records)} successful")
+    logger.info(
+        f"Distributed RPA3 workflow completed: {completed_count}/{len(records)} successful"
+    )
     return summary
 
 
@@ -595,8 +620,8 @@ def _run_distributed_rpa3_workflow(batch_size: int, logger) -> dict[str, Any]:
 def process_rpa3_record(record: dict[str, Any]) -> dict[str, Any]:
     """Process individual RPA3 record with distributed processing."""
     logger = get_run_logger()
-    record_id = record['id']
-    payload = record['payload']
+    record_id = record["id"]
+    payload = record["payload"]
 
     logger.info(f"Processing RPA3 record {record_id}")
 
@@ -640,7 +665,7 @@ def process_rpa3_record(record: dict[str, Any]) -> dict[str, Any]:
         result = {
             "summary": summary,
             "report_file": str(report_file),
-            "processed_at": datetime.now().isoformat()
+            "processed_at": datetime.now().isoformat(),
         }
 
         # Mark as completed

@@ -30,8 +30,8 @@ from core.monitoring import (
 class TestDistributedQueueMonitoring:
     """Test distributed queue monitoring functionality."""
 
-    @patch('core.monitoring.DatabaseManager')
-    @patch('core.monitoring.DistributedProcessor')
+    @patch("core.monitoring.DatabaseManager")
+    @patch("core.monitoring.DistributedProcessor")
     def test_queue_monitoring_basic(self, mock_processor_class, mock_db_manager_class):
         """Test basic queue monitoring functionality."""
         # Setup mocks
@@ -53,16 +53,15 @@ class TestDistributedQueueMonitoring:
                     "processing": 2,
                     "completed": 35,
                     "failed": 3,
-                    "total": 50
+                    "total": 50,
                 }
-            }
+            },
         }
         mock_processor_class.return_value = mock_processor
 
         # Execute monitoring
         result = distributed_queue_monitoring.fn(
-            flow_names=["test_flow"],
-            include_detailed_metrics=True
+            flow_names=["test_flow"], include_detailed_metrics=True
         )
 
         # Verify results
@@ -77,9 +76,11 @@ class TestDistributedQueueMonitoring:
         # Verify processor was called correctly
         mock_processor.get_queue_status.assert_called()
 
-    @patch('core.monitoring.DatabaseManager')
-    @patch('core.monitoring.DistributedProcessor')
-    def test_queue_monitoring_with_alerts(self, mock_processor_class, mock_db_manager_class):
+    @patch("core.monitoring.DatabaseManager")
+    @patch("core.monitoring.DistributedProcessor")
+    def test_queue_monitoring_with_alerts(
+        self, mock_processor_class, mock_db_manager_class
+    ):
         """Test queue monitoring with high failure rates generating alerts."""
         # Setup mocks with high failure rate
         mock_db_manager = Mock()
@@ -94,7 +95,7 @@ class TestDistributedQueueMonitoring:
             "completed_records": 60,
             "failed_records": 25,  # High failure rate (25%)
             "flow_name": None,
-            "by_flow": {}
+            "by_flow": {},
         }
         mock_processor_class.return_value = mock_processor
 
@@ -116,7 +117,7 @@ class TestDistributedQueueMonitoring:
             "total_records": 100,
             "pending_records": 20,
             "processing_records": 10,
-            "failed_records": 5
+            "failed_records": 5,
         }
         flow_metrics = {}
 
@@ -132,7 +133,7 @@ class TestDistributedQueueMonitoring:
             "total_records": 100,
             "pending_records": 10,
             "processing_records": 5,
-            "failed_records": 25  # 25% failure rate
+            "failed_records": 25,  # 25% failure rate
         }
         flow_metrics = {}
 
@@ -148,7 +149,7 @@ class TestDistributedQueueMonitoring:
             "total_records": 0,
             "pending_records": 0,
             "processing_records": 0,
-            "failed_records": 0
+            "failed_records": 0,
         }
         flow_metrics = {}
 
@@ -163,12 +164,12 @@ class TestDistributedQueueMonitoring:
             "total_records": 100,
             "pending_records": 1500,  # High backlog
             "processing_records": 150,  # Many processing
-            "failed_records": 25  # High failure rate
+            "failed_records": 25,  # High failure rate
         }
         flow_metrics = {
             "problematic_flow": {
                 "total_records": 50,
-                "failed_records": 30  # 60% failure rate
+                "failed_records": 30,  # 60% failure rate
             }
         }
 
@@ -186,15 +187,17 @@ class TestDistributedQueueMonitoring:
             "total_records": 100,
             "pending_records": 600,  # High backlog
             "processing_records": 60,  # Many processing
-            "failed_records": 15
+            "failed_records": 15,
         }
         queue_assessment = {
             "queue_health": "degraded",
             "failed_rate_percent": 15.0,
-            "processing_rate_percent": 60.0
+            "processing_rate_percent": 60.0,
         }
 
-        recommendations = _generate_queue_recommendations(overall_status, queue_assessment)
+        recommendations = _generate_queue_recommendations(
+            overall_status, queue_assessment
+        )
 
         assert len(recommendations) > 0
         assert any("investigate" in rec.lower() for rec in recommendations)
@@ -203,8 +206,8 @@ class TestDistributedQueueMonitoring:
 class TestDistributedProcessingDiagnostics:
     """Test distributed processing diagnostics functionality."""
 
-    @patch('core.monitoring.DatabaseManager')
-    @patch('core.monitoring.DistributedProcessor')
+    @patch("core.monitoring.DatabaseManager")
+    @patch("core.monitoring.DistributedProcessor")
     def test_diagnostics_basic(self, mock_processor_class, mock_db_manager_class):
         """Test basic diagnostics functionality."""
         # Setup mocks
@@ -215,34 +218,36 @@ class TestDistributedProcessingDiagnostics:
         mock_processor.instance_id = "test-instance-123"
         mock_processor.health_check.return_value = {
             "status": "healthy",
-            "databases": {"rpa_db": {"status": "healthy"}}
+            "databases": {"rpa_db": {"status": "healthy"}},
         }
         mock_processor.get_queue_status.return_value = {
             "total_records": 50,
             "pending_records": 10,
             "processing_records": 5,
-            "failed_records": 2
+            "failed_records": 2,
         }
         mock_processor_class.return_value = mock_processor
 
         # Mock orphaned records analysis
-        with patch('core.monitoring._analyze_orphaned_records') as mock_orphaned:
+        with patch("core.monitoring._analyze_orphaned_records") as mock_orphaned:
             mock_orphaned.return_value = {
                 "total_orphaned_records": 0,
-                "analysis_timestamp": datetime.now().isoformat() + "Z"
+                "analysis_timestamp": datetime.now().isoformat() + "Z",
             }
 
-            with patch('core.monitoring._analyze_processing_performance') as mock_performance:
+            with patch(
+                "core.monitoring._analyze_processing_performance"
+            ) as mock_performance:
                 mock_performance.return_value = {
                     "total_processed": 100,
-                    "avg_processing_time_minutes": 5.0
+                    "avg_processing_time_minutes": 5.0,
                 }
 
                 # Execute diagnostics
                 result = distributed_processing_diagnostics.fn(
                     flow_name="test_flow",
                     include_orphaned_analysis=True,
-                    include_performance_analysis=True
+                    include_performance_analysis=True,
                 )
 
         # Verify results
@@ -256,8 +261,8 @@ class TestDistributedProcessingDiagnostics:
         assert "issues_found" in result
         assert "recommendations" in result
 
-    @patch('core.monitoring.DatabaseManager')
-    @patch('core.monitoring.DistributedProcessor')
+    @patch("core.monitoring.DatabaseManager")
+    @patch("core.monitoring.DistributedProcessor")
     def test_diagnostics_with_issues(self, mock_processor_class, mock_db_manager_class):
         """Test diagnostics with system issues detected."""
         # Setup mocks with issues
@@ -268,25 +273,27 @@ class TestDistributedProcessingDiagnostics:
         mock_processor.instance_id = "test-instance-123"
         mock_processor.health_check.return_value = {
             "status": "degraded",
-            "error": "High response time"
+            "error": "High response time",
         }
         mock_processor.get_queue_status.return_value = {
             "total_records": 100,
-            "failed_records": 25  # High failure rate
+            "failed_records": 25,  # High failure rate
         }
         mock_processor_class.return_value = mock_processor
 
         # Mock orphaned records analysis with issues
-        with patch('core.monitoring._analyze_orphaned_records') as mock_orphaned:
+        with patch("core.monitoring._analyze_orphaned_records") as mock_orphaned:
             mock_orphaned.return_value = {
                 "total_orphaned_records": 15,  # Orphaned records found
-                "analysis_timestamp": datetime.now().isoformat() + "Z"
+                "analysis_timestamp": datetime.now().isoformat() + "Z",
             }
 
-            with patch('core.monitoring._analyze_processing_performance') as mock_performance:
+            with patch(
+                "core.monitoring._analyze_processing_performance"
+            ) as mock_performance:
                 mock_performance.return_value = {
                     "total_processed": 50,
-                    "avg_processing_time_minutes": 65.0  # High processing time
+                    "avg_processing_time_minutes": 65.0,  # High processing time
                 }
 
                 # Execute diagnostics
@@ -308,7 +315,7 @@ class TestDistributedProcessingDiagnostics:
                 "orphaned_count": 5,
                 "oldest_claim": datetime.now() - timedelta(hours=3),
                 "newest_claim": datetime.now() - timedelta(hours=1),
-                "avg_hours_stuck": 2.5
+                "avg_hours_stuck": 2.5,
             }
         ]
 
@@ -340,7 +347,7 @@ class TestDistributedProcessingDiagnostics:
                 "failed_count": 10,
                 "avg_processing_minutes": 5.5,
                 "first_completion": datetime.now() - timedelta(hours=2),
-                "last_completion": datetime.now()
+                "last_completion": datetime.now(),
             }
         ]
 
@@ -355,9 +362,11 @@ class TestDistributedProcessingDiagnostics:
 class TestProcessingPerformanceMonitoring:
     """Test processing performance monitoring functionality."""
 
-    @patch('core.monitoring.DatabaseManager')
-    @patch('core.monitoring.DistributedProcessor')
-    def test_performance_monitoring_basic(self, mock_processor_class, mock_db_manager_class):
+    @patch("core.monitoring.DatabaseManager")
+    @patch("core.monitoring.DistributedProcessor")
+    def test_performance_monitoring_basic(
+        self, mock_processor_class, mock_db_manager_class
+    ):
         """Test basic performance monitoring functionality."""
         # Setup mocks
         mock_db_manager = Mock()
@@ -371,32 +380,31 @@ class TestProcessingPerformanceMonitoring:
         mock_processor_class.return_value = mock_processor
 
         # Mock performance calculation functions
-        with patch('core.monitoring._calculate_performance_metrics') as mock_calc:
+        with patch("core.monitoring._calculate_performance_metrics") as mock_calc:
             mock_calc.return_value = {
                 "total_processed": 100,
                 "completed_count": 90,
                 "failed_count": 10,
                 "success_rate_percent": 90.0,
-                "avg_processing_rate_per_hour": 50.0
+                "avg_processing_rate_per_hour": 50.0,
             }
 
-            with patch('core.monitoring._analyze_processing_errors') as mock_errors:
-                mock_errors.return_value = {
-                    "total_errors": 10,
-                    "unique_error_types": 3
-                }
+            with patch("core.monitoring._analyze_processing_errors") as mock_errors:
+                mock_errors.return_value = {"total_errors": 10, "unique_error_types": 3}
 
-                with patch('core.monitoring._analyze_performance_trends') as mock_trends:
+                with patch(
+                    "core.monitoring._analyze_performance_trends"
+                ) as mock_trends:
                     mock_trends.return_value = {
                         "hourly_trends": {},
-                        "trend_summary": {"total_hours_analyzed": 24}
+                        "trend_summary": {"total_hours_analyzed": 24},
                     }
 
                     # Execute performance monitoring
                     result = processing_performance_monitoring.fn(
                         flow_names=["test_flow"],
                         time_window_hours=24,
-                        include_error_analysis=True
+                        include_error_analysis=True,
                     )
 
         # Verify results
@@ -420,14 +428,16 @@ class TestProcessingPerformanceMonitoring:
                 "failed_count": 15,
                 "avg_processing_minutes": 8.5,
                 "first_claim": datetime.now() - timedelta(hours=6),
-                "last_update": datetime.now()
+                "last_update": datetime.now(),
             }
         ]
 
         start_time = datetime.now() - timedelta(hours=6)
         end_time = datetime.now()
 
-        result = _calculate_performance_metrics(mock_processor, "test_flow", start_time, end_time)
+        result = _calculate_performance_metrics(
+            mock_processor, "test_flow", start_time, end_time
+        )
 
         assert result["flow_name"] == "test_flow"
         assert result["total_processed"] == 100
@@ -445,7 +455,9 @@ class TestProcessingPerformanceMonitoring:
         start_time = datetime.now() - timedelta(hours=6)
         end_time = datetime.now()
 
-        result = _calculate_performance_metrics(mock_processor, "test_flow", start_time, end_time)
+        result = _calculate_performance_metrics(
+            mock_processor, "test_flow", start_time, end_time
+        )
 
         assert result["flow_name"] == "test_flow"
         assert result["total_processed"] == 0
@@ -458,9 +470,11 @@ class TestProcessingPerformanceMonitoring:
 class TestDistributedSystemMaintenance:
     """Test distributed system maintenance functionality."""
 
-    @patch('core.monitoring.DatabaseManager')
-    @patch('core.monitoring.DistributedProcessor')
-    def test_maintenance_cleanup_dry_run(self, mock_processor_class, mock_db_manager_class):
+    @patch("core.monitoring.DatabaseManager")
+    @patch("core.monitoring.DistributedProcessor")
+    def test_maintenance_cleanup_dry_run(
+        self, mock_processor_class, mock_db_manager_class
+    ):
         """Test maintenance cleanup in dry run mode."""
         # Setup mocks
         mock_db_manager = Mock()
@@ -472,19 +486,17 @@ class TestDistributedSystemMaintenance:
             "total_records": 100,
             "pending_records": 20,
             "processing_records": 10,
-            "failed_records": 5
+            "failed_records": 5,
         }
         mock_processor_class.return_value = mock_processor
 
         # Mock count functions for dry run
-        with patch('core.monitoring._count_orphaned_records') as mock_count:
+        with patch("core.monitoring._count_orphaned_records") as mock_count:
             mock_count.return_value = 8
 
             # Execute maintenance in dry run mode
             result = distributed_system_maintenance.fn(
-                cleanup_orphaned_records=True,
-                reset_failed_records=False,
-                dry_run=True
+                cleanup_orphaned_records=True, reset_failed_records=False, dry_run=True
             )
 
         # Verify dry run results
@@ -494,9 +506,11 @@ class TestDistributedSystemMaintenance:
         assert result["cleanup_results"]["orphaned_records_found"] == 8
         assert result["cleanup_results"]["records_cleaned"] == 0
 
-    @patch('core.monitoring.DatabaseManager')
-    @patch('core.monitoring.DistributedProcessor')
-    def test_maintenance_cleanup_actual(self, mock_processor_class, mock_db_manager_class):
+    @patch("core.monitoring.DatabaseManager")
+    @patch("core.monitoring.DistributedProcessor")
+    def test_maintenance_cleanup_actual(
+        self, mock_processor_class, mock_db_manager_class
+    ):
         """Test actual maintenance cleanup."""
         # Setup mocks
         mock_db_manager = Mock()
@@ -508,7 +522,7 @@ class TestDistributedSystemMaintenance:
             "total_records": 100,
             "pending_records": 20,
             "processing_records": 10,
-            "failed_records": 5
+            "failed_records": 5,
         }
         mock_processor.cleanup_orphaned_records.return_value = 8
         mock_processor_class.return_value = mock_processor
@@ -518,7 +532,7 @@ class TestDistributedSystemMaintenance:
             cleanup_orphaned_records=True,
             reset_failed_records=False,
             orphaned_timeout_hours=2,
-            dry_run=False
+            dry_run=False,
         )
 
         # Verify actual cleanup results
@@ -531,9 +545,11 @@ class TestDistributedSystemMaintenance:
         # Verify processor method was called
         mock_processor.cleanup_orphaned_records.assert_called_once_with(2)
 
-    @patch('core.monitoring.DatabaseManager')
-    @patch('core.monitoring.DistributedProcessor')
-    def test_maintenance_failed_reset(self, mock_processor_class, mock_db_manager_class):
+    @patch("core.monitoring.DatabaseManager")
+    @patch("core.monitoring.DistributedProcessor")
+    def test_maintenance_failed_reset(
+        self, mock_processor_class, mock_db_manager_class
+    ):
         """Test failed record reset maintenance."""
         # Setup mocks
         mock_db_manager = Mock()
@@ -542,12 +558,12 @@ class TestDistributedSystemMaintenance:
         mock_processor = Mock()
         mock_processor.instance_id = "test-instance-123"
         mock_processor.get_queue_status.return_value = {
-            "by_flow": {
-                "flow1": {"failed": 10},
-                "flow2": {"failed": 5}
-            }
+            "by_flow": {"flow1": {"failed": 10}, "flow2": {"failed": 5}}
         }
-        mock_processor.reset_failed_records.side_effect = [7, 3]  # Return values for each flow
+        mock_processor.reset_failed_records.side_effect = [
+            7,
+            3,
+        ]  # Return values for each flow
         mock_processor_class.return_value = mock_processor
 
         # Execute maintenance with failed record reset
@@ -555,7 +571,7 @@ class TestDistributedSystemMaintenance:
             cleanup_orphaned_records=False,
             reset_failed_records=True,
             max_retries=3,
-            dry_run=False
+            dry_run=False,
         )
 
         # Verify reset results
@@ -608,9 +624,11 @@ class TestDistributedSystemMaintenance:
 class TestMonitoringErrorHandling:
     """Test error handling in monitoring utilities."""
 
-    @patch('core.monitoring.DatabaseManager')
-    @patch('core.monitoring.DistributedProcessor')
-    def test_queue_monitoring_database_error(self, mock_processor_class, mock_db_manager_class):
+    @patch("core.monitoring.DatabaseManager")
+    @patch("core.monitoring.DistributedProcessor")
+    def test_queue_monitoring_database_error(
+        self, mock_processor_class, mock_db_manager_class
+    ):
         """Test queue monitoring with database connection error."""
         # Setup mocks to raise exception
         mock_db_manager_class.side_effect = Exception("Database connection failed")
@@ -621,9 +639,11 @@ class TestMonitoringErrorHandling:
 
         assert "Database connection failed" in str(exc_info.value)
 
-    @patch('core.monitoring.DatabaseManager')
-    @patch('core.monitoring.DistributedProcessor')
-    def test_diagnostics_processor_error(self, mock_processor_class, mock_db_manager_class):
+    @patch("core.monitoring.DatabaseManager")
+    @patch("core.monitoring.DistributedProcessor")
+    def test_diagnostics_processor_error(
+        self, mock_processor_class, mock_db_manager_class
+    ):
         """Test diagnostics with processor initialization error."""
         # Setup mocks
         mock_db_manager = Mock()
@@ -637,9 +657,11 @@ class TestMonitoringErrorHandling:
 
         assert "Processor initialization failed" in str(exc_info.value)
 
-    @patch('core.monitoring.DatabaseManager')
-    @patch('core.monitoring.DistributedProcessor')
-    def test_maintenance_partial_failure(self, mock_processor_class, mock_db_manager_class):
+    @patch("core.monitoring.DatabaseManager")
+    @patch("core.monitoring.DistributedProcessor")
+    def test_maintenance_partial_failure(
+        self, mock_processor_class, mock_db_manager_class
+    ):
         """Test maintenance with partial operation failure."""
         # Setup mocks
         mock_db_manager = Mock()
@@ -648,14 +670,15 @@ class TestMonitoringErrorHandling:
         mock_processor = Mock()
         mock_processor.instance_id = "test-instance-123"
         mock_processor.get_queue_status.return_value = {"total_records": 50}
-        mock_processor.cleanup_orphaned_records.side_effect = Exception("Cleanup failed")
+        mock_processor.cleanup_orphaned_records.side_effect = Exception(
+            "Cleanup failed"
+        )
         mock_processor_class.return_value = mock_processor
 
         # Execute maintenance and expect RuntimeError
         with pytest.raises(RuntimeError) as exc_info:
             distributed_system_maintenance.fn(
-                cleanup_orphaned_records=True,
-                dry_run=False
+                cleanup_orphaned_records=True, dry_run=False
             )
 
         assert "Cleanup failed" in str(exc_info.value)
@@ -664,9 +687,11 @@ class TestMonitoringErrorHandling:
 class TestMonitoringIntegration:
     """Integration tests for monitoring utilities."""
 
-    @patch('core.monitoring.DatabaseManager')
-    @patch('core.monitoring.DistributedProcessor')
-    def test_full_monitoring_workflow(self, mock_processor_class, mock_db_manager_class):
+    @patch("core.monitoring.DatabaseManager")
+    @patch("core.monitoring.DistributedProcessor")
+    def test_full_monitoring_workflow(
+        self, mock_processor_class, mock_db_manager_class
+    ):
         """Test complete monitoring workflow integration."""
         # Setup comprehensive mocks
         mock_db_manager = Mock()
@@ -684,35 +709,33 @@ class TestMonitoringIntegration:
             "failed_records": 7,
             "by_flow": {
                 "flow1": {"total": 60, "failed": 4},
-                "flow2": {"total": 40, "failed": 3}
-            }
+                "flow2": {"total": 40, "failed": 3},
+            },
         }
 
         # Mock health check
         mock_processor.health_check.return_value = {
             "status": "healthy",
-            "databases": {"rpa_db": {"status": "healthy"}}
+            "databases": {"rpa_db": {"status": "healthy"}},
         }
 
         mock_processor_class.return_value = mock_processor
 
         # Mock analysis functions
-        with patch('core.monitoring._analyze_orphaned_records') as mock_orphaned:
+        with patch("core.monitoring._analyze_orphaned_records") as mock_orphaned:
             mock_orphaned.return_value = {"total_orphaned_records": 2}
 
-            with patch('core.monitoring._analyze_processing_performance') as mock_perf:
+            with patch("core.monitoring._analyze_processing_performance") as mock_perf:
                 mock_perf.return_value = {"avg_processing_time_minutes": 8.0}
 
                 # Execute queue monitoring
                 queue_result = distributed_queue_monitoring.fn(
-                    flow_names=["flow1", "flow2"],
-                    include_detailed_metrics=True
+                    flow_names=["flow1", "flow2"], include_detailed_metrics=True
                 )
 
                 # Execute diagnostics
                 diag_result = distributed_processing_diagnostics.fn(
-                    include_orphaned_analysis=True,
-                    include_performance_analysis=True
+                    include_orphaned_analysis=True, include_performance_analysis=True
                 )
 
         # Verify integration results
@@ -724,7 +747,10 @@ class TestMonitoringIntegration:
         assert diag_result["orphaned_records_analysis"]["total_orphaned_records"] == 2
 
         # Verify both use same processor instance
-        assert queue_result["processor_instance_id"] == diag_result["processor_instance_id"]
+        assert (
+            queue_result["processor_instance_id"]
+            == diag_result["processor_instance_id"]
+        )
 
 
 if __name__ == "__main__":

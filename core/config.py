@@ -260,9 +260,7 @@ class ConfigManager:
             "cleanup_timeout_hours": self._get_int_config(
                 "DISTRIBUTED_PROCESSOR_CLEANUP_TIMEOUT_HOURS", 1
             ),
-            "max_retries": self._get_int_config(
-                "DISTRIBUTED_PROCESSOR_MAX_RETRIES", 3
-            ),
+            "max_retries": self._get_int_config("DISTRIBUTED_PROCESSOR_MAX_RETRIES", 3),
             "health_check_interval": self._get_int_config(
                 "DISTRIBUTED_PROCESSOR_HEALTH_CHECK_INTERVAL", 300
             ),
@@ -319,12 +317,16 @@ class ConfigManager:
             try:
                 int_value = int(value)
                 if int_value <= 0:
-                    raise ValueError(f"Configuration {key} must be positive, got: {int_value}")
+                    raise ValueError(
+                        f"Configuration {key} must be positive, got: {int_value}"
+                    )
                 return int_value
             except ValueError as e:
                 if "positive" in str(e):
                     raise
-                raise ValueError(f"Configuration {key} must be an integer, got: {value}") from e
+                raise ValueError(
+                    f"Configuration {key} must be an integer, got: {value}"
+                ) from e
 
         # For any other type, use default
         return default
@@ -356,7 +358,9 @@ class ConfigManager:
             elif lower_value in ("false", "0", "no", "off", "disabled"):
                 return False
             else:
-                raise ValueError(f"Configuration {key} must be a boolean value, got: {value}")
+                raise ValueError(
+                    f"Configuration {key} must be a boolean value, got: {value}"
+                )
 
         return bool(value)
 
@@ -388,12 +392,14 @@ class ConfigManager:
         # Validate max retries
         if config["max_retries"] <= 0 or config["max_retries"] > 10:
             raise ValueError(
-                f"max_retries must be between 1 and 10, "
-                f"got: {config['max_retries']}"
+                f"max_retries must be between 1 and 10, got: {config['max_retries']}"
             )
 
         # Validate health check interval
-        if config["health_check_interval"] < 60 or config["health_check_interval"] > 3600:
+        if (
+            config["health_check_interval"] < 60
+            or config["health_check_interval"] > 3600
+        ):
             raise ValueError(
                 f"health_check_interval must be between 60 and 3600 seconds, "
                 f"got: {config['health_check_interval']}"
@@ -435,12 +441,7 @@ class ConfigManager:
                 "warnings": list[str]
             }
         """
-        validation_result = {
-            "valid": True,
-            "config": {},
-            "errors": [],
-            "warnings": []
-        }
+        validation_result = {"valid": True, "config": {}, "errors": [], "warnings": []}
 
         try:
             # Get and validate distributed configuration

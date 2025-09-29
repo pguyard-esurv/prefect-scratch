@@ -1,0 +1,409 @@
+version: "3.8"
+
+# Container Testing System - Docker Compose Orchestration
+# Provides PostgreSQL, Prefect server, and flow containers with proper
+# service dependencies, health checks, and restart policies
+
+services:
+  # PostgreSQL Database Service
+  postgres:
+    image: postgres:15-alpine
+    container_name: rpa-postgres
+    environment:
+      POSTGRES_DB: rpa_db
+      POSTGRES_USER: rpa_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rpa_dev_password}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./core/migrations:/docker-entrypoint-initdb.d:ro
+      - ./logs/postgres:/var/log/postgresql
+    networks:
+      - rpa-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rpa_user -d rpa_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
+  # Prefect Server
+  prefect-server:
+    image: prefecthq/prefect:2.14-python3.11
+    container_name: rpa-prefect-server
+    command: prefect server start --host 0.0.0.0 --port 4200
+    environment:
+      PREFECT_SERVER_API_HOST: 0.0.0.0
+      PREFECT_SERVER_API_PORT: 4200
+      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://prefect_user:${PREFECT_DB_PASSWORD:-prefect_dev_password}@postgres:5432/prefect_db
+      PREFECT_SERVER_DATABASE_CONNECTION_URL: postgresql+asyncpg://prefect_user:${PREFECT_DB_PASSWORD:-prefect_dev_password}@postgres:5432/prefect_db
+    ports:
+      - "${PREFECT_PORT:-4200}:4200"
+    volumes:
+      - prefect_data:/opt/prefect
+      - ./logs/prefect:/opt/prefect/logs
+    networks:
+      - rpa-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4200/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.5"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+
+  # RPA1 Flow Container (File Processing)
+  rpa1-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.flow1
+      args:
+        BASE_IMAGE: rpa-base:latest
+    container_name: rpa-rpa1-worker
+    environment:
+      # Container-specific configuration
+      CONTAINER_ENVIRONMENT: ${ENVIRONMENT:-development}
+      CONTAINER_FLOW_NAME: rpa1
+      CONTAINER_WORKER_ID: rpa1-worker-1
+
+      # Database connections
+      CONTAINER_RPA_DB_CONNECTION_STRING: postgresql://rpa_user:${POSTGRES_PASSWORD:-rpa_dev_password}@postgres:5432/rpa_db
+      CONTAINER_SURVEYHUB_CONNECTION_STRING: ${SURVEYHUB_CONNECTION_STRING:-}
+
+      # Prefect configuration
+      CONTAINER_PREFECT_API_URL: http://prefect-server:4200/api
+      CONTAINER_PREFECT_SERVER_URL: http://prefect-server:4200
+
+      # Flow-specific settings
+      CONTAINER_RPA1_BATCH_SIZE: ${RPA1_BATCH_SIZE:-25}
+      CONTAINER_RPA1_MAX_RETRIES: ${RPA1_MAX_RETRIES:-3}
+      CONTAINER_RPA1_TIMEOUT: ${RPA1_TIMEOUT:-300}
+
+      # Resource limits
+      CONTAINER_MAX_MEMORY_MB: 512
+      CONTAINER_MAX_CPU_PERCENT: 50
+    volumes:
+      - ./flows/rpa1/data:/app/flows/rpa1/data
+      - ./flows/rpa1/output:/app/flows/rpa1/output
+      - ./logs/rpa1:/app/logs
+      - rpa1_temp:/tmp/rpa1
+    networks:
+      - rpa-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prefect-server:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python /app/scripts/health_check.py --flow=rpa1 --quick-check",
+        ]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
+  # RPA2 Flow Container (Data Validation)
+  rpa2-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.flow2
+      args:
+        BASE_IMAGE: rpa-base:latest
+    container_name: rpa-rpa2-worker
+    environment:
+      # Container-specific configuration
+      CONTAINER_ENVIRONMENT: ${ENVIRONMENT:-development}
+      CONTAINER_FLOW_NAME: rpa2
+      CONTAINER_WORKER_ID: rpa2-worker-1
+
+      # Database connections
+      CONTAINER_RPA_DB_CONNECTION_STRING: postgresql://rpa_user:${POSTGRES_PASSWORD:-rpa_dev_password}@postgres:5432/rpa_db
+      CONTAINER_SURVEYHUB_CONNECTION_STRING: ${SURVEYHUB_CONNECTION_STRING:-}
+
+      # Prefect configuration
+      CONTAINER_PREFECT_API_URL: http://prefect-server:4200/api
+      CONTAINER_PREFECT_SERVER_URL: http://prefect-server:4200
+
+      # Flow-specific settings
+      CONTAINER_RPA2_BATCH_SIZE: ${RPA2_BATCH_SIZE:-75}
+      CONTAINER_RPA2_MAX_RETRIES: ${RPA2_MAX_RETRIES:-4}
+      CONTAINER_RPA2_TIMEOUT: ${RPA2_TIMEOUT:-600}
+
+      # Resource limits
+      CONTAINER_MAX_MEMORY_MB: 384
+      CONTAINER_MAX_CPU_PERCENT: 40
+    volumes:
+      - ./flows/rpa2/data:/app/flows/rpa2/data
+      - ./flows/rpa2/output:/app/flows/rpa2/output
+      - ./logs/rpa2:/app/logs
+      - rpa2_temp:/tmp/rpa2
+    networks:
+      - rpa-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prefect-server:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python /app/scripts/health_check.py --flow=rpa2 --quick-check",
+        ]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: "0.4"
+        reservations:
+          memory: 192M
+          cpus: "0.2"
+
+  # RPA3 Flow Container (Concurrent Processing)
+  rpa3-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.flow3
+      args:
+        BASE_IMAGE: rpa-base:latest
+    container_name: rpa-rpa3-worker
+    environment:
+      # Container-specific configuration
+      CONTAINER_ENVIRONMENT: ${ENVIRONMENT:-development}
+      CONTAINER_FLOW_NAME: rpa3
+      CONTAINER_WORKER_ID: rpa3-worker-1
+
+      # Database connections
+      CONTAINER_RPA_DB_CONNECTION_STRING: postgresql://rpa_user:${POSTGRES_PASSWORD:-rpa_dev_password}@postgres:5432/rpa_db
+      CONTAINER_SURVEYHUB_CONNECTION_STRING: ${SURVEYHUB_CONNECTION_STRING:-}
+
+      # Prefect configuration
+      CONTAINER_PREFECT_API_URL: http://prefect-server:4200/api
+      CONTAINER_PREFECT_SERVER_URL: http://prefect-server:4200
+
+      # Flow-specific settings
+      CONTAINER_RPA3_BATCH_SIZE: ${RPA3_BATCH_SIZE:-150}
+      CONTAINER_RPA3_MAX_RETRIES: ${RPA3_MAX_RETRIES:-3}
+      CONTAINER_RPA3_TIMEOUT: ${RPA3_TIMEOUT:-180}
+      CONTAINER_RPA3_CONCURRENT_WORKERS: ${RPA3_CONCURRENT_WORKERS:-4}
+
+      # Resource limits
+      CONTAINER_MAX_MEMORY_MB: 768
+      CONTAINER_MAX_CPU_PERCENT: 75
+    volumes:
+      - ./flows/rpa3/data:/app/flows/rpa3/data
+      - ./flows/rpa3/output:/app/flows/rpa3/output
+      - ./logs/rpa3:/app/logs
+      - rpa3_temp:/tmp/rpa3
+    networks:
+      - rpa-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prefect-server:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python /app/scripts/health_check.py --flow=rpa3 --quick-check",
+        ]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: "0.75"
+        reservations:
+          memory: 384M
+          cpus: "0.35"
+
+  # Additional RPA1 Worker for Load Testing
+  rpa1-worker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.flow1
+      args:
+        BASE_IMAGE: rpa-base:latest
+    container_name: rpa-rpa1-worker-2
+    environment:
+      # Container-specific configuration
+      CONTAINER_ENVIRONMENT: ${ENVIRONMENT:-development}
+      CONTAINER_FLOW_NAME: rpa1
+      CONTAINER_WORKER_ID: rpa1-worker-2
+
+      # Database connections
+      CONTAINER_RPA_DB_CONNECTION_STRING: postgresql://rpa_user:${POSTGRES_PASSWORD:-rpa_dev_password}@postgres:5432/rpa_db
+      CONTAINER_SURVEYHUB_CONNECTION_STRING: ${SURVEYHUB_CONNECTION_STRING:-}
+
+      # Prefect configuration
+      CONTAINER_PREFECT_API_URL: http://prefect-server:4200/api
+      CONTAINER_PREFECT_SERVER_URL: http://prefect-server:4200
+
+      # Flow-specific settings
+      CONTAINER_RPA1_BATCH_SIZE: ${RPA1_BATCH_SIZE:-25}
+      CONTAINER_RPA1_MAX_RETRIES: ${RPA1_MAX_RETRIES:-3}
+      CONTAINER_RPA1_TIMEOUT: ${RPA1_TIMEOUT:-300}
+
+      # Resource limits
+      CONTAINER_MAX_MEMORY_MB: 512
+      CONTAINER_MAX_CPU_PERCENT: 50
+    volumes:
+      - ./flows/rpa1/data:/app/flows/rpa1/data:ro
+      - ./flows/rpa1/output:/app/flows/rpa1/output
+      - ./logs/rpa1-2:/app/logs
+      - rpa1_2_temp:/tmp/rpa1
+    networks:
+      - rpa-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prefect-server:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - load-testing
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python /app/scripts/health_check.py --flow=rpa1 --quick-check",
+        ]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+
+  # Monitoring and Metrics (Prometheus-compatible)
+  monitoring:
+    image: prom/prometheus:latest
+    container_name: rpa-monitoring
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - rpa-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+# Named Volumes for Data Persistence
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/postgres
+
+  prefect_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/prefect
+
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/prometheus
+
+  rpa1_temp:
+    driver: local
+
+  rpa1_2_temp:
+    driver: local
+
+  rpa2_temp:
+    driver: local
+
+  rpa3_temp:
+    driver: local
+
+# Network Configuration for Service Communication and Isolation
+networks:
+  rpa-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: rpa-bridge
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"

@@ -48,15 +48,14 @@ class TestDistributedSurveyProcessing:
         try:
             # Clean processing_queue test records
             self.rpa_db.execute_query(
-                "DELETE FROM processing_queue WHERE flow_name = 'survey_processor'",
-                {}
+                "DELETE FROM processing_queue WHERE flow_name = 'survey_processor'", {}
             )
 
             # Clean processed_surveys test records
             self.rpa_db.execute_query(
                 "DELETE FROM processed_surveys WHERE survey_id LIKE 'SURV-%' "
                 "OR flow_run_id LIKE '%test%'",
-                {}
+                {},
             )
 
         except Exception as e:
@@ -71,8 +70,8 @@ class TestDistributedSurveyProcessing:
 
         # Mock the Prefect logger to avoid context issues
         with patch(
-            'flows.examples.distributed_survey_processing.get_run_logger'
-                ) as mock_logger:
+            "flows.examples.distributed_survey_processing.get_run_logger"
+        ) as mock_logger:
             mock_logger.return_value = MagicMock()
             records = prepare_survey_records_for_queue(survey_count=5)
 
@@ -103,8 +102,7 @@ class TestDistributedSurveyProcessing:
         priority_distribution = {"high": 0.5, "normal": 0.3, "low": 0.2}
 
         records = prepare_survey_records_for_queue.fn(
-            survey_count=10,
-            priority_distribution=priority_distribution
+            survey_count=10, priority_distribution=priority_distribution
         )
 
         assert len(records) == 10
@@ -132,8 +130,8 @@ class TestDistributedSurveyProcessing:
                     "priority": "normal",
                     "response_data": {
                         "overall_satisfaction": 8,
-                        "likelihood_to_recommend": 9
-                    }
+                        "likelihood_to_recommend": 9,
+                    },
                 }
             },
             {
@@ -145,16 +143,15 @@ class TestDistributedSurveyProcessing:
                     "priority": "high",
                     "response_data": {
                         "overall_satisfaction": 6,
-                        "likelihood_to_recommend": 7
-                    }
+                        "likelihood_to_recommend": 7,
+                    },
                 }
-            }
+            },
         ]
 
         # Add records to queue
         result = add_surveys_to_processing_queue.fn(
-            records=test_records,
-            flow_name="survey_processor"
+            records=test_records, flow_name="survey_processor"
         )
 
         assert result["records_added"] == 2
@@ -165,7 +162,7 @@ class TestDistributedSurveyProcessing:
         # Verify records are in database
         queue_records = self.rpa_db.execute_query(
             "SELECT * FROM processing_queue WHERE flow_name = 'survey_processor' AND status = 'pending'",  # noqa: E501
-            {}
+            {},
         )
 
         assert len(queue_records) >= 2
@@ -184,12 +181,9 @@ class TestDistributedSurveyProcessing:
                 "service_rating": 5,
                 "product_rating": 4,
                 "comments": "Excellent service!",
-                "completion_time_seconds": 300
+                "completion_time_seconds": 300,
             },
-            "metadata": {
-                "source_system": "test_system",
-                "survey_version": "v1.0"
-            }
+            "metadata": {"source_system": "test_system", "survey_version": "v1.0"},
         }
 
         # Process the survey
@@ -213,8 +207,7 @@ class TestDistributedSurveyProcessing:
 
         # Verify record was stored in database
         stored_records = self.rpa_db.execute_query(
-            "SELECT * FROM processed_surveys WHERE survey_id = 'TEST-BL-001'",
-            {}
+            "SELECT * FROM processed_surveys WHERE survey_id = 'TEST-BL-001'", {}
         )
 
         assert len(stored_records) == 1
@@ -239,7 +232,7 @@ class TestDistributedSurveyProcessing:
             "survey_id": "TEST-INVALID-002",
             "customer_id": "CUST-INVALID-002",
             "survey_type": "Test Survey",
-            "response_data": "not_a_dict"  # Should be dict
+            "response_data": "not_a_dict",  # Should be dict
         }
 
         with pytest.raises(ValueError, match="response_data must be a dictionary"):
@@ -253,7 +246,7 @@ class TestDistributedSurveyProcessing:
             "response_data": {
                 "overall_satisfaction": 8
                 # Missing likelihood_to_recommend
-            }
+            },
         }
 
         with pytest.raises(ValueError, match="Missing required response fields"):
@@ -269,8 +262,8 @@ class TestDistributedSurveyProcessing:
             "response_data": {
                 "overall_satisfaction": 8,
                 "service_rating": 4,
-                "product_rating": 4
-            }
+                "product_rating": 4,
+            },
         }
 
         # Test promoter (9-10)
@@ -293,11 +286,13 @@ class TestDistributedSurveyProcessing:
         detractor_result = process_survey_business_logic(detractor_payload)
         assert detractor_result["satisfaction_metrics"]["nps_category"] == "detractor"
 
-    @patch('flows.examples.distributed_survey_processing.source_db_manager')
+    @patch("flows.examples.distributed_survey_processing.source_db_manager")
     def test_process_survey_business_logic_with_source_db_error(self, mock_source_db):
         """Test business logic handling when source database is unavailable."""
         # Mock source database to raise an exception
-        mock_source_db.execute_query.side_effect = Exception("Database connection failed")
+        mock_source_db.execute_query.side_effect = Exception(
+            "Database connection failed"
+        )
 
         test_payload = {
             "survey_id": "TEST-DB-ERROR-001",
@@ -308,8 +303,8 @@ class TestDistributedSurveyProcessing:
                 "overall_satisfaction": 7,
                 "likelihood_to_recommend": 8,
                 "service_rating": 3,
-                "product_rating": 4
-            }
+                "product_rating": 4,
+            },
         }
 
         # Should still process successfully without source database data
@@ -323,9 +318,7 @@ class TestDistributedSurveyProcessing:
         """Test complete distributed survey processing flow with sample data."""
         # Run flow with sample data preparation
         result = distributed_survey_processing_flow.fn(
-            batch_size=5,
-            prepare_sample_data=True,
-            sample_record_count=8
+            batch_size=5, prepare_sample_data=True, sample_record_count=8
         )
 
         # Validate flow execution results
@@ -369,8 +362,7 @@ class TestDistributedSurveyProcessing:
 
         # Run flow without sample data preparation
         result = distributed_survey_processing_flow.fn(
-            batch_size=10,
-            prepare_sample_data=False
+            batch_size=10, prepare_sample_data=False
         )
 
         # Validate flow execution
@@ -391,7 +383,7 @@ class TestDistributedSurveyProcessing:
             """INSERT INTO processing_queue
                (flow_name, payload, status, completed_at, created_at, updated_at)
                VALUES ('survey_processor', '{"test": "old_record"}', 'completed', %s, %s, %s)""",  # noqa E501
-            (old_timestamp, old_timestamp, old_timestamp)
+            (old_timestamp, old_timestamp, old_timestamp),
         )
 
         # Insert old processed_surveys record
@@ -400,7 +392,7 @@ class TestDistributedSurveyProcessing:
                (survey_id, customer_id, customer_name, survey_type, processing_status, processed_at)
                VALUES ('OLD-SURVEY-001', 'OLD-CUST-001', 'Old Customer', 'Old Survey', 'completed', %s)
                """,  # noqa E501
-            (old_timestamp,)
+            (old_timestamp,),
         )
 
         # Run cleanup
@@ -435,7 +427,9 @@ class TestDistributedSurveyProcessing:
         batch1_ids = {record["id"] for record in batch1}
         batch2_ids = {record["id"] for record in batch2}
 
-        assert len(batch1_ids.intersection(batch2_ids)) == 0, "Duplicate records claimed by different processors"  # noqa E501
+        assert len(batch1_ids.intersection(batch2_ids)) == 0, (
+            "Duplicate records claimed by different processors"
+        )  # noqa E501
 
         # Verify total claimed records don't exceed available records
         total_claimed = len(batch1) + len(batch2)
@@ -451,8 +445,8 @@ class TestDistributedSurveyProcessing:
             "survey_type": "Failing Survey",
             "response_data": {
                 "overall_satisfaction": "invalid_number",  # This will cause an error
-                "likelihood_to_recommend": 8
-            }
+                "likelihood_to_recommend": 8,
+            },
         }
 
         # Processing should fail and raise an exception
@@ -462,7 +456,7 @@ class TestDistributedSurveyProcessing:
         # Verify that a failure record was stored in the database
         failure_records = self.rpa_db.execute_query(
             "SELECT * FROM processed_surveys WHERE survey_id = 'TEST-FAIL-001' AND processing_status = 'failed'",  # noqa E501
-            {}
+            {},
         )
 
         assert len(failure_records) == 1
@@ -480,7 +474,9 @@ class TestDistributedSurveyProcessing:
 
         # Mark one as completed and one as failed
         if len(claimed_records) >= 2:
-            self.processor.mark_record_completed(claimed_records[0]["id"], {"test": "completed"})  # noqa E501
+            self.processor.mark_record_completed(
+                claimed_records[0]["id"], {"test": "completed"}
+            )  # noqa E501
             self.processor.mark_record_failed(claimed_records[1]["id"], "Test failure")
 
         # Get queue status
@@ -528,14 +524,12 @@ class TestDistributedSurveyProcessingEdgeCases:
         """Test processing when queue is empty."""
         # Ensure queue is empty for this flow
         self.rpa_db.execute_query(
-            "DELETE FROM processing_queue WHERE flow_name = 'empty_test_flow'",
-            {}
+            "DELETE FROM processing_queue WHERE flow_name = 'empty_test_flow'", {}
         )
 
         # Try to process empty queue
         result = distributed_survey_processing_flow.fn(
-            batch_size=10,
-            prepare_sample_data=False
+            batch_size=10, prepare_sample_data=False
         )
 
         # Should complete successfully with no records processed
@@ -553,8 +547,7 @@ class TestDistributedSurveyProcessingEdgeCases:
 
         # Process with large batch size
         result = distributed_survey_processing_flow.fn(
-            batch_size=50,
-            prepare_sample_data=False
+            batch_size=50, prepare_sample_data=False
         )
 
         # Should process up to batch_size records
@@ -569,10 +562,11 @@ class TestDistributedSurveyProcessingEdgeCases:
 
     def test_negative_sample_count_error(self):
         """Test error handling for invalid sample count."""
-        with pytest.raises(ValueError):  # Should fail in prepare_survey_records_for_queue
+        with pytest.raises(
+            ValueError
+        ):  # Should fail in prepare_survey_records_for_queue
             distributed_survey_processing_flow.fn(
-                prepare_sample_data=True,
-                sample_record_count=-5
+                prepare_sample_data=True, sample_record_count=-5
             )
 
 
