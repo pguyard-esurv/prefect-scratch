@@ -115,8 +115,88 @@ def main():
     )
 
     # Status commands
+    subparsers.add_parser("status", help="Show deployment system status")
+
+    # UI Integration commands
     subparsers.add_parser(
-        "status", help="Show deployment system status"
+        "check-ui", help="Check Prefect UI connectivity and accessibility"
+    )
+
+    verify_ui_parser = subparsers.add_parser(
+        "verify-deployment-ui", help="Verify specific deployment appears in UI"
+    )
+    verify_ui_parser.add_argument(
+        "--deployment-name", required=True, help="Deployment name to verify"
+    )
+    verify_ui_parser.add_argument(
+        "--flow-name", required=True, help="Flow name for the deployment"
+    )
+    verify_ui_parser.add_argument(
+        "--timeout", type=int, default=30, help="Timeout in seconds (default: 30)"
+    )
+
+    health_parser = subparsers.add_parser(
+        "check-deployment-health", help="Check health of specific deployment"
+    )
+    health_parser.add_argument(
+        "--deployment-name", required=True, help="Deployment name to check"
+    )
+    health_parser.add_argument(
+        "--flow-name", required=True, help="Flow name for the deployment"
+    )
+
+    subparsers.add_parser(
+        "deployment-status-report",
+        help="Generate comprehensive deployment status report",
+    )
+
+    validate_ui_parser = subparsers.add_parser(
+        "validate-ui", help="Validate all deployments visibility in UI"
+    )
+    validate_ui_parser.add_argument(
+        "--flow-name", help="Validate deployments for specific flow only"
+    )
+
+    subparsers.add_parser("troubleshoot-ui", help="Run UI connectivity troubleshooting")
+
+    troubleshoot_deployment_parser = subparsers.add_parser(
+        "troubleshoot-deployment", help="Troubleshoot specific deployment visibility"
+    )
+    troubleshoot_deployment_parser.add_argument(
+        "--deployment-name", required=True, help="Deployment name to troubleshoot"
+    )
+    troubleshoot_deployment_parser.add_argument(
+        "--flow-name", required=True, help="Flow name for the deployment"
+    )
+
+    wait_ready_parser = subparsers.add_parser(
+        "wait-deployment-ready", help="Wait for deployment to become ready"
+    )
+    wait_ready_parser.add_argument(
+        "--deployment-name", required=True, help="Deployment name to wait for"
+    )
+    wait_ready_parser.add_argument(
+        "--flow-name", required=True, help="Flow name for the deployment"
+    )
+    wait_ready_parser.add_argument(
+        "--timeout", type=int, default=60, help="Timeout in seconds (default: 60)"
+    )
+
+    list_ui_parser = subparsers.add_parser(
+        "list-deployments-ui", help="List all deployments with UI status"
+    )
+    list_ui_parser.add_argument(
+        "--flow-name", help="List deployments for specific flow only"
+    )
+
+    get_url_parser = subparsers.add_parser(
+        "get-deployment-url", help="Get UI URL for specific deployment"
+    )
+    get_url_parser.add_argument(
+        "--deployment-name", required=True, help="Deployment name"
+    )
+    get_url_parser.add_argument(
+        "--flow-name", required=True, help="Flow name for the deployment"
     )
 
     args = parser.parse_args()
@@ -156,6 +236,26 @@ def execute_command(cli: DeploymentCLI, args) -> int:
         return cmd_validate_deployments(cli, args)
     elif args.command == "status":
         return cmd_status(cli, args)
+    elif args.command == "check-ui":
+        return cmd_check_ui(cli, args)
+    elif args.command == "verify-deployment-ui":
+        return cmd_verify_deployment_ui(cli, args)
+    elif args.command == "check-deployment-health":
+        return cmd_check_deployment_health(cli, args)
+    elif args.command == "deployment-status-report":
+        return cmd_deployment_status_report(cli, args)
+    elif args.command == "validate-ui":
+        return cmd_validate_ui(cli, args)
+    elif args.command == "troubleshoot-ui":
+        return cmd_troubleshoot_ui(cli, args)
+    elif args.command == "troubleshoot-deployment":
+        return cmd_troubleshoot_deployment(cli, args)
+    elif args.command == "wait-deployment-ready":
+        return cmd_wait_deployment_ready(cli, args)
+    elif args.command == "list-deployments-ui":
+        return cmd_list_deployments_ui(cli, args)
+    elif args.command == "get-deployment-url":
+        return cmd_get_deployment_url(cli, args)
     else:
         print(f"Unknown command: {args.command}", file=sys.stderr)
         return 1
@@ -335,6 +435,262 @@ def cmd_status(cli: DeploymentCLI, args) -> int:
     print(f"  Available environments: {', '.join(environments)}")
 
     return 0
+
+
+def cmd_check_ui(cli: DeploymentCLI, args) -> int:
+    """Execute check-ui command."""
+    print("Checking Prefect UI connectivity...")
+
+    result = cli.check_ui_connectivity()
+
+    if result["success"]:
+        print(cli.ui_cli.format_connectivity_report(result))
+        return 0 if result["overall_status"] == "healthy" else 1
+    else:
+        print(f"✗ Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+        return 1
+
+
+def cmd_verify_deployment_ui(cli: DeploymentCLI, args) -> int:
+    """Execute verify-deployment-ui command."""
+    print(f"Verifying deployment {args.flow_name}/{args.deployment_name} in UI...")
+
+    result = cli.verify_deployment_in_ui(
+        args.deployment_name, args.flow_name, args.timeout
+    )
+
+    if result["success"]:
+        if result["visible"]:
+            print("✓ Deployment is visible in UI")
+            if result.get("ui_url"):
+                print(f"  URL: {result['ui_url']}")
+            return 0
+        else:
+            print("✗ Deployment not visible in UI")
+            verification = result["verification_result"]
+            if verification.get("error"):
+                print(f"  Error: {verification['error']}")
+            return 1
+    else:
+        print(f"✗ Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+        return 1
+
+
+def cmd_check_deployment_health(cli: DeploymentCLI, args) -> int:
+    """Execute check-deployment-health command."""
+    print(f"Checking health of deployment {args.flow_name}/{args.deployment_name}...")
+
+    result = cli.check_deployment_health(args.deployment_name, args.flow_name)
+
+    if result["success"]:
+        print(cli.ui_cli.format_deployment_health(result))
+        return 0 if result["healthy"] else 1
+    else:
+        print(f"✗ Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+        return 1
+
+
+def cmd_deployment_status_report(cli: DeploymentCLI, args) -> int:
+    """Execute deployment-status-report command."""
+    print("Generating deployment status report...")
+
+    result = cli.get_deployment_status_report()
+
+    if result["success"]:
+        report = result["report"]
+        summary = report["summary"]
+
+        print("\n📊 Deployment Status Report")
+        print(f"  Timestamp: {report['timestamp']}")
+        print(f"  Total Deployments: {summary['total_deployments']}")
+        print(
+            f"  Healthy: {summary['healthy_deployments']} ({summary['health_percentage']:.1f}%)"
+        )
+        print(f"  Unhealthy: {summary['unhealthy_deployments']}")
+        print(f"  API Connected: {'✅' if summary['api_connected'] else '❌'}")
+        print(f"  UI Accessible: {'✅' if summary['ui_accessible'] else '❌'}")
+
+        if report["system_health"]["issues"]:
+            print("\n⚠️  System Issues:")
+            for issue in report["system_health"]["issues"]:
+                print(f"    • {issue}")
+
+        if report["system_health"]["recommendations"]:
+            print("\n💡 Recommendations:")
+            for rec in report["system_health"]["recommendations"][:5]:
+                print(f"    • {rec}")
+
+        return 0 if report["system_health"]["overall_healthy"] else 1
+    else:
+        print(f"✗ Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+        return 1
+
+
+def cmd_validate_ui(cli: DeploymentCLI, args) -> int:
+    """Execute validate-ui command."""
+    flow_name = getattr(args, "flow_name", None)
+    print(
+        f"Validating deployments UI visibility{f' for flow {flow_name}' if flow_name else ''}..."
+    )
+
+    result = cli.validate_deployments_ui(flow_name)
+
+    if result["success"]:
+        validation = result["validation_result"]
+        print("\n🔍 UI Validation Results")
+        print(f"  Total Deployments: {validation['total']}")
+        print(f"  Valid: {validation['valid']}")
+        print(f"  Invalid: {validation['invalid']}")
+
+        if validation["summary"]["common_issues"]:
+            print("\n⚠️  Common Issues:")
+            for issue, count in validation["summary"]["common_issues"].items():
+                print(f"    • {issue} ({count} deployments)")
+
+        return 0 if validation["invalid"] == 0 else 1
+    else:
+        print(f"✗ Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+        return 1
+
+
+def cmd_troubleshoot_ui(cli: DeploymentCLI, args) -> int:
+    """Execute troubleshoot-ui command."""
+    print("Running UI connectivity troubleshooting...")
+
+    result = cli.troubleshoot_connectivity()
+
+    if result["success"]:
+        print(cli.ui_cli.format_troubleshooting_report(result))
+        return 0 if result["severity"] in ["info", "warning"] else 1
+    else:
+        print(f"✗ Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+        return 1
+
+
+def cmd_troubleshoot_deployment(cli: DeploymentCLI, args) -> int:
+    """Execute troubleshoot-deployment command."""
+    print(f"Troubleshooting deployment {args.flow_name}/{args.deployment_name}...")
+
+    result = cli.troubleshoot_deployment_visibility(
+        args.deployment_name, args.flow_name
+    )
+
+    if result["success"]:
+        diagnosis = result["diagnosis"]
+        severity_icons = {"info": "ℹ️", "warning": "⚠️", "error": "❌", "critical": "🚨"}
+        severity = diagnosis["severity"]
+
+        print(
+            f"\n{severity_icons.get(severity, 'ℹ️')} Deployment Troubleshooting ({severity.upper()})"
+        )
+        print(f"  Deployment: {diagnosis['full_name']}")
+
+        if diagnosis["issues_found"]:
+            print("  Issues Found:")
+            for issue in diagnosis["issues_found"]:
+                print(f"    • {issue}")
+
+        if diagnosis["recommendations"]:
+            print("  Recommendations:")
+            for rec in diagnosis["recommendations"]:
+                print(f"    • {rec}")
+
+        return 0 if severity in ["info", "warning"] else 1
+    else:
+        print(f"✗ Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+        return 1
+
+
+def cmd_wait_deployment_ready(cli: DeploymentCLI, args) -> int:
+    """Execute wait-deployment-ready command."""
+    print(
+        f"Waiting for deployment {args.flow_name}/{args.deployment_name} to become ready..."
+    )
+
+    result = cli.wait_for_deployment_ready(
+        args.deployment_name, args.flow_name, args.timeout
+    )
+
+    if result["success"]:
+        wait_result = result["wait_result"]
+        if wait_result["ready"]:
+            print(
+                f"✓ Deployment ready after {wait_result['wait_time_seconds']} seconds"
+            )
+            return 0
+        else:
+            print(f"✗ Deployment not ready after {args.timeout} seconds")
+            if wait_result.get("error"):
+                print(f"  Error: {wait_result['error']}")
+            return 1
+    else:
+        print(f"✗ Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+        return 1
+
+
+def cmd_list_deployments_ui(cli: DeploymentCLI, args) -> int:
+    """Execute list-deployments-ui command."""
+    flow_name = getattr(args, "flow_name", None)
+    print(
+        f"Listing deployments with UI status{f' for flow {flow_name}' if flow_name else ''}..."
+    )
+
+    result = cli.list_deployments_with_ui_status(flow_name)
+
+    if result["success"]:
+        deployments = result["deployments"]
+
+        if not deployments:
+            print("No deployments found")
+            return 0
+
+        print(f"\n📋 Deployments ({result['total_count']} total)")
+
+        headers = ["Flow", "Deployment", "UI Accessible", "Created", "UI URL"]
+        rows = []
+
+        for deployment in deployments:
+            ui_accessible = "✅" if deployment.get("ui_accessible") else "❌"
+            ui_url = deployment.get("ui_url", "N/A")
+            if len(ui_url) > 50:
+                ui_url = ui_url[:47] + "..."
+
+            rows.append(
+                [
+                    deployment["flow_name"],
+                    deployment["name"],
+                    ui_accessible,
+                    (
+                        deployment.get("created", "N/A")[:10]
+                        if deployment.get("created")
+                        else "N/A"
+                    ),
+                    ui_url,
+                ]
+            )
+
+        CLIUtils.print_table(headers, rows)
+        return 0
+    else:
+        print(f"✗ Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+        return 1
+
+
+def cmd_get_deployment_url(cli: DeploymentCLI, args) -> int:
+    """Execute get-deployment-url command."""
+    result = cli.get_deployment_ui_url(args.deployment_name, args.flow_name)
+
+    if result["success"]:
+        if result["ui_url"]:
+            print(f"🔗 UI URL for {args.flow_name}/{args.deployment_name}:")
+            print(f"   {result['ui_url']}")
+            return 0
+        else:
+            print(f"✗ No UI URL available for {args.flow_name}/{args.deployment_name}")
+            return 1
+    else:
+        print(f"✗ Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

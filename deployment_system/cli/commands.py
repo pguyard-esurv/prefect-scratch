@@ -7,15 +7,17 @@ Command-line interface for the deployment system.
 from ..builders import DeploymentBuilder
 from ..config import ConfigurationManager
 from ..discovery import FlowDiscovery
+from .ui_commands import UICLI
 
 
 class DeploymentCLI:
     """Command-line interface for deployment management."""
 
-    def __init__(self):
+    def __init__(self, api_url=None, ui_url=None):
         self.discovery = FlowDiscovery()
         self.config_manager = ConfigurationManager()
         self.builder = DeploymentBuilder(self.config_manager)
+        self.ui_cli = UICLI(api_url, ui_url)
 
     def discover_flows(self) -> list[dict]:
         """Discover and return flow information."""
@@ -114,3 +116,56 @@ class DeploymentCLI:
             }
             for flow in flows
         ]
+
+    # UI Integration Commands
+    def check_ui_connectivity(self) -> dict:
+        """Check Prefect UI connectivity and accessibility."""
+        return self.ui_cli.check_ui_connectivity()
+
+    def verify_deployment_in_ui(
+        self, deployment_name: str, flow_name: str, timeout_seconds: int = 30
+    ) -> dict:
+        """Verify that a specific deployment appears in the Prefect UI."""
+        return self.ui_cli.verify_deployment_in_ui(
+            deployment_name, flow_name, timeout_seconds
+        )
+
+    def check_deployment_health(self, deployment_name: str, flow_name: str) -> dict:
+        """Check comprehensive health of a deployment."""
+        return self.ui_cli.check_deployment_health(deployment_name, flow_name)
+
+    def get_deployment_status_report(self, flow_name: str = None) -> dict:
+        """Generate comprehensive deployment status report."""
+        return self.ui_cli.get_deployment_status_report(flow_name)
+
+    def validate_deployments_ui(self, flow_name: str = None) -> dict:
+        """Validate deployment visibility and correctness in UI."""
+        return self.ui_cli.validate_deployments_ui(flow_name)
+
+    def troubleshoot_connectivity(self) -> dict:
+        """Run comprehensive connectivity troubleshooting."""
+        return self.ui_cli.troubleshoot_connectivity()
+
+    def troubleshoot_deployment_visibility(
+        self, deployment_name: str, flow_name: str
+    ) -> dict:
+        """Troubleshoot why a specific deployment is not visible in UI."""
+        return self.ui_cli.troubleshoot_deployment_visibility(
+            deployment_name, flow_name
+        )
+
+    def wait_for_deployment_ready(
+        self, deployment_name: str, flow_name: str, timeout_seconds: int = 60
+    ) -> dict:
+        """Wait for a deployment to become ready and healthy."""
+        return self.ui_cli.wait_for_deployment_ready(
+            deployment_name, flow_name, timeout_seconds
+        )
+
+    def list_deployments_with_ui_status(self, flow_name: str = None) -> dict:
+        """List all deployments with their UI visibility status."""
+        return self.ui_cli.list_deployments_with_ui_status(flow_name)
+
+    def get_deployment_ui_url(self, deployment_name: str, flow_name: str) -> dict:
+        """Get the direct URL to a deployment in the Prefect UI."""
+        return self.ui_cli.get_deployment_ui_url(deployment_name, flow_name)

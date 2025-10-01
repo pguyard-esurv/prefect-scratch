@@ -362,3 +362,59 @@ deploy-prod-python: ## Deploy Python deployments to production
 
 deploy-prod-containers: ## Deploy container deployments to production
 	uv run python -m deployment_system.cli.main deploy-prod --type docker
+
+# UI Integration and Verification Commands
+check-ui: ## Check Prefect UI connectivity and accessibility
+	uv run python -m deployment_system.cli.main check-ui
+
+verify-deployment-ui: ## Verify specific deployment appears in UI (requires DEPLOYMENT_NAME and FLOW_NAME)
+	@if [ -z "$(DEPLOYMENT_NAME)" ] || [ -z "$(FLOW_NAME)" ]; then \
+		echo "Error: Please specify DEPLOYMENT_NAME and FLOW_NAME"; \
+		echo "Usage: make verify-deployment-ui DEPLOYMENT_NAME=my-deployment FLOW_NAME=my-flow"; \
+		exit 1; \
+	fi
+	uv run python -m deployment_system.cli.main verify-deployment-ui --deployment-name "$(DEPLOYMENT_NAME)" --flow-name "$(FLOW_NAME)"
+
+check-deployment-health: ## Check health of specific deployment (requires DEPLOYMENT_NAME and FLOW_NAME)
+	@if [ -z "$(DEPLOYMENT_NAME)" ] || [ -z "$(FLOW_NAME)" ]; then \
+		echo "Error: Please specify DEPLOYMENT_NAME and FLOW_NAME"; \
+		echo "Usage: make check-deployment-health DEPLOYMENT_NAME=my-deployment FLOW_NAME=my-flow"; \
+		exit 1; \
+	fi
+	uv run python -m deployment_system.cli.main check-deployment-health --deployment-name "$(DEPLOYMENT_NAME)" --flow-name "$(FLOW_NAME)"
+
+deployment-status-report: ## Generate comprehensive deployment status report
+	uv run python -m deployment_system.cli.main deployment-status-report
+
+validate-ui: ## Validate all deployments visibility in UI
+	uv run python -m deployment_system.cli.main validate-ui
+
+troubleshoot-ui: ## Run UI connectivity troubleshooting
+	uv run python -m deployment_system.cli.main troubleshoot-ui
+
+troubleshoot-deployment: ## Troubleshoot specific deployment visibility (requires DEPLOYMENT_NAME and FLOW_NAME)
+	@if [ -z "$(DEPLOYMENT_NAME)" ] || [ -z "$(FLOW_NAME)" ]; then \
+		echo "Error: Please specify DEPLOYMENT_NAME and FLOW_NAME"; \
+		echo "Usage: make troubleshoot-deployment DEPLOYMENT_NAME=my-deployment FLOW_NAME=my-flow"; \
+		exit 1; \
+	fi
+	uv run python -m deployment_system.cli.main troubleshoot-deployment --deployment-name "$(DEPLOYMENT_NAME)" --flow-name "$(FLOW_NAME)"
+
+wait-deployment-ready: ## Wait for deployment to become ready (requires DEPLOYMENT_NAME and FLOW_NAME)
+	@if [ -z "$(DEPLOYMENT_NAME)" ] || [ -z "$(FLOW_NAME)" ]; then \
+		echo "Error: Please specify DEPLOYMENT_NAME and FLOW_NAME"; \
+		echo "Usage: make wait-deployment-ready DEPLOYMENT_NAME=my-deployment FLOW_NAME=my-flow"; \
+		exit 1; \
+	fi
+	uv run python -m deployment_system.cli.main wait-deployment-ready --deployment-name "$(DEPLOYMENT_NAME)" --flow-name "$(FLOW_NAME)"
+
+list-deployments-ui: ## List all deployments with UI status
+	uv run python -m deployment_system.cli.main list-deployments-ui
+
+get-deployment-url: ## Get UI URL for specific deployment (requires DEPLOYMENT_NAME and FLOW_NAME)
+	@if [ -z "$(DEPLOYMENT_NAME)" ] || [ -z "$(FLOW_NAME)" ]; then \
+		echo "Error: Please specify DEPLOYMENT_NAME and FLOW_NAME"; \
+		echo "Usage: make get-deployment-url DEPLOYMENT_NAME=my-deployment FLOW_NAME=my-flow"; \
+		exit 1; \
+	fi
+	uv run python -m deployment_system.cli.main get-deployment-url --deployment-name "$(DEPLOYMENT_NAME)" --flow-name "$(FLOW_NAME)"

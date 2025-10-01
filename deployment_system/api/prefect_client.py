@@ -24,10 +24,9 @@ class PrefectClient:
     async def get_client(self):
         """Get or create Prefect client."""
         if self._client is None:
-            if self.api_url:
-                self._client = get_client(api_url=self.api_url)
-            else:
-                self._client = get_client()
+            # Note: In Prefect 3.x, get_client() doesn't take api_url parameter
+            # The API URL should be set via PREFECT_API_URL environment variable
+            self._client = get_client()
         return self._client
 
     async def create_deployment(
