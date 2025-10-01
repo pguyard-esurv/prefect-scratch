@@ -1,0 +1,57 @@
+# Python Production Environment Template
+# Optimized for production environment with reliability and monitoring
+
+work_pool: "prod-agent-pool"
+
+job_variables:
+  env:
+    PREFECT_API_URL: "http://prod-prefect:4200/api"
+    PYTHONPATH: "/app"
+    PREFECT_LOGGING_LEVEL: "INFO"
+    ENVIRONMENT: "production"
+    FLOW_NAME: "${flow.name}"
+    DEPLOYMENT_TYPE: "python"
+    
+  # Production-specific settings
+  python_executable: "python"
+  working_directory: "/app"
+  
+  # Stable dependency installation
+  pip_install_requirements: "${flow.dependencies}"
+  pip_extra_args: "--no-deps --only-binary=all"
+  
+  # Health check configuration
+  health_check_enabled: true
+  health_check_interval: 300  # 5 minutes
+
+parameters:
+  cleanup: false
+  use_distributed: true
+  monitoring_enabled: true
+  log_level: "INFO"
+
+tags:
+  - "environment:production"
+  - "type:python"
+  - "flow:${flow.name}"
+  - "runtime:python"
+  - "production-ready"
+
+# Production schedule (if applicable)
+schedule: null
+
+# Production resource limits
+resource_limits:
+  memory: "2Gi"
+  cpu: "2.0"
+
+# Conservative retry policy for production
+retry_policy:
+  max_retries: 5
+  retry_delay_seconds: 300  # 5 minutes
+
+# Production monitoring
+monitoring:
+  metrics_enabled: true
+  alerts_enabled: true
+  performance_tracking: true

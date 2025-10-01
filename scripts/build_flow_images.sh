@@ -42,7 +42,7 @@ check_base_image() {
 # Function to build a single flow image
 build_flow_image() {
     local flow_name="$1"
-    local dockerfile="Dockerfile.flow${flow_name#rpa}"
+    local dockerfile="flows/${flow_name}/Dockerfile"
     local image_name="${FLOW_IMAGE_PREFIX}-${flow_name}"
     local image_tag="${FLOW_IMAGE_TAG:-latest}"
     

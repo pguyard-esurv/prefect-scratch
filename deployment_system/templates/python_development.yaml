@@ -1,0 +1,49 @@
+# Python Development Environment Template
+# Optimized for development environment with debugging and fast iteration
+
+work_pool: "default-agent-pool"
+
+job_variables:
+  env:
+    PREFECT_API_URL: "http://localhost:4200/api"
+    PYTHONPATH: "/app"
+    PREFECT_LOGGING_LEVEL: "DEBUG"
+    ENVIRONMENT: "development"
+    FLOW_NAME: "${flow.name}"
+    DEPLOYMENT_TYPE: "python"
+    DEBUG: "true"
+    
+  # Development-specific settings
+  python_executable: "python"
+  working_directory: "/app"
+  reload_on_change: true
+  
+  # Fast dependency installation
+  pip_install_requirements: "${flow.dependencies}"
+  pip_extra_args: "--no-cache-dir --upgrade"
+
+parameters:
+  cleanup: true
+  use_distributed: false
+  debug_mode: true
+  log_level: "DEBUG"
+
+tags:
+  - "environment:development"
+  - "type:python"
+  - "flow:${flow.name}"
+  - "runtime:python"
+  - "debug-enabled"
+
+# No schedule for development (manual runs)
+schedule: null
+
+# Minimal resource limits for development
+resource_limits:
+  memory: "512Mi"
+  cpu: "0.5"
+
+# Aggressive retry for development testing
+retry_policy:
+  max_retries: 1
+  retry_delay_seconds: 10

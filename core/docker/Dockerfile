@@ -32,10 +32,13 @@ RUN groupadd --gid 1000 rpauser && \
 WORKDIR /app
 
 # Copy dependency files first for better caching
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 
 # Install Python dependencies using uv
 RUN uv sync --frozen --no-dev
+
+# Add /app to Python path for proper module imports
+ENV PYTHONPATH="/app:${PYTHONPATH}"
 
 # Copy core modules (stable components)
 COPY core/ ./core/
@@ -43,6 +46,7 @@ COPY conftest.py ./
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /app/logs /app/data /app/output && \
+    chmod 755 /app/logs /app/data /app/output && \
     chown -R rpauser:rpauser /app
 
 # Add health check script
@@ -54,7 +58,7 @@ USER rpauser
 
 # Health check configuration
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python scripts/health_check.py || exit 1
+    CMD uv run python scripts/health_check.py || exit 1
 
 # Default command (to be overridden by flow images)
 CMD ["python", "-c", "print('Base image ready')"]

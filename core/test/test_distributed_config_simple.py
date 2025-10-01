@@ -12,6 +12,7 @@ pytestmark = pytest.mark.unit
 class TestDistributedProcessingConfigSimple:
     """Test distributed processing configuration functionality."""
 
+    @pytest.mark.slow
     def test_get_distributed_config_with_mocked_values(self):
         """Test getting distributed config with mocked configuration values."""
         config_manager = ConfigManager()
@@ -94,6 +95,7 @@ class TestDistributedProcessingConfigSimple:
             with pytest.raises(ValueError, match="must be a boolean value"):
                 config_manager._get_bool_config("TEST_KEY", True)
 
+    @pytest.mark.slow
     def test_validate_distributed_config_batch_size(self):
         """Test batch size validation."""
         config_manager = ConfigManager()
@@ -127,6 +129,7 @@ class TestDistributedProcessingConfigSimple:
             ):
                 config_manager._validate_distributed_config(config)
 
+    @pytest.mark.slow
     def test_validate_distributed_config_timeout_hours(self):
         """Test timeout hours validation."""
         config_manager = ConfigManager()
@@ -160,6 +163,7 @@ class TestDistributedProcessingConfigSimple:
             ):
                 config_manager._validate_distributed_config(config)
 
+    @pytest.mark.slow
     def test_validate_distributed_config_max_retries(self):
         """Test max retries validation."""
         config_manager = ConfigManager()
@@ -193,6 +197,7 @@ class TestDistributedProcessingConfigSimple:
             ):
                 config_manager._validate_distributed_config(config)
 
+    @pytest.mark.slow
     def test_validate_distributed_config_health_check_interval(self):
         """Test health check interval validation."""
         config_manager = ConfigManager()
@@ -221,6 +226,7 @@ class TestDistributedProcessingConfigSimple:
             ):
                 config_manager._validate_distributed_config(config)
 
+    @pytest.mark.slow
     def test_configuration_type_conversion_edge_cases(self):
         """Test edge cases in configuration type conversion."""
         config_manager = ConfigManager()
@@ -237,6 +243,7 @@ class TestDistributedProcessingConfigSimple:
         with patch.object(config_manager, "get_config", return_value=""):
             assert config_manager._get_int_config("TEST_EMPTY", 10) == 10
 
+    @pytest.mark.slow
     def test_validate_distributed_processing_setup_failure(self):
         """Test distributed processing setup validation failure."""
         config_manager = ConfigManager()

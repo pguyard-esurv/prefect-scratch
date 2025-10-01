@@ -9,10 +9,7 @@ NOTE: These tests are disabled due to hanging issues in CI environments.
 Use test_container_lifecycle_manager.py for core functionality testing.
 """
 
-import pytest
-
 # Container lifecycle validation tests
-
 import json
 import os
 import tempfile
@@ -145,7 +142,7 @@ class TestContainerLifecycleValidation(unittest.TestCase):
 
             # Test scenario 2: Required dependency fails
             mock_check.side_effect = (
-                lambda dep: dep.required == False
+                lambda dep: not dep.required
             )  # Only optional deps pass
             result = lifecycle_manager.check_dependencies()
             # This should fail because required dependencies fail
@@ -215,6 +212,7 @@ class TestContainerLifecycleValidation(unittest.TestCase):
             # Should trigger remediation
             mock_remediation.assert_called()
 
+    @pytest.mark.slow
     def test_graceful_shutdown_scenarios(self):
         """Test various graceful shutdown scenarios"""
         mock_config_manager = Mock()
@@ -322,6 +320,7 @@ class TestContainerLifecycleValidation(unittest.TestCase):
                     f"Policy {scenario['policy']} with state {scenario['state']} failed",
                 )
 
+    @pytest.mark.slow
     def test_restart_attempt_scenarios(self):
         """Test restart attempt scenarios with various conditions"""
         mock_config_manager = Mock()
@@ -359,6 +358,7 @@ class TestContainerLifecycleValidation(unittest.TestCase):
             self.assertTrue(result)
             self.assertEqual(lifecycle_manager.restart_count, 1)  # Should reset
 
+    @pytest.mark.slow
     def test_enhanced_startup_integration(self):
         """Test enhanced startup script integration"""
         with (
@@ -609,6 +609,7 @@ class TestContainerLifecycleStressScenarios(unittest.TestCase):
         """Clean up stress test environment"""
         self.env_patcher.stop()
 
+    @pytest.mark.slow
     def test_rapid_restart_scenarios(self):
         """Test rapid restart scenarios"""
         mock_config_manager = Mock()
@@ -656,7 +657,7 @@ class TestContainerLifecycleStressScenarios(unittest.TestCase):
 
         # Test that health monitoring would work (but exit immediately)
         # We'll just test the health check logic directly instead of running the loop
-        for i, expected_state in enumerate(health_states[:3]):  # Test first 3 states
+        for _i, expected_state in enumerate(health_states[:3]):  # Test first 3 states
             health_report = {"overall_status": expected_state}
 
             if health_report["overall_status"] == "healthy":

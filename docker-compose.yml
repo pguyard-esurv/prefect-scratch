@@ -40,7 +40,7 @@ services:
 
   # Prefect Server
   prefect-server:
-    image: prefecthq/prefect:2.14-python3.11
+    image: prefecthq/prefect:3.4-python3.11
     container_name: rpa-prefect-server
     command: prefect server start --host 0.0.0.0 --port 4200
     environment:
@@ -60,7 +60,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:4200/api/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          'python -c ''import urllib.request; urllib.request.urlopen("http://localhost:4200/api/health")'' || exit 1',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -78,7 +82,7 @@ services:
   rpa1-worker:
     build:
       context: .
-      dockerfile: Dockerfile.flow1
+      dockerfile: flows/rpa1/Dockerfile
       args:
         BASE_IMAGE: rpa-base:latest
     container_name: rpa-rpa1-worker
@@ -89,8 +93,10 @@ services:
       CONTAINER_WORKER_ID: rpa1-worker-1
 
       # Database connections
-      CONTAINER_RPA_DB_CONNECTION_STRING: postgresql://rpa_user:${POSTGRES_PASSWORD:-rpa_dev_password}@postgres:5432/rpa_db
-      CONTAINER_SURVEYHUB_CONNECTION_STRING: ${SURVEYHUB_CONNECTION_STRING:-}
+      CONTAINER_DATABASE_RPA_DB_CONNECTION_STRING: postgresql://rpa_user:${POSTGRES_PASSWORD:-rpa_dev_password}@postgres:5432/rpa_db
+      CONTAINER_DATABASE_RPA_DB_TYPE: postgresql
+      CONTAINER_DATABASE_SURVEYHUB_CONNECTION_STRING: ${SURVEYHUB_CONNECTION_STRING:-}
+      CONTAINER_DATABASE_SURVEYHUB_TYPE: sqlserver
 
       # Prefect configuration
       CONTAINER_PREFECT_API_URL: http://prefect-server:4200/api
@@ -121,7 +127,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "python /app/scripts/health_check.py --flow=rpa1 --quick-check",
+          "uv run uv run python /app/scripts/health_check.py --flow=rpa1 --quick-check",
         ]
       interval: 30s
       timeout: 15s
@@ -140,7 +146,7 @@ services:
   rpa2-worker:
     build:
       context: .
-      dockerfile: Dockerfile.flow2
+      dockerfile: flows/rpa2/Dockerfile
       args:
         BASE_IMAGE: rpa-base:latest
     container_name: rpa-rpa2-worker
@@ -183,7 +189,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "python /app/scripts/health_check.py --flow=rpa2 --quick-check",
+          "uv run python /app/scripts/health_check.py --flow=rpa2 --quick-check",
         ]
       interval: 30s
       timeout: 15s
@@ -202,7 +208,7 @@ services:
   rpa3-worker:
     build:
       context: .
-      dockerfile: Dockerfile.flow3
+      dockerfile: flows/rpa3/Dockerfile
       args:
         BASE_IMAGE: rpa-base:latest
     container_name: rpa-rpa3-worker
@@ -246,7 +252,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "python /app/scripts/health_check.py --flow=rpa3 --quick-check",
+          "uv run python /app/scripts/health_check.py --flow=rpa3 --quick-check",
         ]
       interval: 30s
       timeout: 15s
@@ -265,7 +271,7 @@ services:
   rpa1-worker-2:
     build:
       context: .
-      dockerfile: Dockerfile.flow1
+      dockerfile: flows/rpa1/Dockerfile
       args:
         BASE_IMAGE: rpa-base:latest
     container_name: rpa-rpa1-worker-2
@@ -310,7 +316,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "python /app/scripts/health_check.py --flow=rpa1 --quick-check",
+          "uv run python /app/scripts/health_check.py --flow=rpa1 --quick-check",
         ]
       interval: 30s
       timeout: 15s

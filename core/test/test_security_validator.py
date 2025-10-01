@@ -13,6 +13,8 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pytest
+
 from core.security_validator import (
     SecurityLevel,
     SecurityResult,
@@ -664,6 +666,9 @@ class TestSecurityValidatorIntegration(unittest.TestCase):
             enable_vulnerability_scanning=False,  # Disable for faster tests
             enable_network_validation=True,
         )
+
+    @pytest.mark.slow
+
 
     def test_real_user_permissions_check(self):
         """Test real user permissions checking (non-mocked)."""

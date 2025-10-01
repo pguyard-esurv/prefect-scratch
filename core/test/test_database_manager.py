@@ -1072,8 +1072,9 @@ class TestDatabaseManagerMigrations:
     @patch("core.database.ConfigManager")
     @patch("core.database.create_engine")
     @patch("core.database.Migrate")
+    @patch("core.database.ConfigFile")
     def test_run_migrations_success(
-        self, mock_pyway_class, mock_create_engine, mock_config_class
+        self, mock_config_file_class, mock_pyway_class, mock_create_engine, mock_config_class
     ):
         """Test successful migration execution."""
         # Setup mocks
@@ -1090,6 +1091,10 @@ class TestDatabaseManagerMigrations:
         mock_engine = Mock()
         mock_engine.url = "postgresql://user:pass@localhost:5432/test_db"
         mock_create_engine.return_value = mock_engine
+
+        # Setup ConfigFile mock
+        mock_config_file = Mock()
+        mock_config_file_class.return_value = mock_config_file
 
         # Setup Pyway mock
         mock_pyway = Mock()
@@ -1112,12 +1117,20 @@ class TestDatabaseManagerMigrations:
         ):
             db_manager.run_migrations()
 
-            # Verify Pyway was initialized correctly
-            mock_pyway_class.assert_called_once_with(
-                database_url="postgresql://user:pass@localhost:5432/test_db",
-                migration_dir=str(mock_migration_dir),
-                schema_version_table="schema_version",
+            # Verify ConfigFile was created correctly
+            mock_config_file_class.assert_called_once_with(
+                database_type="postgresql",
+                database_host="localhost",
+                database_port=5432,
+                database_name="test_db",
+                database_username="user",
+                database_password="pass",
+                database_migration_dir=str(mock_migration_dir),
+                database_table="schema_version"
             )
+
+            # Verify Pyway was initialized with ConfigFile
+            mock_pyway_class.assert_called_once_with(mock_config_file)
 
             # Verify migrate was called
             mock_pyway.migrate.assert_called_once()

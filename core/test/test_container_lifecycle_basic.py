@@ -15,7 +15,6 @@ from core.container_lifecycle_manager import (
     DependencyCheck,
     LifecycleEvent,
     RestartPolicy,
-    StartupValidationResult,
 )
 
 

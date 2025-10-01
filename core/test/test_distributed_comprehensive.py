@@ -243,6 +243,7 @@ class TestDistributedProcessorIntegration:
             rpa_db_manager=self.rpa_db, config_manager=self.config_manager
         )
 
+    @pytest.mark.slow
     def test_multi_container_record_claiming(self):
         """Test that multiple containers don't claim the same records."""
         # Create multiple processor instances (simulating containers)
@@ -310,6 +311,7 @@ class TestDistributedProcessorIntegration:
         assert status["completed_records"] == 5
         assert status["failed_records"] == 5
 
+    @pytest.mark.slow
     def test_orphaned_record_cleanup_integration(self):
         """Test orphaned record cleanup in integration environment."""
         # Add and claim records
@@ -376,6 +378,7 @@ class TestConcurrentProcessing:
         claimed_ids = [r[0]["id"] for r in non_empty_results]
         assert len(set(claimed_ids)) == 2
 
+    @pytest.mark.slow
     def test_concurrent_status_updates_thread_safety(self):
         """Test thread safety of concurrent status updates."""
         # Mock successful updates
@@ -455,6 +458,7 @@ class TestDistributedProcessorPerformance:
 
         self.processor = DistributedProcessor(rpa_db_manager=self.mock_rpa_db)
 
+    @pytest.mark.slow
     def test_batch_processing_performance(self):
         """Test performance of batch processing operations."""
         # Mock large batch response
@@ -562,6 +566,7 @@ class TestDistributedProcessorPerformance:
         # Memory increase should be reasonable (less than 100MB for this test)
         assert memory_increase < 100 * 1024 * 1024
 
+    @pytest.mark.slow
     def test_throughput_measurement(self):
         """Test processing throughput measurement."""
         # Mock fast database responses
@@ -639,6 +644,7 @@ class TestChaosEngineering:
         assert successful_operations > 0
         assert failed_operations > 0
 
+    @pytest.mark.slow
     def test_container_instance_isolation(self):
         """Test that container instances are properly isolated."""
         # Create multiple processor instances with different instance IDs
@@ -675,6 +681,7 @@ class TestChaosEngineering:
         # Verify appropriate error handling
         self.mock_rpa_db.logger.error.assert_called()
 
+    @pytest.mark.slow
     def test_resource_exhaustion_handling(self):
         """Test handling of resource exhaustion scenarios."""
         # Simulate memory pressure
@@ -692,6 +699,7 @@ class TestChaosEngineering:
         with pytest.raises(RuntimeError):
             self.processor.get_queue_status()
 
+    @pytest.mark.slow
     def test_concurrent_container_failures(self):
         """Test system behavior when containers fail concurrently."""
         # Simulate multiple containers processing
@@ -746,6 +754,7 @@ class TestFlowTemplateComprehensive:
         self.mock_processor.config = {"default_batch_size": 100}
 
     @patch("core.flow_template.processor")
+    @pytest.mark.slow
     def test_distributed_flow_comprehensive(self, mock_processor):
         """Test comprehensive distributed flow scenarios."""
         mock_processor.instance_id = "test-instance-123"

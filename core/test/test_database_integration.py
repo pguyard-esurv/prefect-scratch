@@ -120,6 +120,7 @@ class TestPostgreSQLIntegration:
                 assert results[0]["username"] == "testuser1"
                 assert results[0]["email"] == "test1@example.com"
 
+    @pytest.mark.slow
     def test_postgresql_transaction_integration(
         self, postgresql_connection_string, setup_postgresql_test_table
     ):
@@ -161,6 +162,7 @@ class TestPostgreSQLIntegration:
                 for result in verification_results:
                     assert result["status"] == "verified"
 
+    @pytest.mark.slow
     def test_postgresql_connection_pool_integration(self, postgresql_connection_string):
         """Test PostgreSQL connection pool functionality."""
         with patch("core.database.ConfigManager") as mock_config_class:
@@ -313,6 +315,7 @@ class TestSQLServerIntegration:
                 assert results[0]["username"] == "testuser1"
                 assert results[0]["email"] == "test1@example.com"
 
+    @pytest.mark.slow
     def test_sqlserver_transaction_integration(
         self, sqlserver_connection_string, setup_sqlserver_test_table
     ):
@@ -410,6 +413,7 @@ UPDATE integration_migration_test SET status = 'active' WHERE status IS NULL;
         not os.getenv("POSTGRES_TEST_HOST"),
         reason="PostgreSQL integration test requires POSTGRES_TEST_HOST",
     )
+    @pytest.mark.slow
     def test_postgresql_migration_integration(self):
         """Test migration execution with actual PostgreSQL database."""
         # Setup PostgreSQL connection
@@ -515,6 +519,7 @@ class TestDatabaseFailureScenarios:
                 with pytest.raises(RuntimeError, match="Query execution failed"):
                     db_manager.execute_query("SELECT 1")
 
+    @pytest.mark.slow
     def test_retry_logic_integration(self):
         """Test retry logic with simulated transient failures."""
         # This test would require a way to simulate transient failures

@@ -15,6 +15,8 @@ import unittest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
+import pytest
+
 from core.container_lifecycle_manager import (
     ContainerLifecycleManager,
     ContainerState,
@@ -164,6 +166,7 @@ class TestContainerLifecycleManager(unittest.TestCase):
 
         self.assertIn(check, self.lifecycle_manager.dependency_checks)
 
+    @pytest.mark.slow
     def test_check_dependencies_success(self):
         """Test successful dependency checking"""
         # Add mock dependency checks
@@ -188,6 +191,7 @@ class TestContainerLifecycleManager(unittest.TestCase):
 
         self.assertTrue(result)
 
+    @pytest.mark.slow
     def test_check_dependencies_required_failure(self):
         """Test dependency checking with required dependency failure"""
         fail_check = DependencyCheck(
@@ -203,6 +207,7 @@ class TestContainerLifecycleManager(unittest.TestCase):
 
         self.assertFalse(result)
 
+    @pytest.mark.slow
     def test_check_dependencies_with_retry(self):
         """Test dependency checking with retry logic"""
         call_count = 0
@@ -242,6 +247,7 @@ class TestContainerLifecycleManager(unittest.TestCase):
         self.assertIsNotNone(self.lifecycle_manager.health_monitor)
 
     @patch("core.container_lifecycle_manager.HealthMonitor")
+    @pytest.mark.slow
     def test_initialize_health_monitoring_failure(self, mock_health_monitor_class):
         """Test health monitoring initialization failure"""
         mock_health_monitor_class.side_effect = Exception("Health monitor init failed")
@@ -251,6 +257,7 @@ class TestContainerLifecycleManager(unittest.TestCase):
         self.assertFalse(result)
         self.assertIsNone(self.lifecycle_manager.health_monitor)
 
+    @pytest.mark.slow
     def test_startup_success(self):
         """Test successful container startup"""
         # Mock all startup components
@@ -399,6 +406,7 @@ class TestContainerLifecycleManager(unittest.TestCase):
         self.assertEqual(self.lifecycle_manager.state, ContainerState.STOPPED)
         self.assertEqual(self.lifecycle_manager.metrics.graceful_shutdowns, 1)
 
+    @pytest.mark.slow
     def test_graceful_shutdown_timeout(self):
         """Test graceful shutdown with timeout"""
         self.lifecycle_manager.state = ContainerState.RUNNING
@@ -477,6 +485,7 @@ class TestContainerLifecycleManager(unittest.TestCase):
 
         self.assertEqual(delay, 60)  # Should be capped at max_delay_seconds
 
+    @pytest.mark.slow
     def test_restart_attempt_success(self):
         """Test successful restart attempt"""
         self.lifecycle_manager.restart_config.max_restart_attempts = 3
@@ -499,6 +508,7 @@ class TestContainerLifecycleManager(unittest.TestCase):
 
         self.assertFalse(result)
 
+    @pytest.mark.slow
     def test_restart_count_reset_outside_window(self):
         """Test restart count reset when outside restart window"""
         self.lifecycle_manager.restart_config.restart_window_minutes = 5
@@ -685,6 +695,7 @@ class TestContainerLifecycleIntegration(unittest.TestCase):
 
     @patch("core.container_lifecycle_manager.ServiceOrchestrator")
     @patch("core.container_lifecycle_manager.HealthMonitor")
+    @pytest.mark.slow
     def test_complete_lifecycle_flow(
         self, mock_health_monitor_class, mock_service_orchestrator_class
     ):

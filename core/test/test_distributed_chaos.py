@@ -204,6 +204,7 @@ class TestNetworkFailureScenarios:
             # Verify error logging
             self.mock_rpa_db.logger.error.assert_called()
 
+    @pytest.mark.slow
     def test_slow_network_conditions(self):
         """Test behavior under slow network conditions."""
 
@@ -223,6 +224,7 @@ class TestNetworkFailureScenarios:
         assert len(records) == 1  # Mock returns 1 record
         assert elapsed_time >= 0.1  # Should take at least 100ms due to delay
 
+    @pytest.mark.slow
     def test_network_jitter_simulation(self):
         """Test behavior with network jitter (variable delays)."""
 
@@ -272,6 +274,7 @@ class TestContainerFailureScenarios:
 
         self.processor = DistributedProcessor(rpa_db_manager=self.mock_rpa_db)
 
+    @pytest.mark.slow
     def test_container_instance_isolation(self):
         """Test that container instances are properly isolated."""
         # Create multiple processor instances (simulating containers)
@@ -295,6 +298,7 @@ class TestContainerFailureScenarios:
             call_args = self.mock_rpa_db.execute_query.call_args
             assert call_args[0][1]["instance_id"] == processor.instance_id
 
+    @pytest.mark.slow
     def test_concurrent_container_failures(self):
         """Test system behavior when multiple containers fail simultaneously."""
         # Create multiple processors
@@ -343,6 +347,7 @@ class TestContainerFailureScenarios:
                 f"Container {container_id} should process 1 record"
             )
 
+    @pytest.mark.slow
     def test_container_restart_simulation(self):
         """Test behavior during container restart scenarios."""
         # Simulate container lifecycle: start -> process -> crash -> restart
@@ -446,6 +451,7 @@ class TestResourceExhaustionScenarios:
                 records = [{"payload": {"data": "test"}}]
                 self.processor.add_records_to_queue("disk_test", records)
 
+    @pytest.mark.slow
     def test_cpu_exhaustion_simulation(self):
         """Test behavior under high CPU load conditions."""
 

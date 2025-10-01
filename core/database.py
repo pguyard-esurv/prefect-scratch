@@ -9,6 +9,9 @@ database types using SQLAlchemy and Pyway.
 import logging
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlparse
+
+from pyway.configfile import ConfigFile
 
 # Migration-related imports
 from pyway.migrate import Migrate
@@ -500,15 +503,24 @@ class DatabaseManager:
                 f"using directory: {migration_dir}"
             )
 
-            # Get database URL from engine
+            # Get database URL from engine and parse it
             database_url = str(self.db_engine.url)
+            parsed_url = urlparse(database_url)
 
-            # Initialize Pyway instance
-            pyway = Migrate(
-                database_url=database_url,
-                migration_dir=str(migration_dir),
-                schema_version_table="schema_version",
+            # Create ConfigFile with parsed database parameters
+            config = ConfigFile(
+                database_type=parsed_url.scheme,
+                database_host=parsed_url.hostname,
+                database_port=parsed_url.port,
+                database_name=parsed_url.path.lstrip('/'),
+                database_username=parsed_url.username,
+                database_password=parsed_url.password,
+                database_migration_dir=str(migration_dir),
+                database_table="schema_version"
             )
+
+            # Initialize Pyway instance with ConfigFile
+            pyway = Migrate(config)
 
             # Execute migrations
             migration_result = pyway.migrate()
@@ -583,15 +595,24 @@ class DatabaseManager:
                 )
                 return status
 
-            # Get database URL from engine
+            # Get database URL from engine and parse it
             database_url = str(self.db_engine.url)
+            parsed_url = urlparse(database_url)
 
-            # Initialize Pyway instance
-            pyway = Migrate(
-                database_url=database_url,
-                migration_dir=str(migration_dir),
-                schema_version_table="schema_version",
+            # Create ConfigFile with parsed database parameters
+            config = ConfigFile(
+                database_type=parsed_url.scheme,
+                database_host=parsed_url.hostname,
+                database_port=parsed_url.port,
+                database_name=parsed_url.path.lstrip('/'),
+                database_username=parsed_url.username,
+                database_password=parsed_url.password,
+                database_migration_dir=str(migration_dir),
+                database_table="schema_version"
             )
+
+            # Initialize Pyway instance with ConfigFile
+            pyway = Migrate(config)
 
             # Get current migration info
             try:

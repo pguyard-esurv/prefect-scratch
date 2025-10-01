@@ -1,0 +1,58 @@
+# prefect.yaml
+deployments:
+  - name: rpa1-docker
+    entrypoint: flows/rpa1/workflow.py:rpa1_workflow
+    work_pool:
+      name: docker-pool
+    job_configuration:
+        image: rpa1-worker:latest
+        env:
+          PREFECT_API_URL: http://prefect-server:4200/api
+          PYTHONPATH: /app
+        volumes:
+          - source: ./flows/rpa1/data
+            target: /app/flows/rpa1/data
+            type: bind
+          - source: ./flows/rpa1/output
+            target: /app/flows/rpa1/output
+            type: bind
+        networks:
+          - rpa-network
+
+  - name: rpa2-docker
+    entrypoint: flows/rpa2/workflow.py:rpa2_workflow
+    work_pool:
+      name: docker-pool
+    job_configuration:
+        image: rpa2-worker:latest
+        env:
+          PREFECT_API_URL: http://prefect-server:4200/api
+          PYTHONPATH: /app
+        volumes:
+          - source: ./flows/rpa2/data
+            target: /app/flows/rpa2/data
+            type: bind
+          - source: ./flows/rpa2/output
+            target: /app/flows/rpa2/output
+            type: bind
+        networks:
+          - rpa-network
+
+  - name: rpa3-docker
+    entrypoint: flows/rpa3/workflow.py:rpa3_workflow
+    work_pool:
+      name: docker-pool
+    job_configuration:
+        image: rpa3-worker:latest
+        env:
+          PREFECT_API_URL: http://prefect-server:4200/api
+          PYTHONPATH: /app
+        volumes:
+          - source: ./flows/rpa3/data
+            target: /app/flows/rpa3/data
+            type: bind
+          - source: ./flows/rpa3/output
+            target: /app/flows/rpa3/output
+            type: bind
+        networks:
+          - rpa-network

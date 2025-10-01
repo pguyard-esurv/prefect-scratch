@@ -39,6 +39,7 @@ class TestBatchProcessingPerformance:
 
         self.processor = DistributedProcessor(rpa_db_manager=self.mock_rpa_db)
 
+    @pytest.mark.slow
     def test_large_batch_claiming_performance(self):
         """Test performance of claiming large batches of records."""
         # Create large batch response
@@ -90,6 +91,7 @@ class TestBatchProcessingPerformance:
         # Large batches should be more efficient (higher records/sec)
         assert large_batch_rate >= small_batch_rate * 0.5  # Allow some overhead
 
+    @pytest.mark.slow
     def test_batch_status_update_performance(self):
         """Test performance of batch status updates."""
         # Mock successful updates
@@ -128,6 +130,7 @@ class TestBatchProcessingPerformance:
                 f"({results['updates_per_second']:.0f} updates/sec)"
             )
 
+    @pytest.mark.slow
     def test_queue_addition_performance(self):
         """Test performance of adding records to queue."""
         # Test different batch sizes for queue addition
@@ -302,6 +305,7 @@ class TestMemoryPerformance:
         self.processor = DistributedProcessor(rpa_db_manager=self.mock_rpa_db)
         self.process = psutil.Process(os.getpid())
 
+    @pytest.mark.slow
     def test_memory_usage_under_load(self):
         """Test memory usage patterns under high load."""
         # Get initial memory usage

@@ -9,6 +9,8 @@ import os
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from core.container_config import (
     ContainerConfigManager,
     DatabaseConfig,
@@ -37,6 +39,7 @@ class TestContainerConfigManager:
         os.environ.clear()
         os.environ.update(self.original_env)
 
+    @pytest.mark.slow
     def test_init_with_defaults(self):
         """Test ContainerConfigManager initialization with default values."""
         manager = ContainerConfigManager()
@@ -45,6 +48,7 @@ class TestContainerConfigManager:
         assert manager.flow_name is None
         assert manager.container_id == "test-container-123"
 
+    @pytest.mark.slow
     def test_init_with_custom_values(self):
         """Test ContainerConfigManager initialization with custom values."""
         manager = ContainerConfigManager(
@@ -57,6 +61,7 @@ class TestContainerConfigManager:
         assert manager.flow_name == "rpa1"
         assert manager.container_id == "custom-container-456"
 
+    @pytest.mark.slow
     def test_container_config_prefix_mapping(self):
         """Test CONTAINER_ prefix environment variable mapping."""
         # Set up CONTAINER_ prefixed environment variables
@@ -81,6 +86,7 @@ class TestContainerConfigManager:
         )
         assert manager._get_container_config("SECURITY_RUN_AS_NON_ROOT") == "true"
 
+    @pytest.mark.slow
     def test_container_config_fallback(self):
         """Test fallback to standard configuration when CONTAINER_ prefix not found."""
         # Set up standard configuration
@@ -94,6 +100,7 @@ class TestContainerConfigManager:
             mock_get_config.assert_called_once_with("NONEXISTENT_KEY", "default")
             assert result == "fallback_value"
 
+    @pytest.mark.slow
     def test_load_database_configs_with_container_prefix(self):
         """Test loading database configurations with CONTAINER_ prefix."""
         os.environ.update(
@@ -244,6 +251,7 @@ class TestContainerConfigManager:
         assert resources["memory_request"] == "256Mi"
         assert resources["disk_limit"] == "2Gi"
 
+    @pytest.mark.slow
     def test_load_container_config_complete(self):
         """Test loading complete container configuration."""
         os.environ.update(
@@ -417,6 +425,7 @@ class TestContainerConfigManager:
             for error in result.errors
         )
 
+    @pytest.mark.slow
     def test_validate_resource_config_invalid_memory_format(self):
         """Test resource configuration validation with invalid memory format."""
         resources = {
@@ -433,6 +442,7 @@ class TestContainerConfigManager:
         assert result.valid is False
         assert any("Invalid memory limit format" in error for error in result.errors)
 
+    @pytest.mark.slow
     def test_validate_container_environment_complete(self):
         """Test complete container environment validation."""
         # Set up valid configuration
@@ -462,6 +472,7 @@ class TestContainerConfigManager:
         assert "security_validation" in result.details
         assert "resource_validation" in result.details
 
+    @pytest.mark.slow
     def test_validate_container_environment_with_errors(self):
         """Test container environment validation with configuration errors."""
         # Set up invalid configuration
@@ -503,6 +514,7 @@ class TestContainerConfigManager:
         assert result is True
         mock_get.assert_called()
 
+    @pytest.mark.slow
     @patch("requests.get")
     def test_wait_for_dependencies_timeout(self, mock_get):
         """Test waiting for dependencies with timeout."""

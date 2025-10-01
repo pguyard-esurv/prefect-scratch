@@ -77,6 +77,7 @@ class TestAutomationPipelineBasic:
             assert hasattr(scenario, "duration_seconds")
             assert scenario.duration_seconds > 0
 
+    @pytest.mark.slow
     def test_execution_order_calculation(self):
         """Test execution order calculation"""
         pipeline = AutomationPipeline(

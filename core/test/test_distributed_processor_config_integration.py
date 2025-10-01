@@ -15,6 +15,7 @@ pytestmark = pytest.mark.integration
 class TestDistributedProcessorConfigIntegration:
     """Test DistributedProcessor integration with configuration system."""
 
+    @pytest.mark.slow
     def test_distributed_processor_initialization_with_config(self):
         """Test DistributedProcessor initialization with configuration manager."""
         # Mock DatabaseManager instances
@@ -44,6 +45,7 @@ class TestDistributedProcessorConfigIntegration:
             assert processor.config["max_retries"] == 5
             assert processor.config_manager == config_manager
 
+    @pytest.mark.slow
     def test_distributed_processor_config_validation_failure(self):
         """Test DistributedProcessor initialization fails with invalid config."""
         # Mock DatabaseManager instances
@@ -66,6 +68,7 @@ class TestDistributedProcessorConfigIntegration:
             ):
                 DistributedProcessor(rpa_db_manager, None, config_manager)
 
+    @pytest.mark.slow
     def test_distributed_processor_missing_database_config(self):
         """Test DistributedProcessor initialization fails with missing database config."""
         # Mock DatabaseManager instances
@@ -86,6 +89,7 @@ class TestDistributedProcessorConfigIntegration:
             with pytest.raises(RuntimeError, match="Required database 'missing_db'"):
                 DistributedProcessor(rpa_db_manager, None, config_manager)
 
+    @pytest.mark.slow
     def test_distributed_processor_flow_specific_config_override(self):
         """Test that flow-specific configuration overrides work in DistributedProcessor."""
         # Mock DatabaseManager instances
@@ -116,6 +120,7 @@ class TestDistributedProcessorConfigIntegration:
             assert processor.config["default_batch_size"] == 25
             assert processor.config["max_retries"] == 2
 
+    @pytest.mark.slow
     def test_distributed_processor_environment_specific_config(self):
         """Test DistributedProcessor with different environment configurations."""
         environments = [
@@ -150,6 +155,7 @@ class TestDistributedProcessorConfigIntegration:
                 assert processor.config["default_batch_size"] == expected_batch_size
                 assert processor.config["cleanup_timeout_hours"] == expected_timeout
 
+    @pytest.mark.slow
     def test_distributed_processor_default_config_manager(self):
         """Test DistributedProcessor with default config manager (None provided)."""
         # Mock DatabaseManager instances
@@ -171,6 +177,7 @@ class TestDistributedProcessorConfigIntegration:
             assert isinstance(processor.config_manager, ConfigManager)
             assert processor.config["default_batch_size"] == 100  # Default value
 
+    @pytest.mark.slow
     def test_distributed_processor_config_logging(self):
         """Test that DistributedProcessor logs configuration on initialization."""
         # Mock DatabaseManager instances
@@ -203,6 +210,7 @@ class TestDistributedProcessorConfigIntegration:
             assert init_log is not None
             assert "config:" in init_log
 
+    @pytest.mark.slow
     def test_distributed_processor_config_access_methods(self):
         """Test accessing configuration through DistributedProcessor methods."""
         # Mock DatabaseManager instances
@@ -234,6 +242,7 @@ class TestDistributedProcessorConfigIntegration:
             assert validation_result["valid"] is True
             assert validation_result["config"]["default_batch_size"] == 80
 
+    @pytest.mark.slow
     def test_distributed_processor_disabled_configuration(self):
         """Test DistributedProcessor behavior when distributed processing is disabled."""
         # Mock DatabaseManager instances

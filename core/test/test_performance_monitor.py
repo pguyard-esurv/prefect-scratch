@@ -10,6 +10,8 @@ import unittest
 from datetime import datetime
 from unittest.mock import Mock, patch
 
+import pytest
+
 from core.database import DatabaseManager
 from core.health_monitor import HealthMonitor
 from core.performance_monitor import (
@@ -60,6 +62,7 @@ class TestResourceMetrics(unittest.TestCase):
 class TestDatabasePerformanceMetrics(unittest.TestCase):
     """Test DatabasePerformanceMetrics data structure."""
 
+    @pytest.mark.slow
     def test_database_metrics_creation(self):
         """Test DatabasePerformanceMetrics creation and serialization."""
         metrics = DatabasePerformanceMetrics(
@@ -86,6 +89,7 @@ class TestDatabasePerformanceMetrics(unittest.TestCase):
 class TestPerformanceBottleneck(unittest.TestCase):
     """Test PerformanceBottleneck data structure."""
 
+    @pytest.mark.slow
     def test_bottleneck_creation(self):
         """Test PerformanceBottleneck creation and serialization."""
         bottleneck = PerformanceBottleneck(
@@ -192,6 +196,7 @@ class TestConnectionPoolManager(unittest.TestCase):
         self.assertIn("current_stats", optimization)
         self.assertIn("recommendations", optimization)
 
+    @pytest.mark.slow
     def test_optimize_pool_high_utilization(self):
         """Test optimization with high pool utilization."""
         # Mock high utilization
@@ -292,6 +297,7 @@ class TestPerformanceMonitor(unittest.TestCase):
         self.assertEqual(metrics.network_connections, 25)
         self.assertEqual(metrics.load_average, (1.5, 1.2, 1.0))
 
+    @pytest.mark.slow
     def test_collect_database_performance_metrics(self):
         """Test database performance metrics collection."""
         # Add additional query results for database stats
@@ -327,6 +333,7 @@ class TestPerformanceMonitor(unittest.TestCase):
 
     @patch.object(PerformanceMonitor, "collect_resource_metrics")
     @patch.object(PerformanceMonitor, "collect_database_performance_metrics")
+    @pytest.mark.slow
     def test_detect_performance_bottlenecks(
         self, mock_db_metrics, mock_resource_metrics
     ):
@@ -475,6 +482,7 @@ class TestPerformanceMonitor(unittest.TestCase):
 
     @patch.object(PerformanceMonitor, "collect_resource_metrics")
     @patch("time.sleep")  # Mock sleep to speed up test
+    @pytest.mark.slow
     def test_run_performance_benchmark(self, mock_sleep, mock_resource_metrics):
         """Test performance benchmark execution."""
         # Mock resource metrics for benchmark
@@ -511,6 +519,7 @@ class TestPerformanceMonitor(unittest.TestCase):
     @patch.object(PerformanceMonitor, "collect_resource_metrics")
     @patch.object(PerformanceMonitor, "detect_performance_bottlenecks")
     @patch.object(PerformanceMonitor, "generate_optimization_recommendations")
+    @pytest.mark.slow
     def test_get_performance_report(
         self, mock_recommendations, mock_bottlenecks, mock_resource_metrics
     ):
@@ -569,6 +578,7 @@ class TestPerformanceBenchmarks(unittest.TestCase):
 
     @patch("psutil.cpu_percent")
     @patch("psutil.virtual_memory")
+    @pytest.mark.slow
     def test_resource_collection_performance(self, mock_memory, mock_cpu):
         """Test performance of resource metrics collection."""
         # Configure mocks
@@ -594,6 +604,7 @@ class TestPerformanceBenchmarks(unittest.TestCase):
             avg_time, 0.01, f"Resource collection too slow: {avg_time:.4f}s per call"
         )
 
+    @pytest.mark.slow
     def test_bottleneck_detection_performance(self):
         """Test performance of bottleneck detection."""
         with patch.object(
@@ -635,6 +646,7 @@ class TestPerformanceBenchmarks(unittest.TestCase):
                 f"Bottleneck detection too slow: {avg_time:.4f}s per call",
             )
 
+    @pytest.mark.slow
     def test_memory_usage_efficiency(self):
         """Test memory usage efficiency of performance monitoring."""
         import tracemalloc

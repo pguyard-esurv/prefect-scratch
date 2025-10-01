@@ -1,0 +1,100 @@
+# Docker Production Environment Template
+# Optimized for production with high availability and monitoring
+
+work_pool: "${environment.work_pools.docker}"
+
+job_variables:
+  # Docker image configuration
+  image: "${flow.name}-worker:${environment.image_tag}"
+
+  # Production environment variables
+  env:
+    PREFECT_API_URL: "${environment.prefect_api_url}"
+    PYTHONPATH: "/app"
+    PREFECT_LOGGING_LEVEL: "INFO"
+    ENVIRONMENT: "production"
+    FLOW_NAME: "${flow.name}"
+    DEPLOYMENT_TYPE: "docker"
+    CONTAINER_ENVIRONMENT: "production"
+    CONTAINER_FLOW_NAME: "${flow.name}"
+
+    # Production-specific settings
+    ENABLE_MONITORING: "true"
+    ENABLE_METRICS: "true"
+    SENTRY_ENABLED: "true"
+    PERFORMANCE_TRACKING: "true"
+
+  # Volume mounts (production-optimized)
+  volumes:
+    - "./flows/${flow.name}/data:/app/flows/${flow.name}/data:ro" # Read-only data
+    - "./flows/${flow.name}/output:/app/flows/${flow.name}/output"
+    - "./logs/${flow.name}:/app/logs"
+    # Production monitoring volumes
+    - "./monitoring/metrics:/app/metrics"
+
+  # Network configuration
+  networks:
+    - "rpa-network"
+
+  # Production resource limits (higher for production workloads)
+  resources:
+    memory: "2G"
+    cpus: "2.0"
+    memory_reservation: "1G"
+    cpus_reservation: "1.0"
+
+  # Production restart policy
+  restart_policy: "always"
+
+  # Health check configuration (production-tuned)
+  healthcheck:
+    test:
+      - "CMD-SHELL"
+      - "uv run python /app/scripts/health_check.py --flow=${flow.name} --full-check"
+    interval: "60s"
+    timeout: "30s"
+    retries: 5
+    start_period: "120s"
+
+  # Environment file loading
+  env_files:
+    - "./flows/${flow.name}/.env.production"
+
+  # Security configuration
+  security_opt:
+    - "no-new-privileges:true"
+
+  # User configuration (non-root)
+  user: "1000:1000"
+
+  # Production logging configuration
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "100m"
+      max-file: "5"
+
+parameters:
+  # Production-specific parameters
+  cleanup: false
+  use_distributed: true
+  batch_size: "${environment.production_batch_size}"
+  max_concurrent_tasks: "${environment.max_concurrent_tasks}"
+
+tags:
+  - "environment:production"
+  - "type:docker"
+  - "flow:${flow.name}"
+  - "runtime:docker"
+  - "container:enabled"
+  - "monitoring:enabled"
+  - "high-availability"
+
+# Production schedule (if applicable)
+schedule: "${flow.production_schedule}"
+
+# Production retry configuration
+retry_policy:
+  max_retries: 5
+  retry_delay_seconds: 120
+  exponential_backoff: true

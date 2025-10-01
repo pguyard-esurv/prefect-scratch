@@ -1,0 +1,69 @@
+# Docker Deployment Template
+# Template for creating containerized deployments
+
+work_pool: "${environment.work_pools.docker}"
+
+job_variables:
+  # Docker image configuration
+  image: "${flow.name}-worker:latest"
+
+  # Environment variables
+  env:
+    PREFECT_API_URL: "${environment.prefect_api_url}"
+    PYTHONPATH: "/app"
+    PREFECT_LOGGING_LEVEL: "INFO"
+    ENVIRONMENT: "${environment.name}"
+    FLOW_NAME: "${flow.name}"
+    DEPLOYMENT_TYPE: "docker"
+    CONTAINER_ENVIRONMENT: "${environment.name}"
+    CONTAINER_FLOW_NAME: "${flow.name}"
+
+  # Volume mounts for data persistence
+  volumes:
+    - "./flows/${flow.name}/data:/app/flows/${flow.name}/data"
+    - "./flows/${flow.name}/output:/app/flows/${flow.name}/output"
+    - "./logs/${flow.name}:/app/logs"
+
+  # Network configuration
+  networks:
+    - "rpa-network"
+
+  # Resource limits
+  resources:
+    memory: "${environment.resource_limits.memory}"
+    cpus: "${environment.resource_limits.cpu}"
+    memory_reservation: "${environment.resource_limits.memory_reservation}"
+    cpus_reservation: "${environment.resource_limits.cpus_reservation}"
+
+  # Restart policy
+  restart_policy: "unless-stopped"
+
+  # Health check configuration
+  healthcheck:
+    test:
+      - "CMD-SHELL"
+      - "uv run python /app/scripts/health_check.py --flow=${flow.name} --quick-check"
+    interval: "30s"
+    timeout: "15s"
+    retries: 3
+    start_period: "45s"
+
+  # Environment file loading
+  env_files: "${flow.env_files}"
+
+parameters: "${environment.default_parameters}"
+
+tags:
+  - "environment:${environment.name}"
+  - "type:docker"
+  - "flow:${flow.name}"
+  - "runtime:docker"
+  - "container:enabled"
+
+# Schedule configuration (optional)
+schedule: null
+
+# Retry configuration
+retry_policy:
+  max_retries: 3
+  retry_delay_seconds: 60

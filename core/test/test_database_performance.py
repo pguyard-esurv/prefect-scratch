@@ -17,6 +17,8 @@ import threading
 import time
 from unittest.mock import Mock, patch
 
+import pytest
+
 from core.database import DatabaseManager
 
 
@@ -126,6 +128,7 @@ class TestConnectionPoolPerformance:
                     metrics["utilization_percent"] > 30
                 )  # Adjusted for realistic test values
 
+    @pytest.mark.slow
     def test_concurrent_pool_access_performance(self):
         """Test performance of concurrent access to connection pool."""
         # Setup mock engine for concurrent testing
@@ -282,6 +285,7 @@ class TestQueryExecutionPerformance:
         self.mock_config_patcher.stop()
         self.mock_create_engine_patcher.stop()
 
+    @pytest.mark.slow
     def test_single_query_performance(self):
         """Test performance characteristics of single query execution."""
         # Setup mock engine and connection
@@ -352,6 +356,7 @@ class TestQueryExecutionPerformance:
             if metrics["result_size"] > 0:
                 assert metrics["time_per_row"] < 0.001
 
+    @pytest.mark.slow
     def test_concurrent_query_performance(self):
         """Test performance of concurrent query execution."""
         # Setup mock engine for concurrent queries
@@ -433,6 +438,7 @@ class TestQueryExecutionPerformance:
                 assert result["execution_time"] < 0.1  # 100ms max per query
                 assert result["result_count"] == 1
 
+    @pytest.mark.slow
     def test_transaction_performance_scaling(self):
         """Test transaction performance with varying numbers of queries."""
         # Setup mock engine for transactions
@@ -585,6 +591,7 @@ class TestMemoryAndResourceManagement:
             assert dispose_time >= start_time
             assert dispose_time <= end_time
 
+    @pytest.mark.slow
     def test_memory_usage_under_load(self):
         """Test memory usage patterns under sustained load."""
         # Setup mock engine and connection

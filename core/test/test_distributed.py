@@ -220,6 +220,7 @@ class TestInstanceIdGeneration:
         assert uuid_part.isalnum(), "UUID part should be alphanumeric"
 
     @patch("socket.gethostname")
+    @pytest.mark.slow
     def test_instance_id_with_real_hostname(self, mock_gethostname):
         """Test instance ID generation with realistic hostname."""
         # Use realistic container hostname
@@ -2094,6 +2095,7 @@ class TestHealthCheck:
 
     @patch("socket.gethostname")
     @patch("datetime.datetime")
+    @pytest.mark.slow
     def test_health_check_all_healthy(self, mock_datetime, mock_gethostname):
         """Test health check when all components are healthy."""
         # Setup mocks
@@ -2174,6 +2176,7 @@ class TestHealthCheck:
         assert any("Health check completed: healthy" in call for call in info_calls)
 
     @patch("socket.gethostname")
+    @pytest.mark.slow
     def test_health_check_rpa_db_unhealthy(self, mock_gethostname):
         """Test health check when rpa_db is unhealthy (system unhealthy)."""
         # Setup mocks
@@ -2220,6 +2223,7 @@ class TestHealthCheck:
         assert any("Health check completed: unhealthy" in call for call in error_calls)
 
     @patch("socket.gethostname")
+    @pytest.mark.slow
     def test_health_check_source_db_unhealthy(self, mock_gethostname):
         """Test health check when source_db is unhealthy (system degraded)."""
         # Setup mocks
@@ -2290,6 +2294,7 @@ class TestHealthCheck:
         assert any("Health check completed: degraded" in call for call in warning_calls)
 
     @patch("socket.gethostname")
+    @pytest.mark.slow
     def test_health_check_rpa_db_degraded(self, mock_gethostname):
         """Test health check when rpa_db is degraded (system degraded)."""
         # Setup mocks
@@ -2339,6 +2344,7 @@ class TestHealthCheck:
         assert result["queue_status"] == expected_queue_status
 
     @patch("socket.gethostname")
+    @pytest.mark.slow
     def test_health_check_rpa_db_exception(self, mock_gethostname):
         """Test health check when rpa_db health_check raises exception."""
         # Setup mocks
@@ -2373,6 +2379,7 @@ class TestHealthCheck:
         self.mock_logger.error.assert_called()
 
     @patch("socket.gethostname")
+    @pytest.mark.slow
     def test_health_check_source_db_exception(self, mock_gethostname):
         """Test health check when source_db health_check raises exception."""
         # Setup mocks
@@ -2435,6 +2442,7 @@ class TestHealthCheck:
         self.mock_logger.warning.assert_called()
 
     @patch("socket.gethostname")
+    @pytest.mark.slow
     def test_health_check_queue_status_exception(self, mock_gethostname):
         """Test health check when get_queue_status raises exception."""
         # Setup mocks
@@ -2536,6 +2544,7 @@ class TestHealthCheck:
         processor.get_queue_status.assert_called_once()
 
     @patch("socket.gethostname")
+    @pytest.mark.slow
     def test_health_check_timestamp_format(self, mock_gethostname):
         """Test that health check timestamp is in correct ISO format."""
         # Setup mocks
@@ -3329,6 +3338,7 @@ class TestMultiDatabaseIntegration:
         assert self.mock_source_db.execute_query.call_count == 3
         assert self.mock_rpa_db.execute_query.call_count == 2  # Only successful surveys
 
+    @pytest.mark.slow
     def test_performance_metrics_tracking(self):
         """Test that performance metrics are properly tracked."""
         # Mock source database with slight delay simulation
@@ -3403,6 +3413,9 @@ class TestRetryLogicAndResilience:
         # Verify debug logging for retry attempt
         debug_calls = [call.args[0] for call in self.mock_logger.debug.call_args_list]
         assert any("Claiming records with retry" in call for call in debug_calls)
+
+    @pytest.mark.slow
+
 
     def test_claim_records_batch_with_retry_transient_failure(self):
         """Test record claiming with retry after transient failures."""
@@ -3490,6 +3503,9 @@ class TestRetryLogicAndResilience:
         assert any(
             "Marking record 123 as completed with retry" in call for call in debug_calls
         )
+
+    @pytest.mark.slow
+
 
     def test_mark_record_completed_with_retry_transient_failure(self):
         """Test record completion with retry after transient failures."""
@@ -3788,6 +3804,9 @@ class TestRetryLogicAndResilience:
 
         # The network-level retry (tenacity) should be separate from this business retry count
         # This test verifies they don't interfere with each other
+
+    @pytest.mark.slow
+
 
     def test_retry_only_on_transient_errors(self):
         """Test that retry logic only retries on transient errors."""

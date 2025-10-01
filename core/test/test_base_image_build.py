@@ -84,11 +84,11 @@ class TestDockerfileValidation:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.dockerfile_path = Path("Dockerfile.base")
+        self.dockerfile_path = Path("core/docker/Dockerfile")
 
     def test_dockerfile_exists(self):
         """Test that Dockerfile.base exists."""
-        assert self.dockerfile_path.exists(), "Dockerfile.base should exist"
+        assert self.dockerfile_path.exists(), "Base Dockerfile should exist"
 
     def test_dockerfile_base_image(self):
         """Test Dockerfile uses correct base image."""
@@ -255,7 +255,7 @@ class TestBuildOptimization:
 
     def test_dockerfile_layer_optimization(self):
         """Test Dockerfile is optimized for layer caching."""
-        content = Path("Dockerfile.base").read_text()
+        content = Path("core/docker/Dockerfile").read_text()
         lines = [line.strip() for line in content.split("\n") if line.strip()]
 
         # Find positions of key operations
@@ -286,7 +286,7 @@ class TestBuildOptimization:
 
     def test_dockerfile_cache_optimization(self):
         """Test Dockerfile includes cache optimization directives."""
-        content = Path("Dockerfile.base").read_text()
+        content = Path("core/docker/Dockerfile").read_text()
 
         # Check for cache-friendly practices
         cache_optimizations = [

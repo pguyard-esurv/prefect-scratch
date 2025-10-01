@@ -12,6 +12,7 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 
+import pytest
 import requests
 
 from core.database import DatabaseManager
@@ -51,6 +52,7 @@ class TestHealthMonitoringIntegration(unittest.TestCase):
         if self.server_thread and self.server_thread.is_alive():
             self.server_thread.join(timeout=2)
 
+    @pytest.mark.slow
     def test_healthy_system_integration(self):
         """Test complete system when all components are healthy."""
         # Mock healthy database responses
@@ -87,6 +89,7 @@ class TestHealthMonitoringIntegration(unittest.TestCase):
             self.assertIn("resource_status", health_report)
             self.assertIn("cpu_usage_percent", health_report["resource_status"])
 
+    @pytest.mark.slow
     def test_degraded_system_integration(self):
         """Test system when some components are degraded."""
         # Mock one healthy and one slow database
@@ -134,6 +137,7 @@ class TestHealthMonitoringIntegration(unittest.TestCase):
                 self.assertGreater(health_report["summary"]["degraded_checks"], 0)
                 self.assertEqual(health_report["summary"]["unhealthy_checks"], 0)
 
+    @pytest.mark.slow
     def test_unhealthy_system_integration(self):
         """Test system when components are unhealthy."""
         # Mock database connection failures
@@ -148,6 +152,7 @@ class TestHealthMonitoringIntegration(unittest.TestCase):
             self.assertEqual(health_report["overall_status"], "unhealthy")
             self.assertGreater(health_report["summary"]["unhealthy_checks"], 0)
 
+    @pytest.mark.slow
     def test_prometheus_metrics_integration(self):
         """Test Prometheus metrics export integration."""
         # Mock healthy system
@@ -195,6 +200,7 @@ class TestHealthMonitoringIntegration(unittest.TestCase):
             self.assertIn("application_health_status 1", prometheus_output)
             self.assertIn("overall_health_status 1", prometheus_output)
 
+    @pytest.mark.slow
     def test_health_server_integration(self):
         """Test health server integration with real HTTP requests."""
         # Mock healthy system
@@ -279,6 +285,7 @@ class TestHealthMonitoringIntegration(unittest.TestCase):
                 server.shutdown()
                 server.server_close()
 
+    @pytest.mark.slow
     def test_structured_logging_integration(self):
         """Test structured logging integration."""
         # Capture log output
@@ -326,6 +333,7 @@ class TestHealthMonitoringIntegration(unittest.TestCase):
                 except json.JSONDecodeError:
                     self.fail(f"Log line is not valid JSON: {line}")
 
+    @pytest.mark.slow
     def test_error_handling_integration(self):
         """Test error handling across the integrated system."""
         # First check should handle error gracefully

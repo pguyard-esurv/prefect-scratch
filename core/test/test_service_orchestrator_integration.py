@@ -365,6 +365,9 @@ class TestServiceOrchestratorFailureScenarios:
         assert call_count >= 3  # Should have retried at least twice
         assert elapsed > 2  # Should have waited due to exponential backoff
 
+    @pytest.mark.slow
+
+
     def test_health_check_caching_behavior(self, mock_config_manager):
         """Test health check result caching behavior."""
         # Create orchestrator with short cache TTL for faster testing

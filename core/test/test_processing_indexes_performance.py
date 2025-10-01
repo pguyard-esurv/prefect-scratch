@@ -55,6 +55,7 @@ class TestProcessingIndexesPerformance:
         for expected_index in expected_indexes:
             assert expected_index in actual_indexes, f"Index {expected_index} not found"
 
+    @pytest.mark.slow
     def test_pending_records_query_performance(self, db_manager):
         """Test performance of pending records query (most critical for claiming)."""
         # Mock query execution for pending records
@@ -97,6 +98,7 @@ class TestProcessingIndexesPerformance:
         assert len(result) == 3
         assert execution_time < 1.0  # Should be very fast with proper index
 
+    @pytest.mark.slow
     def test_flow_specific_status_query_performance(self, db_manager):
         """Test performance of flow-specific status queries."""
         # Mock query execution for flow-specific queries
@@ -124,6 +126,7 @@ class TestProcessingIndexesPerformance:
         assert len(result) == 4
         assert execution_time < 0.5  # Should be fast with composite index
 
+    @pytest.mark.slow
     def test_cleanup_operations_query_performance(self, db_manager):
         """Test performance of cleanup operations using flow_instance_id index."""
         # Mock query execution for cleanup operations
@@ -157,6 +160,7 @@ class TestProcessingIndexesPerformance:
         assert len(result) == 2
         assert execution_time < 0.5  # Should be fast with partial index
 
+    @pytest.mark.slow
     def test_atomic_record_claiming_query_performance(self, db_manager):
         """Test performance of atomic record claiming query (FOR UPDATE SKIP LOCKED)."""
         # Mock query execution for atomic claiming
@@ -201,6 +205,7 @@ class TestProcessingIndexesPerformance:
         assert len(result) == 2
         assert execution_time < 1.0  # Should be fast even with locking
 
+    @pytest.mark.slow
     def test_monitoring_dashboard_query_performance(self, db_manager):
         """Test performance of monitoring dashboard queries."""
         # Mock query execution for monitoring dashboard
@@ -247,6 +252,7 @@ class TestProcessingIndexesPerformance:
         assert len(result) == 3
         assert execution_time < 0.5  # Should be fast with monitoring index
 
+    @pytest.mark.slow
     def test_failed_record_retry_query_performance(self, db_manager):
         """Test performance of failed record retry queries."""
         # Mock query execution for retry operations

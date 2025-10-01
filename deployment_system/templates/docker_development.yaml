@@ -1,0 +1,84 @@
+# Docker Development Environment Template
+# Optimized for development with debugging and monitoring
+
+work_pool: "${environment.work_pools.docker}"
+
+job_variables:
+  # Docker image configuration
+  image: "${flow.name}-worker:latest"
+
+  # Development environment variables
+  env:
+    PREFECT_API_URL: "${environment.prefect_api_url}"
+    PYTHONPATH: "/app"
+    PREFECT_LOGGING_LEVEL: "DEBUG"
+    ENVIRONMENT: "development"
+    FLOW_NAME: "${flow.name}"
+    DEPLOYMENT_TYPE: "docker"
+    CONTAINER_ENVIRONMENT: "development"
+    CONTAINER_FLOW_NAME: "${flow.name}"
+
+    # Development-specific settings
+    DEBUG: "true"
+    ENABLE_PROFILING: "true"
+    LOG_SQL_QUERIES: "true"
+
+  # Volume mounts with additional development volumes
+  volumes:
+    - "./flows/${flow.name}/data:/app/flows/${flow.name}/data"
+    - "./flows/${flow.name}/output:/app/flows/${flow.name}/output"
+    - "./logs/${flow.name}:/app/logs"
+    # Development-specific volumes
+    - "./core:/app/core:ro" # Read-only core modules for hot reload
+    - "./deployment_system:/app/deployment_system:ro" # Read-only deployment system
+
+  # Network configuration
+  networks:
+    - "rpa-network"
+
+  # Development resource limits (lower for local development)
+  resources:
+    memory: "512M"
+    cpus: "0.5"
+    memory_reservation: "256M"
+    cpus_reservation: "0.25"
+
+  # Restart policy for development
+  restart_policy: "unless-stopped"
+
+  # Health check configuration (more frequent for development)
+  healthcheck:
+    test:
+      - "CMD-SHELL"
+      - "uv run python /app/scripts/health_check.py --flow=${flow.name} --quick-check"
+    interval: "15s"
+    timeout: "10s"
+    retries: 2
+    start_period: "30s"
+
+  # Environment file loading
+  env_files:
+    - "./flows/${flow.name}/.env.development"
+
+parameters:
+  # Development-specific parameters
+  cleanup: true
+  use_distributed: false
+  debug_mode: true
+  batch_size: 10 # Smaller batches for development
+
+tags:
+  - "environment:development"
+  - "type:docker"
+  - "flow:${flow.name}"
+  - "runtime:docker"
+  - "container:enabled"
+  - "debug:enabled"
+
+# No schedule for development (manual execution)
+schedule: null
+
+# More aggressive retry for development
+retry_policy:
+  max_retries: 1
+  retry_delay_seconds: 30

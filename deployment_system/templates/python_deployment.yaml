@@ -1,0 +1,44 @@
+# Python Deployment Template
+# Template for creating native Python deployments
+
+work_pool: "${environment.work_pools.python}"
+
+job_variables:
+  env:
+    PREFECT_API_URL: "${environment.prefect_api_url}"
+    PYTHONPATH: "/app"
+    PREFECT_LOGGING_LEVEL: "INFO"
+    ENVIRONMENT: "${environment.name}"
+    FLOW_NAME: "${flow.name}"
+    DEPLOYMENT_TYPE: "python"
+
+  # Python-specific job variables
+  python_executable: "python"
+  working_directory: "/app"
+
+  # Environment file loading
+  env_files: "${flow.env_files}"
+
+  # Dependency management
+  pip_install_requirements: "${flow.dependencies}"
+
+parameters: "${environment.default_parameters}"
+
+tags:
+  - "environment:${environment.name}"
+  - "type:python"
+  - "flow:${flow.name}"
+  - "runtime:python"
+
+# Schedule configuration (optional)
+schedule: null
+
+# Resource limits for Python deployments
+resource_limits:
+  memory: "${environment.resource_limits.memory}"
+  cpu: "${environment.resource_limits.cpu}"
+
+# Retry configuration
+retry_policy:
+  max_retries: 3
+  retry_delay_seconds: 60

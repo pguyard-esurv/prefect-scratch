@@ -9,7 +9,7 @@ set -euo pipefail
 # Configuration
 BASE_IMAGE_NAME="rpa-base"
 BASE_IMAGE_TAG="latest"
-DOCKERFILE="Dockerfile.base"
+DOCKERFILE="core/docker/Dockerfile"
 BUILD_CONTEXT="."
 
 # Colors for output
@@ -130,7 +130,7 @@ validate_image() {
     
     # Run health check
     log_info "Running health check on built image..."
-    if docker run --rm "$BASE_IMAGE_NAME:$BASE_IMAGE_TAG" python scripts/health_check.py; then
+    if docker run --rm "$BASE_IMAGE_NAME:$BASE_IMAGE_TAG" uv run python scripts/health_check.py; then
         log_success "Image health check passed"
     else
         log_error "Image health check failed"

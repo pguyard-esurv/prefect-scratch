@@ -251,12 +251,12 @@ class TestBaseImageBuildProcess:
 
     def test_dockerfile_exists(self):
         """Test that Dockerfile.base exists."""
-        dockerfile_path = Path("Dockerfile.base")
-        assert dockerfile_path.exists(), "Dockerfile.base should exist"
+        dockerfile_path = Path("core/docker/Dockerfile")
+        assert dockerfile_path.exists(), "Base Dockerfile should exist"
 
     def test_dockerfile_content(self):
         """Test Dockerfile.base content for required components."""
-        dockerfile_path = Path("Dockerfile.base")
+        dockerfile_path = Path("core/docker/Dockerfile")
         content = dockerfile_path.read_text()
 
         # Check for required components
@@ -336,7 +336,7 @@ class TestSecurityConfiguration:
 
     def test_dockerfile_non_root_user(self):
         """Test that Dockerfile creates and uses non-root user."""
-        dockerfile_path = Path("Dockerfile.base")
+        dockerfile_path = Path("core/docker/Dockerfile")
         content = dockerfile_path.read_text()
 
         # Check user creation
@@ -346,7 +346,7 @@ class TestSecurityConfiguration:
 
     def test_dockerfile_security_practices(self):
         """Test Dockerfile follows security best practices."""
-        dockerfile_path = Path("Dockerfile.base")
+        dockerfile_path = Path("core/docker/Dockerfile")
         content = dockerfile_path.read_text()
 
         # Check for security practices

@@ -1,4 +1,4 @@
-.PHONY: help install install-dev clean lint format test run run-rpa1 run-rpa2 run-rpa3 run-all check pre-commit activate test-unit test-integration test-coverage test-watch info setup-dev setup-staging setup-prod setup-all list-config run-dev run-staging run-prod run-rpa1-dev run-rpa1-staging run-rpa1-prod run-rpa2-dev run-rpa2-staging run-rpa2-prod run-rpa3-dev run-rpa3-staging run-rpa3-prod dev-setup dev-status dev-rebuild dev-test dev-logs dev-debug dev-watch dev-stop dev-clean docker-build docker-up docker-down docker-logs
+.PHONY: help install install-dev clean lint format test run run-rpa1 run-rpa2 run-rpa3 run-all check pre-commit activate test-unit test-integration test-coverage test-watch info setup-dev setup-staging setup-prod setup-all list-config run-dev run-staging run-prod run-rpa1-dev run-rpa1-staging run-rpa1-prod run-rpa2-dev run-rpa2-staging run-rpa2-prod run-rpa3-dev run-rpa3-staging run-rpa3-prod dev-setup dev-status dev-rebuild dev-test dev-logs dev-debug dev-watch dev-stop dev-clean docker-build docker-up docker-down docker-logs serve-flows serve-rpa1 serve-rpa2 serve-rpa3
 
 # Default target
 help: ## Show this help message
@@ -38,6 +38,15 @@ check: lint ## Run all checks (linting)
 test: ## Run all tests
 	uv run pytest
 
+test-ultra-fast: ## Run ultra-fast unit tests only (exclude workflows, docker, filesystem)
+	uv run pytest -m "not slow" --ignore=flows/ --ignore=core/test/test_base_image_build.py --ignore=core/test/test_base_image_health.py --ignore=core/test/test_container_config.py --ignore=core/test/test_container_lifecycle_manager.py --ignore=core/test/test_container_lifecycle_validation.py --ignore=core/test/test_automated_container_framework.py --maxfail=5
+
+test-fast: ## Run fast tests only (skip slow tests)
+	uv run pytest -m "not slow" --maxfail=10
+
+test-slow: ## Run slow tests only
+	uv run pytest -m slow -v
+
 test-unit: ## Run unit tests only
 	uv run pytest -m unit
 
@@ -47,8 +56,14 @@ test-integration: ## Run integration tests only
 test-coverage: ## Run tests with coverage report
 	uv run pytest --cov=core --cov=flows --cov-report=html --cov-report=term-missing
 
+test-coverage-fast: ## Run fast tests with coverage report
+	uv run pytest -m "not slow" --cov=core --cov=flows --cov-report=html --cov-report=term-missing
+
 test-watch: ## Run tests in watch mode
 	uv run pytest-watch
+
+test-watch-fast: ## Run fast tests in watch mode
+	uv run pytest-watch --args="-m 'not slow'"
 
 # Running workflows
 run: ## Run all RPA workflows
@@ -63,8 +78,26 @@ run-rpa2: ## Run RPA2 workflow only
 run-all: ## Run all RPA workflows (same as run)
 	uv run python main.py all
 
+# Flow registration and deployment (makes flows appear in Prefect UI)
+serve-flows: ## Register all flows with Prefect server (makes them appear in UI)
+	export PREFECT_API_URL=http://localhost:4200/api && uv run python register_flows.py
+
+serve-deployments: ## Serve flows as deployments (allows running from UI)
+	export PREFECT_API_URL=http://localhost:4200/api && uv run python deploy_all_flows.py
+
+serve-rpa1: ## Register RPA1 flow with Prefect server
+	export PREFECT_API_URL=http://localhost:4200/api && uv run python -c "from flows.rpa1.workflow import rpa1_workflow; print(f'Registered flow: {rpa1_workflow.name}')"
+
+serve-rpa2: ## Register RPA2 flow with Prefect server
+	export PREFECT_API_URL=http://localhost:4200/api && uv run python -c "from flows.rpa2.workflow import rpa2_workflow; print(f'Registered flow: {rpa2_workflow.name}')"
+
+serve-rpa3: ## Register RPA3 flow with Prefect server
+	export PREFECT_API_URL=http://localhost:4200/api && uv run python -c "from flows.rpa3.workflow import rpa3_workflow; print(f'Registered flow: {rpa3_workflow.name}')"
+
 # Pre-commit checks
-pre-commit: format lint test ## Run all pre-commit checks
+pre-commit: format lint test-ultra-fast ## Run pre-commit checks (ultra-fast tests only)
+
+pre-commit-full: format lint test ## Run complete pre-commit checks (including slow tests)
 
 # Development setup
 setup: install-dev ## Set up development environment
@@ -249,7 +282,17 @@ info: ## Show project information
 	@echo "  - make dev-setup: Set up complete development environment"
 	@echo "  - make dev-status: Show development environment status"
 	@echo "  - make dev-test: Run smart tests based on recent changes"
+	@echo "  - make test-ultra-fast: Run ultra-fast unit tests only (~20s, recommended for development)"
+	@echo "  - make test-fast: Run fast tests only (skip slow tests)"
+	@echo "  - make test-slow: Run slow tests only"
 	@echo "  - make test-smart: Run tests for changed files only"
 	@echo "  - make db-inspect: Open database inspector"
 	@echo "  - make dev-logs: Show container logs"
+	@echo ""
+	@echo "Flow registration and deployment commands:"
+	@echo "  - make serve-flows: Register all flows with Prefect server"
+	@echo "  - make serve-deployments: Serve flows as deployments (allows running from UI)"
+	@echo "  - make serve-rpa1: Register RPA1 flow only"
+	@echo "  - make serve-rpa2: Register RPA2 flow only"
+	@echo "  - make serve-rpa3: Register RPA3 flow only"
 

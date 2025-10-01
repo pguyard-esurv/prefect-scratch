@@ -65,6 +65,7 @@ class TestContainerTestSuite:
             enable_performance_monitoring=True,
         )
 
+    @pytest.mark.slow
     def test_container_test_suite_initialization(self):
         """Test ContainerTestSuite initialization."""
         # Test with all parameters
@@ -81,6 +82,7 @@ class TestContainerTestSuite:
         assert suite.health_monitor is not None
         assert len(suite.test_results) == 0
 
+    @pytest.mark.slow
     def test_container_test_suite_initialization_minimal(self):
         """Test ContainerTestSuite initialization with minimal parameters."""
         suite = ContainerTestSuite()
@@ -92,6 +94,7 @@ class TestContainerTestSuite:
         assert suite.health_monitor is None  # No databases provided
 
     @patch("core.test.test_container_test_suite.DistributedProcessor")
+    @pytest.mark.slow
     def test_run_distributed_processing_tests_success(self, mock_processor_class):
         """Test successful distributed processing tests."""
         # Setup mock processor
@@ -131,6 +134,7 @@ class TestContainerTestSuite:
         assert result.details["test_configuration"]["record_count"] == 10
         assert result.details["test_configuration"]["container_count"] == 2
 
+    @pytest.mark.slow
     def test_run_distributed_processing_tests_no_database(self):
         """Test distributed processing tests with no database."""
         # Create suite without databases
@@ -145,6 +149,7 @@ class TestContainerTestSuite:
 
     @patch("core.test.test_container_test_suite.psutil")
     @patch("core.test.test_container_test_suite.DistributedProcessor")
+    @pytest.mark.slow
     def test_run_performance_tests_success(self, mock_processor_class, mock_psutil):
         """Test successful performance tests."""
         # Setup mock processor
@@ -185,6 +190,7 @@ class TestContainerTestSuite:
         assert "test_configuration" in result.details
         assert result.details["test_configuration"]["target_throughput"] == 10
 
+    @pytest.mark.slow
     def test_run_performance_tests_disabled(self):
         """Test performance tests when monitoring is disabled."""
         # Create suite with performance monitoring disabled
@@ -199,6 +205,7 @@ class TestContainerTestSuite:
         assert result.status == "skipped"
         assert "Performance monitoring not enabled" in result.details["reason"]
 
+    @pytest.mark.slow
     def test_run_fault_tolerance_tests_success(self):
         """Test successful fault tolerance tests."""
         result = self.test_suite.run_fault_tolerance_tests(
@@ -212,6 +219,7 @@ class TestContainerTestSuite:
         assert "test_scenarios" in result.details
         assert len(result.details["test_scenarios"]) == 2
 
+    @pytest.mark.slow
     def test_run_fault_tolerance_tests_default_scenarios(self):
         """Test fault tolerance tests with default scenarios."""
         result = self.test_suite.run_fault_tolerance_tests()
@@ -224,6 +232,7 @@ class TestContainerTestSuite:
         assert len(result.details["test_scenarios"]) >= 4  # Default scenarios
 
     @patch("core.test.test_container_test_suite.DistributedProcessor")
+    @pytest.mark.slow
     def test_run_integration_tests_success(self, mock_processor_class):
         """Test successful integration tests."""
         # Setup mock processor
@@ -264,6 +273,7 @@ class TestContainerTestSuite:
         assert "test_workflows" in result.details
         assert len(result.details["test_workflows"]) == 2
 
+    @pytest.mark.slow
     def test_generate_comprehensive_report(self):
         """Test comprehensive report generation."""
         # Add some test results
@@ -307,6 +317,7 @@ class TestContainerTestSuite:
         assert "performance_metrics_summary" in container_report
         assert "fault_tolerance_summary" in container_report
 
+    @pytest.mark.slow
     def test_cleanup_test_environment(self):
         """Test test environment cleanup."""
         # Add some test data
@@ -386,6 +397,7 @@ class TestContainerTestValidator:
         assert len(result.errors) > 0
         assert "duplicate record processing" in result.errors[0]
 
+    @pytest.mark.slow
     def test_validate_performance_metrics_success(self):
         """Test successful performance metrics validation."""
         metrics = PerformanceMetrics(
@@ -406,6 +418,7 @@ class TestContainerTestValidator:
         assert len(result.errors) == 0
         assert "performance_score" in result.details
 
+    @pytest.mark.slow
     def test_validate_performance_metrics_failures(self):
         """Test performance metrics validation with failures."""
         metrics = PerformanceMetrics(
@@ -428,6 +441,7 @@ class TestContainerTestValidator:
         assert any("Latency too high" in error for error in result.errors)
         assert any("Error rate too high" in error for error in result.errors)
 
+    @pytest.mark.slow
     def test_validate_error_handling_success(self):
         """Test successful error handling validation."""
         fault_results = [
@@ -459,6 +473,7 @@ class TestContainerTestValidator:
         assert result.details["error_handling_effectiveness_percent"] == 100.0
         assert len(result.errors) == 0
 
+    @pytest.mark.slow
     def test_validate_error_handling_failures(self):
         """Test error handling validation with failures."""
         fault_results = [
@@ -518,6 +533,7 @@ class TestContainerTestValidator:
         assert summary["total_errors"] == 1
         assert summary["total_warnings"] == 1
 
+    @pytest.mark.slow
     def test_generate_test_report_empty(self):
         """Test test report generation with no results."""
         report = self.validator.generate_test_report([])
@@ -525,6 +541,7 @@ class TestContainerTestValidator:
         assert "error" in report
         assert "No test results provided" in report["error"]
 
+    @pytest.mark.slow
     def test_performance_score_calculation(self):
         """Test performance score calculation."""
         # Test high performance metrics
@@ -588,6 +605,7 @@ class TestContainerTestSuiteIntegration:
             enable_performance_monitoring=True,
         )
 
+    @pytest.mark.slow
     def test_full_distributed_processing_integration(self):
         """Test full distributed processing with real database."""
         result = self.test_suite.run_distributed_processing_tests(
@@ -607,6 +625,7 @@ class TestContainerTestSuiteIntegration:
         if result.status == "passed":
             assert result.details["duplicate_processing_count"] == 0
 
+    @pytest.mark.slow
     def test_performance_integration_with_real_database(self):
         """Test performance testing with real database operations."""
         result = self.test_suite.run_performance_tests(
@@ -619,6 +638,7 @@ class TestContainerTestSuiteIntegration:
         assert result.duration > 0
         assert "performance_metrics" in result.details
 
+    @pytest.mark.slow
     def test_integration_workflow_with_real_components(self):
         """Test integration workflows with real components."""
         result = self.test_suite.run_integration_tests(
@@ -634,6 +654,7 @@ class TestContainerTestSuiteIntegration:
         assert result.duration > 0
         assert "workflow_results" in result.details
 
+    @pytest.mark.slow
     def test_comprehensive_report_generation_integration(self):
         """Test comprehensive report generation with real test data."""
         # Run multiple test types
@@ -676,6 +697,7 @@ class TestContainerTestSuitePerformance:
         )
 
     @patch("core.test.test_container_test_suite.DistributedProcessor")
+    @pytest.mark.slow
     def test_large_scale_distributed_processing_performance(self, mock_processor_class):
         """Test performance with large-scale distributed processing."""
         # Setup mock for large scale test
@@ -746,6 +768,7 @@ class TestContainerTestSuitePerformance:
         # Memory increase should be reasonable (less than 50MB)
         assert memory_increase < 50 * 1024 * 1024
 
+    @pytest.mark.slow
     def test_concurrent_test_execution_performance(self):
         """Test performance of concurrent test execution."""
         import concurrent.futures

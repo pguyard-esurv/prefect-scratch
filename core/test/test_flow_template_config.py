@@ -50,6 +50,8 @@ class TestFlowTemplateConfig:
         assert result["batch_size"] == 50
 
     @patch("core.flow_template.processor")
+    @pytest.mark.slow
+
     def test_distributed_processing_flow_config_validation(self, mock_processor):
         """Test flow parameter validation with configuration."""
         # Mock processor configuration

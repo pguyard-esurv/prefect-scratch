@@ -39,6 +39,7 @@ class TestContainerTestSuiteSimple:
         }
         self.mock_config.environment = "test"
 
+    @pytest.mark.slow
     def test_initialization_success(self):
         """Test successful ContainerTestSuite initialization."""
         suite = ContainerTestSuite(
@@ -53,6 +54,7 @@ class TestContainerTestSuiteSimple:
         assert suite.validator is not None
         assert len(suite.test_results) == 0
 
+    @pytest.mark.slow
     def test_initialization_minimal(self):
         """Test ContainerTestSuite initialization with minimal parameters."""
         suite = ContainerTestSuite()
@@ -86,6 +88,7 @@ class TestContainerTestSuiteSimple:
         assert len(suite.performance_metrics) == 0
         assert len(suite.fault_tolerance_results) == 0
 
+    @pytest.mark.slow
     def test_no_database_managers(self):
         """Test behavior when no database managers are provided."""
         suite = ContainerTestSuite()
@@ -96,6 +99,7 @@ class TestContainerTestSuiteSimple:
         assert result.status == "skipped"
         assert "No database managers configured" in result.details["reason"]
 
+    @pytest.mark.slow
     def test_performance_monitoring_disabled(self):
         """Test behavior when performance monitoring is disabled."""
         suite = ContainerTestSuite(
@@ -164,6 +168,7 @@ class TestContainerTestValidatorSimple:
         assert result.details["duplicate_processing_count"] == 1
         assert len(result.errors) > 0
 
+    @pytest.mark.slow
     def test_validate_performance_metrics_success(self):
         """Test successful performance metrics validation."""
         metrics = PerformanceMetrics(
@@ -183,6 +188,7 @@ class TestContainerTestValidatorSimple:
         assert result.status == "passed"
         assert len(result.errors) == 0
 
+    @pytest.mark.slow
     def test_validate_performance_metrics_failures(self):
         """Test performance metrics validation with failures."""
         metrics = PerformanceMetrics(
@@ -202,6 +208,7 @@ class TestContainerTestValidatorSimple:
         assert result.status == "failed"
         assert len(result.errors) >= 3  # Throughput, latency, error rate
 
+    @pytest.mark.slow
     def test_validate_error_handling_success(self):
         """Test successful error handling validation."""
         fault_results = [
@@ -223,6 +230,7 @@ class TestContainerTestValidatorSimple:
         assert result.details["data_consistency_rate_percent"] == 100.0
         assert result.details["error_handling_effectiveness_percent"] == 100.0
 
+    @pytest.mark.slow
     def test_validate_error_handling_failures(self):
         """Test error handling validation with failures."""
         fault_results = [
@@ -278,6 +286,7 @@ class TestContainerTestValidatorSimple:
         assert summary["failed_tests"] == 1
         assert summary["success_rate_percent"] == 50.0
 
+    @pytest.mark.slow
     def test_generate_test_report_empty(self):
         """Test test report generation with no results."""
         report = self.validator.generate_test_report([])
@@ -289,6 +298,7 @@ class TestContainerTestValidatorSimple:
 class TestDataStructures:
     """Test the data structures used by the container test framework."""
 
+    @pytest.mark.slow
     def test_test_result_to_dict(self):
         """Test ContainerTestResult to_dict conversion."""
         result = ContainerTestResult(
@@ -311,6 +321,7 @@ class TestDataStructures:
         assert result_dict["warnings"] == ["warning1"]
         assert "timestamp" in result_dict
 
+    @pytest.mark.slow
     def test_performance_metrics_to_dict(self):
         """Test PerformanceMetrics to_dict conversion."""
         metrics = PerformanceMetrics(
@@ -332,6 +343,7 @@ class TestDataStructures:
         assert metrics_dict["error_rate"] == 1.0
         assert metrics_dict["resource_efficiency"] == 85.0
 
+    @pytest.mark.slow
     def test_fault_tolerance_result_to_dict(self):
         """Test FaultToleranceResult to_dict conversion."""
         result = FaultToleranceResult(

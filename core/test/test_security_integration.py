@@ -14,6 +14,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from core.container_config import ContainerConfigManager
 from core.security_validator import SecurityLevel, SecurityValidator
 
@@ -53,6 +55,7 @@ class TestSecurityIntegration(unittest.TestCase):
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
+    @pytest.mark.slow
     def test_container_isolation_validation(self):
         """Test container isolation and security boundaries."""
         # Test user isolation
@@ -151,6 +154,7 @@ class TestSecurityIntegration(unittest.TestCase):
         self.assertIn("file_secrets", result.details)
         self.assertIn("secret_configuration", result.details)
 
+    @pytest.mark.slow
     def test_vulnerability_scanning_integration(self):
         """Test vulnerability scanning in container environment."""
         if not self.validator.enable_vulnerability_scanning:
@@ -209,6 +213,7 @@ class TestSecurityIntegration(unittest.TestCase):
             self.assertIn(area, compliance)
             self.assertIsInstance(compliance[area], bool)
 
+    @pytest.mark.slow
     def test_container_config_integration(self):
         """Test integration with ContainerConfigManager."""
         # Create a container config manager
@@ -307,6 +312,7 @@ class TestSecurityIntegration(unittest.TestCase):
         parsed_report = json.loads(json_str)
         self.assertEqual(parsed_report["overall_status"], report_dict["overall_status"])
 
+    @pytest.mark.slow
     def test_security_validation_performance(self):
         """Test security validation performance and timing."""
         start_time = time.time()
@@ -323,6 +329,7 @@ class TestSecurityIntegration(unittest.TestCase):
         self.assertGreater(report.total_duration, 0)
         self.assertLess(report.total_duration, total_time + 1)  # Allow some overhead
 
+    @pytest.mark.slow
     def test_security_validation_caching(self):
         """Test security validation caching behavior."""
         # Perform validation twice
@@ -336,6 +343,7 @@ class TestSecurityIntegration(unittest.TestCase):
         # Second validation might be faster due to caching (implementation dependent)
         # This is more of a performance test than a functional test
 
+    @pytest.mark.slow
     def test_container_runtime_security_checks(self):
         """Test container runtime security checks."""
         # Check if running in container environment
@@ -364,6 +372,7 @@ class TestSecurityIntegration(unittest.TestCase):
             # Running on host system - different expectations
             self.skipTest("Not running in container environment")
 
+    @pytest.mark.slow
     def test_security_compliance_standards(self):
         """Test compliance with security standards and best practices."""
         report = self.validator.comprehensive_security_validation()
@@ -445,6 +454,7 @@ class TestSecurityValidatorContainerEnvironment(unittest.TestCase):
             enable_network_validation=True,
         )
 
+    @pytest.mark.slow
     def test_container_detection(self):
         """Test detection of container environment."""
         # Check common container indicators
@@ -464,6 +474,7 @@ class TestSecurityValidatorContainerEnvironment(unittest.TestCase):
             # Running on host - different security considerations
             self.skipTest("Not detected as container environment")
 
+    @pytest.mark.slow
     def test_container_security_context(self):
         """Test container security context validation."""
         # Check security context information
@@ -478,6 +489,7 @@ class TestSecurityValidatorContainerEnvironment(unittest.TestCase):
             caps_info = result.details["process_capabilities"]
             self.assertIsInstance(caps_info, dict)
 
+    @pytest.mark.slow
     def test_container_network_security(self):
         """Test container network security validation."""
         result = self.validator.validate_network_policies()
@@ -488,6 +500,7 @@ class TestSecurityValidatorContainerEnvironment(unittest.TestCase):
         container_network = result.details["container_network"]
         self.assertIsInstance(container_network, dict)
 
+    @pytest.mark.slow
     def test_container_filesystem_security(self):
         """Test container filesystem security validation."""
         fs_check = self.validator._check_filesystem_permissions()

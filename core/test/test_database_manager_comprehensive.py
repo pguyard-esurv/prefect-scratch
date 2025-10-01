@@ -399,12 +399,16 @@ CREATE INDEX IF NOT EXISTS idx_test_user_profiles_user_id ON test_user_profiles(
         """Test migration execution with test migration files."""
         # Setup mock engine
         mock_engine = Mock()
+        mock_engine.url = "postgresql://test:test@localhost:5432/test_db"
         mock_create_engine.return_value = mock_engine
 
-        # Mock Pyway migration execution
-        with patch("core.database.Migrate") as mock_migrate_class:
+        # Mock Pyway migration execution and ConfigFile
+        with patch("core.database.Migrate") as mock_migrate_class, \
+             patch("core.database.ConfigFile") as mock_config_file_class:
             mock_migrate = Mock()
             mock_migrate_class.return_value = mock_migrate
+            mock_config_file = Mock()
+            mock_config_file_class.return_value = mock_config_file
 
             # Simulate successful migration execution
             mock_migrate.migrate.return_value = [
@@ -423,12 +427,19 @@ CREATE INDEX IF NOT EXISTS idx_test_user_profiles_user_id ON test_user_profiles(
                 db_manager = DatabaseManager("test_db")
                 db_manager.run_migrations()
 
-                # Verify Pyway was called correctly
-                mock_migrate_class.assert_called_once_with(
-                    database_url=str(mock_engine.url),
-                    migration_dir=str(self.migration_dir),
-                    schema_version_table="schema_version",
+                # Verify ConfigFile was created correctly
+                mock_config_file_class.assert_called_once_with(
+                    database_type="postgresql",
+                    database_host="localhost",
+                    database_port=5432,
+                    database_name="test_db",
+                    database_username="test",
+                    database_password="test",
+                    database_migration_dir=str(self.migration_dir),
+                    database_table="schema_version"
                 )
+                # Verify Pyway was called with ConfigFile
+                mock_migrate_class.assert_called_once_with(mock_config_file)
                 mock_migrate.migrate.assert_called_once()
 
     @patch("core.database.create_engine")

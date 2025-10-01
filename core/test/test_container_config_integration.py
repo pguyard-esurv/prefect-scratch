@@ -8,6 +8,8 @@ real-world configuration scenarios.
 import os
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from core.config import ConfigManager
 from core.container_config import ContainerConfigManager
 
@@ -29,6 +31,7 @@ class TestContainerConfigIntegration:
         os.environ.clear()
         os.environ.update(self.original_env)
 
+    @pytest.mark.slow
     def test_extends_existing_config_manager(self):
         """Test that ContainerConfigManager properly extends ConfigManager."""
         container_manager = ContainerConfigManager(flow_name="rpa1", environment="test")
@@ -50,6 +53,7 @@ class TestContainerConfigIntegration:
         assert container_manager.environment == base_manager.environment
         assert container_manager.flow_name == base_manager.flow_name
 
+    @pytest.mark.slow
     def test_container_prefix_overrides_standard_config(self):
         """Test that CONTAINER_ prefix variables override standard configuration."""
         # Set up both standard and container-prefixed variables
@@ -73,6 +77,7 @@ class TestContainerConfigIntegration:
         assert databases["rpa_db"].database_type == "postgresql"
         assert "container@localhost:5432" in databases["rpa_db"].connection_string
 
+    @pytest.mark.slow
     def test_fallback_to_standard_config_when_container_prefix_missing(self):
         """Test fallback to standard ConfigManager when CONTAINER_ prefix not found."""
         with (
@@ -95,6 +100,7 @@ class TestContainerConfigIntegration:
             assert databases["rpa_db"].database_type == "postgresql"
             assert "standard@localhost:5432" in databases["rpa_db"].connection_string
 
+    @pytest.mark.slow
     def test_distributed_config_integration(self):
         """Test integration with existing distributed configuration."""
         # Set up distributed processing configuration
@@ -187,6 +193,7 @@ class TestContainerConfigIntegration:
         assert validation.valid is True
         assert len(validation.errors) == 0
 
+    @pytest.mark.slow
     def test_error_handling_integration(self):
         """Test error handling integration with existing system."""
         # Set up configuration that will cause validation errors
@@ -224,6 +231,7 @@ class TestContainerConfigIntegration:
         assert report.overall_status == "error"
         assert any("Fix configuration errors" in rec for rec in report.recommendations)
 
+    @pytest.mark.slow
     def test_flow_specific_configuration_inheritance(self):
         """Test that flow-specific configuration works with container extensions."""
         # Set up flow-specific configuration
@@ -252,6 +260,7 @@ class TestContainerConfigIntegration:
         assert "databases" in config
 
     @patch("requests.get")
+    @pytest.mark.slow
     def test_dependency_waiting_integration(self, mock_get):
         """Test dependency waiting integration with real service configurations."""
 
@@ -284,6 +293,7 @@ class TestContainerConfigIntegration:
         # Should have made health check requests
         assert mock_get.call_count >= 2
 
+    @pytest.mark.slow
     def test_configuration_caching_and_performance(self):
         """Test that configuration loading is efficient and properly cached."""
         os.environ.update(
