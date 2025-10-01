@@ -21,6 +21,8 @@ class DeploymentTemplate:
         """Render template with provided variables."""
         # Flatten variables for easier substitution
         flattened_vars = self._flatten_variables(variables)
+        # Debug: print available variables
+        # print(f"Debug: Available variables: {list(flattened_vars.keys())}")
         return self._substitute_variables(self.template_data, flattened_vars)
 
     def _substitute_variables(self, data: Any, variables: dict[str, Any]) -> Any:
@@ -47,19 +49,25 @@ class DeploymentTemplate:
             full_key = f"{prefix}.{key}" if prefix else key
 
             if isinstance(value, dict):
+                # Add the dict itself as a variable
+                flattened[full_key] = value
+                # Also add flattened sub-keys
                 flattened.update(self._flatten_variables(value, full_key))
             elif hasattr(value, "__dict__"):
                 # Handle objects with attributes
                 obj_dict = {
                     k: v for k, v in value.__dict__.items() if not k.startswith("_")
                 }
+                # Add the object dict itself
+                flattened[full_key] = obj_dict
+                # Also add flattened sub-keys
                 flattened.update(self._flatten_variables(obj_dict, full_key))
             else:
                 flattened[full_key] = value
 
         return flattened
 
-    def _substitute_string(self, template_str: str, variables: dict[str, Any]) -> str:
+    def _substitute_string(self, template_str: str, variables: dict[str, Any]) -> Any:
         """Substitute variables in a string template."""
         try:
             # Handle special case where template_str might reference a complex object
@@ -76,15 +84,22 @@ class DeploymentTemplate:
                     elif hasattr(value, part):
                         value = getattr(value, part)
                     else:
+                        # Variable not found, print warning and return empty dict for parameters
+                        if var_name == "environment.default_parameters":
+                            print(f"Warning: {var_name} not found, using empty dict")
+                            return {}
                         # Return original string if path not found
                         return template_str
 
-                return value if isinstance(value, str) else str(value)
+                # Return the actual value (could be dict, list, string, etc.)
+                return value
             else:
                 # Use standard template substitution
                 template = Template(template_str)
                 return template.safe_substitute(variables)
-        except (KeyError, ValueError, AttributeError):
+        except (KeyError, ValueError, AttributeError) as e:
+            # Print warning for debugging
+            print(f"Warning: Template substitution failed for '{template_str}': {e}")
             # Return original string if substitution fails
             return template_str
 

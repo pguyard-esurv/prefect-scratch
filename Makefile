@@ -1,4 +1,4 @@
-.PHONY: help install install-dev clean lint format test run run-rpa1 run-rpa2 run-rpa3 run-all check pre-commit activate test-unit test-integration test-coverage test-watch info setup-dev setup-staging setup-prod setup-all list-config run-dev run-staging run-prod run-rpa1-dev run-rpa1-staging run-rpa1-prod run-rpa2-dev run-rpa2-staging run-rpa2-prod run-rpa3-dev run-rpa3-staging run-rpa3-prod dev-setup dev-status dev-rebuild dev-test dev-logs dev-debug dev-watch dev-stop dev-clean docker-build docker-up docker-down docker-logs serve-flows serve-rpa1 serve-rpa2 serve-rpa3
+.PHONY: help install install-dev clean lint format test run run-rpa1 run-rpa2 run-rpa3 run-all check pre-commit activate test-unit test-integration test-coverage test-watch info setup-dev setup-staging setup-prod setup-all list-config run-dev run-staging run-prod run-rpa1-dev run-rpa1-staging run-rpa1-prod run-rpa2-dev run-rpa2-staging run-rpa2-prod run-rpa3-dev run-rpa3-staging run-rpa3-prod dev-setup dev-status dev-rebuild dev-test dev-logs dev-debug dev-watch dev-stop dev-clean docker-build docker-up docker-down docker-logs serve-flows serve-rpa1 serve-rpa2 serve-rpa3 discover-flows build-deployments deploy-python deploy-containers deploy-all clean-deployments deploy-dev deploy-staging deploy-prod validate-deployments deployment-status deploy-dev-python deploy-dev-containers deploy-staging-python deploy-staging-containers deploy-prod-python deploy-prod-containers
 
 # Default target
 help: ## Show this help message
@@ -295,4 +295,70 @@ info: ## Show project information
 	@echo "  - make serve-rpa1: Register RPA1 flow only"
 	@echo "  - make serve-rpa2: Register RPA2 flow only"
 	@echo "  - make serve-rpa3: Register RPA3 flow only"
+	@echo ""
+	@echo "Deployment system commands:"
+	@echo "  - make discover-flows: Discover and list all available flows"
+	@echo "  - make build-deployments: Build deployments for all flows"
+	@echo "  - make deploy-python: Deploy Python-based deployments"
+	@echo "  - make deploy-containers: Deploy container-based deployments"
+	@echo "  - make deploy-all: Deploy all deployments (Python and Docker)"
+	@echo "  - make clean-deployments: Remove existing deployments"
+	@echo "  - make deploy-dev: Deploy to development environment"
+	@echo "  - make deploy-staging: Deploy to staging environment"
+	@echo "  - make deploy-prod: Deploy to production environment"
+	@echo "  - make validate-deployments: Validate deployment configurations"
+	@echo "  - make deployment-status: Show deployment system status"
 
+
+# Deployment System Commands
+discover-flows: ## Discover and list all available flows
+	uv run python -m deployment_system.cli.main discover-flows
+
+build-deployments: ## Build deployments for all flows
+	uv run python -m deployment_system.cli.main build-deployments --environment development
+
+deploy-python: ## Deploy Python-based deployments
+	uv run python -m deployment_system.cli.main deploy-python --environment development
+
+deploy-containers: ## Deploy container-based deployments
+	uv run python -m deployment_system.cli.main deploy-containers --environment development
+
+deploy-all: ## Deploy all deployments (Python and Docker)
+	uv run python -m deployment_system.cli.main deploy-all --environment development
+
+clean-deployments: ## Remove existing deployments
+	uv run python -m deployment_system.cli.main clean-deployments --confirm
+
+deploy-dev: ## Deploy to development environment
+	uv run python -m deployment_system.cli.main deploy-dev --type all
+
+deploy-staging: ## Deploy to staging environment
+	uv run python -m deployment_system.cli.main deploy-staging --type all
+
+deploy-prod: ## Deploy to production environment
+	uv run python -m deployment_system.cli.main deploy-prod --type all
+
+validate-deployments: ## Validate deployment configurations
+	uv run python -m deployment_system.cli.main validate-deployments --environment development
+
+deployment-status: ## Show deployment system status
+	uv run python -m deployment_system.cli.main status
+
+# Environment-specific deployment commands with type options
+deploy-dev-python: ## Deploy Python deployments to development
+	uv run python -m deployment_system.cli.main deploy-dev --type python
+
+deploy-dev-containers: ## Deploy container deployments to development
+	uv run python -m deployment_system.cli.main deploy-dev --type docker
+
+deploy-staging-python: ## Deploy Python deployments to staging
+	uv run python -m deployment_system.cli.main deploy-staging --type python
+
+deploy-staging-containers: ## Deploy container deployments to staging
+	uv run python -m deployment_system.cli.main deploy-staging --type docker
+
+deploy-prod-python: ## Deploy Python deployments to production
+	uv run python -m deployment_system.cli.main deploy-prod --type python
+
+deploy-prod-containers: ## Deploy container deployments to production
+	uv run python -m deployment_system.cli.main deploy-prod --type docker
