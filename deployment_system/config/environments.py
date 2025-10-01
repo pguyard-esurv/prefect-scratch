@@ -15,12 +15,18 @@ class ResourceLimits:
     memory: str = "512Mi"
     cpu: str = "0.5"
     storage: Optional[str] = None
+    memory_reservation: Optional[str] = None
+    cpus_reservation: Optional[str] = None
 
     def to_dict(self) -> dict[str, str]:
         """Convert to dictionary."""
         result = {"memory": self.memory, "cpu": self.cpu}
         if self.storage:
             result["storage"] = self.storage
+        if self.memory_reservation:
+            result["memory_reservation"] = self.memory_reservation
+        if self.cpus_reservation:
+            result["cpus_reservation"] = self.cpus_reservation
         return result
 
 
@@ -51,11 +57,16 @@ class EnvironmentConfig:
     resource_limits: ResourceLimits = field(default_factory=ResourceLimits)
     docker_registry: Optional[str] = None
     image_pull_policy: str = "IfNotPresent"
+    networks: list[str] = field(default_factory=list)
+    default_tags: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         """Set default work pools if not provided."""
         if not self.work_pools:
             self.work_pools = {"python": "default-agent-pool", "docker": "docker-pool"}
+
+        if not self.networks:
+            self.networks = ["rpa-network"]
 
     def get_work_pool(self, deployment_type: str) -> str:
         """Get work pool for deployment type."""
@@ -71,6 +82,8 @@ class EnvironmentConfig:
             "resource_limits": self.resource_limits.to_dict(),
             "docker_registry": self.docker_registry,
             "image_pull_policy": self.image_pull_policy,
+            "networks": self.networks,
+            "default_tags": self.default_tags,
         }
 
     @classmethod
@@ -87,4 +100,6 @@ class EnvironmentConfig:
             resource_limits=resource_limits,
             docker_registry=data.get("docker_registry"),
             image_pull_policy=data.get("image_pull_policy", "IfNotPresent"),
+            networks=data.get("networks", []),
+            default_tags=data.get("default_tags", []),
         )

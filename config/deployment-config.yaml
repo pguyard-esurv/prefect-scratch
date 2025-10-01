@@ -1,0 +1,176 @@
+# Prefect Deployment System Configuration
+# Environment-specific configurations for flow deployments
+
+environments:
+  development:
+    name: "development"
+    prefect_api_url: "http://localhost:4200/api"
+
+    # Work pool configurations for different deployment types
+    work_pools:
+      python: "default-agent-pool"
+      docker: "docker-pool"
+
+    # Default parameters applied to all deployments in this environment
+    default_parameters:
+      cleanup: true
+      use_distributed: false
+      debug_mode: true
+      log_level: "DEBUG"
+      retry_count: 2
+      timeout_seconds: 300
+
+    # Resource limits for deployments
+    resource_limits:
+      memory: "512Mi"
+      cpu: "0.5"
+      memory_reservation: "256Mi"
+      cpus_reservation: "0.25"
+      storage: "1Gi"
+
+    # Docker-specific configuration
+    docker_registry: null
+    image_pull_policy: "IfNotPresent"
+
+    # Network configuration
+    networks:
+      - "rpa-network"
+      - "development-network"
+
+    # Environment-specific tags
+    default_tags:
+      - "env:development"
+      - "tier:dev"
+      - "monitoring:enabled"
+
+  staging:
+    name: "staging"
+    prefect_api_url: "http://staging-prefect:4200/api"
+
+    work_pools:
+      python: "staging-agent-pool"
+      docker: "staging-docker-pool"
+
+    default_parameters:
+      cleanup: true
+      use_distributed: true
+      debug_mode: false
+      log_level: "INFO"
+      retry_count: 3
+      timeout_seconds: 600
+      enable_monitoring: true
+
+    resource_limits:
+      memory: "1Gi"
+      cpu: "1.0"
+      memory_reservation: "512Mi"
+      cpus_reservation: "0.5"
+      storage: "5Gi"
+
+    docker_registry: "staging-registry.company.com"
+    image_pull_policy: "Always"
+
+    networks:
+      - "rpa-network"
+      - "staging-network"
+
+    default_tags:
+      - "env:staging"
+      - "tier:staging"
+      - "monitoring:enabled"
+      - "alerts:enabled"
+
+  production:
+    name: "production"
+    prefect_api_url: "http://prod-prefect:4200/api"
+
+    work_pools:
+      python: "prod-agent-pool"
+      docker: "prod-docker-pool"
+
+    default_parameters:
+      cleanup: false
+      use_distributed: true
+      debug_mode: false
+      log_level: "WARNING"
+      retry_count: 5
+      timeout_seconds: 1800
+      enable_monitoring: true
+      enable_alerting: true
+      backup_enabled: true
+
+    resource_limits:
+      memory: "2Gi"
+      cpu: "2.0"
+      memory_reservation: "1Gi"
+      cpus_reservation: "1.0"
+      storage: "20Gi"
+
+    docker_registry: "prod-registry.company.com"
+    image_pull_policy: "Always"
+
+    networks:
+      - "rpa-network"
+      - "production-network"
+
+    default_tags:
+      - "env:production"
+      - "tier:prod"
+      - "monitoring:enabled"
+      - "alerts:enabled"
+      - "backup:enabled"
+
+# Global deployment configuration
+global_config:
+  # Default deployment settings
+  default_deployment_type: "docker"
+
+  # Validation settings
+  validation:
+    strict_mode: true
+    validate_dependencies: true
+    validate_docker_images: true
+    validate_work_pools: true
+
+  # Template settings
+  templates:
+    use_custom_templates: true
+    template_validation: true
+    variable_substitution: true
+
+  # Retry and timeout settings
+  deployment_timeout: 300
+  validation_timeout: 60
+
+  # Logging configuration
+  logging:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    enable_file_logging: true
+    log_file: "logs/deployment-system.log"
+
+# Flow-specific overrides (optional)
+flow_overrides:
+  rpa1:
+    resource_limits:
+      memory: "1Gi"
+      cpu: "1.0"
+    default_parameters:
+      batch_size: 100
+      parallel_workers: 4
+
+  rpa2:
+    resource_limits:
+      memory: "1.5Gi"
+      cpu: "1.5"
+    default_parameters:
+      batch_size: 200
+      parallel_workers: 6
+
+  rpa3:
+    resource_limits:
+      memory: "512Mi"
+      cpu: "0.5"
+    default_parameters:
+      batch_size: 50
+      parallel_workers: 2
