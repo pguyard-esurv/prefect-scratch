@@ -195,18 +195,16 @@ class TestDeploymentValidator:
         """Test validation with missing required fields."""
         validator = DeploymentValidator()
 
-        config = DeploymentConfig(
-            flow_name="",  # Missing required field
-            deployment_name="test-deployment",
-            environment="development",
-            deployment_type="python",
-            work_pool="default-agent-pool",
-            entrypoint="flows.test.workflow:test_flow",
-        )
-
-        result = validator.validate_deployment_config(config)
-        assert not result.is_valid
-        assert any(error.code == "MISSING_REQUIRED_FIELD" for error in result.errors)
+        # DeploymentConfig validates in __post_init__, so we expect ValueError to be raised
+        with pytest.raises(ValueError, match="Flow name is required"):
+            DeploymentConfig(
+                flow_name="",  # Missing required field
+                deployment_name="test-deployment",
+                environment="development",
+                deployment_type="python",
+                work_pool="default-agent-pool",
+                entrypoint="flows.test.workflow:test_flow",
+            )
 
     def test_validate_invalid_entrypoint(self):
         """Test validation with invalid entrypoint format."""

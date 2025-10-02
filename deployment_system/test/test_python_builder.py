@@ -241,7 +241,7 @@ class TestPythonDeploymentCreator:
             is_valid=True,  # Still marked as valid for Python deployment support
         )
 
-        with pytest.raises(ValueError, match="Invalid deployment configuration"):
+        with pytest.raises(ValueError, match="does not support Python deployment"):
             creator.deploy_to_prefect(invalid_flow, "development")
 
     def test_enhance_python_config(self, sample_flow):
