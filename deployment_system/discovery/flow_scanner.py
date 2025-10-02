@@ -1,35 +1,93 @@
 """
 Flow Scanner
 
-Scans directories for Python files containing Prefect flows.
+Scans directories for Python files containing Prefect flows with comprehensive error handling.
 """
 
 import ast
 import os
+import logging
 from pathlib import Path
 from typing import Any, Optional
 
 from .metadata import FlowMetadata
+from ..error_handling import (
+    FlowDiscoveryError,
+    ErrorContext,
+    ErrorCodes,
+    ErrorMessages,
+    ErrorReporter,
+    with_retry,
+    RetryPolicies,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class FlowScanner:
-    """Scans directories for Prefect flows and extracts metadata."""
+    """Scans directories for Prefect flows and extracts metadata with error handling."""
 
     def __init__(self, base_path: str = "flows"):
         self.base_path = Path(base_path)
+        self.error_reporter = ErrorReporter()
 
     def scan_flows(self) -> list[FlowMetadata]:
-        """Scan for all flows in the base path."""
+        """Scan for all flows in the base path with error handling."""
         flows = []
 
         if not self.base_path.exists():
+            error = FlowDiscoveryError(
+                f"Flow directory does not exist: {self.base_path}",
+                error_code=ErrorCodes.FLOW_NOT_FOUND,
+                context=ErrorContext(file_path=str(self.base_path)),
+                remediation=f"Create the flows directory at {self.base_path} or specify a different path",
+            )
+            self.error_reporter.report_error(error, operation="scan_flows")
             return flows
 
-        for python_file in self._find_python_files():
-            flow_metadata = self._extract_flow_metadata(python_file)
-            if flow_metadata:
-                flows.extend(flow_metadata)
+        try:
+            python_files = self._find_python_files()
+            logger.info(f"Found {len(python_files)} Python files to scan")
 
+            for python_file in python_files:
+                try:
+                    flow_metadata = self._extract_flow_metadata(python_file)
+                    if flow_metadata:
+                        flows.extend(flow_metadata)
+                except Exception as e:
+                    # Report error but continue scanning other files
+                    error = FlowDiscoveryError(
+                        f"Failed to scan file {python_file}: {str(e)}",
+                        error_code=ErrorCodes.FLOW_SYNTAX_ERROR,
+                        context=ErrorContext(file_path=str(python_file)),
+                        remediation="Check file syntax and ensure it's a valid Python file",
+                        cause=e,
+                    )
+                    self.error_reporter.report_error(error, operation="scan_flows")
+
+                    # Create invalid flow metadata to track the error
+                    invalid_flow = FlowMetadata(
+                        name=python_file.stem,
+                        path=str(python_file.absolute()),
+                        module_path=self._get_module_path(python_file),
+                        function_name="unknown",
+                        is_valid=False,
+                        validation_errors=[f"Failed to scan file: {str(e)}"],
+                    )
+                    flows.append(invalid_flow)
+
+        except Exception as e:
+            error = FlowDiscoveryError(
+                f"Failed to scan flows directory: {str(e)}",
+                error_code=ErrorCodes.FLOW_NOT_FOUND,
+                context=ErrorContext(file_path=str(self.base_path)),
+                remediation="Check directory permissions and ensure the path is accessible",
+                cause=e,
+            )
+            self.error_reporter.report_error(error, operation="scan_flows")
+            raise error
+
+        logger.info(f"Successfully scanned {len(flows)} flows")
         return flows
 
     def _find_python_files(self) -> list[Path]:
@@ -49,33 +107,68 @@ class FlowScanner:
         return python_files
 
     def _extract_flow_metadata(self, file_path: Path) -> list[FlowMetadata]:
-        """Extract flow metadata from a Python file."""
+        """Extract flow metadata from a Python file with detailed error handling."""
         flows = []
 
         try:
+            # Check if file exists and is readable
+            if not file_path.exists():
+                raise FlowDiscoveryError(
+                    f"Flow file does not exist: {file_path}",
+                    error_code=ErrorCodes.FLOW_NOT_FOUND,
+                    context=ErrorContext(file_path=str(file_path)),
+                    remediation="Ensure the file exists and the path is correct",
+                )
+
             # Parse the AST to find flow decorators
-            with open(file_path, encoding="utf-8") as f:
-                content = f.read()
+            try:
+                with open(file_path, encoding="utf-8") as f:
+                    content = f.read()
+            except UnicodeDecodeError as e:
+                raise FlowDiscoveryError(
+                    f"Cannot read file due to encoding issues: {file_path}",
+                    error_code=ErrorCodes.FLOW_SYNTAX_ERROR,
+                    context=ErrorContext(file_path=str(file_path)),
+                    remediation="Ensure the file is saved with UTF-8 encoding",
+                    cause=e,
+                )
 
-            tree = ast.parse(content)
+            try:
+                tree = ast.parse(content)
+            except SyntaxError as e:
+                raise FlowDiscoveryError(
+                    f"Python syntax error in {file_path}: {str(e)}",
+                    error_code=ErrorCodes.FLOW_SYNTAX_ERROR,
+                    context=ErrorContext(
+                        file_path=str(file_path), line_number=e.lineno
+                    ),
+                    remediation="Fix the syntax error in the Python file",
+                    cause=e,
+                )
 
+            # Extract flows from AST
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef):
                     flow_info = self._check_for_flow_decorator(node, file_path)
                     if flow_info:
                         flows.append(flow_info)
 
+            # If no flows found, create a warning
+            if not flows:
+                logger.debug(f"No Prefect flows found in {file_path}")
+
+        except FlowDiscoveryError:
+            # Re-raise FlowDiscoveryError as-is
+            raise
         except Exception as e:
-            # Create invalid flow metadata for files that can't be parsed
-            flow_metadata = FlowMetadata(
-                name=file_path.stem,
-                path=str(file_path.absolute()),
-                module_path=self._get_module_path(file_path),
-                function_name="unknown",
-                is_valid=False,
-                validation_errors=[f"Failed to parse file: {str(e)}"],
+            # Wrap other exceptions in FlowDiscoveryError
+            raise FlowDiscoveryError(
+                f"Unexpected error while processing {file_path}: {str(e)}",
+                error_code=ErrorCodes.FLOW_SYNTAX_ERROR,
+                context=ErrorContext(file_path=str(file_path)),
+                remediation="Check file permissions and content",
+                cause=e,
             )
-            flows.append(flow_metadata)
 
         return flows
 

@@ -1,7 +1,7 @@
 """
 Docker Deployment Builder
 
-Creates containerized deployments for Prefect flows.
+Creates containerized deployments for Prefect flows with comprehensive error handling.
 """
 
 import logging
@@ -18,18 +18,34 @@ from ..validation.validation_result import (
     ValidationResult,
     ValidationWarning,
 )
+from ..error_handling import (
+    DockerError,
+    DeploymentError,
+    ValidationError as SystemValidationError,
+    ErrorContext,
+    ErrorCodes,
+    RetryHandler,
+    RetryPolicies,
+    ErrorReporter,
+    RollbackManager,
+    OperationType,
+    with_retry,
+)
 from .base_builder import BaseDeploymentBuilder
 
 logger = logging.getLogger(__name__)
 
 
 class DockerDeploymentCreator(BaseDeploymentBuilder):
-    """Creates containerized deployments for Prefect flows."""
+    """Creates containerized deployments for Prefect flows with error handling."""
 
     def __init__(self, config_manager=None, api_url: Optional[str] = None):
         super().__init__(config_manager)
         self.deployment_api = DeploymentAPI(api_url)
         self.docker_validator = DockerValidator()
+        self.retry_handler = RetryHandler(RetryPolicies.DOCKER_RETRY)
+        self.error_reporter = ErrorReporter()
+        self.rollback_manager = RollbackManager()
 
     def get_deployment_type(self) -> str:
         """Get the deployment type identifier."""
@@ -234,63 +250,156 @@ class DockerDeploymentCreator(BaseDeploymentBuilder):
         )
 
     def build_docker_image(self, flow: FlowMetadata, tag: Optional[str] = None) -> bool:
-        """Build Docker image for a flow."""
-        if not flow.dockerfile_path:
-            logger.error(f"No Dockerfile found for flow {flow.name}")
-            return False
+        """Build Docker image for a flow with comprehensive error handling and rollback."""
+        context = ErrorContext(flow_name=flow.name, operation="build_docker_image")
 
-        dockerfile_path = Path(flow.dockerfile_path)
-        if not dockerfile_path.exists():
-            logger.error(f"Dockerfile not found: {dockerfile_path}")
-            return False
-
-        # Validate Dockerfile
-        validation_result = self.docker_validator.validate_dockerfile(
-            str(dockerfile_path)
+        # Start rollback transaction
+        rollback_id = self.rollback_manager.start_transaction(
+            f"Build Docker image for {flow.name}"
         )
-        if not validation_result.is_valid:
-            logger.error(
-                f"Invalid Dockerfile for {flow.name}: {validation_result.get_error_messages()}"
-            )
-            return False
-
-        # Determine image tag
-        if not tag:
-            tag = f"{flow.name}-worker:latest"
-
-        # Build context is the directory containing the Dockerfile
-        build_context = dockerfile_path.parent
 
         try:
+            # Validate prerequisites
+            if not flow.dockerfile_path:
+                raise DockerError(
+                    f"No Dockerfile found for flow {flow.name}",
+                    error_code=ErrorCodes.DOCKERFILE_NOT_FOUND,
+                    context=context,
+                    remediation=f"Create a Dockerfile in the flow directory: {Path(flow.path).parent}",
+                )
+
+            dockerfile_path = Path(flow.dockerfile_path)
+            context.file_path = str(dockerfile_path)
+
+            if not dockerfile_path.exists():
+                raise DockerError(
+                    f"Dockerfile not found: {dockerfile_path}",
+                    error_code=ErrorCodes.DOCKERFILE_NOT_FOUND,
+                    context=context,
+                    remediation="Ensure the Dockerfile exists at the specified path",
+                )
+
+            # Validate Dockerfile
+            validation_result = self.docker_validator.validate_dockerfile(
+                str(dockerfile_path)
+            )
+            if not validation_result.is_valid:
+                error_messages = validation_result.get_error_messages()
+                raise DockerError(
+                    f"Invalid Dockerfile for {flow.name}: {'; '.join(error_messages)}",
+                    error_code=ErrorCodes.DOCKER_BUILD_FAILED,
+                    context=context,
+                    remediation="Fix the Dockerfile validation errors",
+                )
+
+            # Determine image tag
+            if not tag:
+                tag = f"{flow.name}-worker:latest"
+
+            # Build context is the directory containing the Dockerfile
+            build_context = dockerfile_path.parent
+
+            # Check Docker daemon availability
+            try:
+                subprocess.run(
+                    ["docker", "info"], check=True, capture_output=True, timeout=10
+                )
+            except subprocess.CalledProcessError:
+                raise DockerError(
+                    "Docker daemon is not running or not accessible",
+                    error_code=ErrorCodes.DOCKER_DAEMON_UNAVAILABLE,
+                    context=context,
+                    remediation="Start Docker daemon or check Docker installation",
+                )
+            except FileNotFoundError:
+                raise DockerError(
+                    "Docker command not found",
+                    error_code=ErrorCodes.DOCKER_DAEMON_UNAVAILABLE,
+                    context=context,
+                    remediation="Install Docker or ensure it's in PATH",
+                )
+
             logger.info(f"Building Docker image {tag} for flow {flow.name}")
-            result = subprocess.run(
-                [
-                    "docker",
-                    "build",
-                    "-t",
-                    tag,
-                    "-f",
-                    str(dockerfile_path),
-                    str(build_context),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=600,  # 10 minute timeout
+
+            # Build with retry logic
+            def build_image():
+                result = subprocess.run(
+                    [
+                        "docker",
+                        "build",
+                        "-t",
+                        tag,
+                        "-f",
+                        str(dockerfile_path),
+                        str(build_context),
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=600,  # 10 minute timeout
+                )
+
+                if result.returncode != 0:
+                    raise DockerError(
+                        f"Docker build failed: {result.stderr}",
+                        error_code=ErrorCodes.DOCKER_BUILD_FAILED,
+                        context=context,
+                        remediation="Check Dockerfile syntax and build context",
+                    )
+
+                return result
+
+            # Execute build with retry
+            result = self.retry_handler.retry(build_image)
+
+            # Add rollback operation to remove the built image
+            self.rollback_manager.add_rollback_operation(
+                operation_type=OperationType.DOCKER_IMAGE_BUILD,
+                description=f"Remove Docker image {tag}",
+                rollback_data={"image_name": tag},
             )
 
-            if result.returncode == 0:
-                logger.info(f"Successfully built Docker image {tag}")
-                return True
-            else:
-                logger.error(f"Failed to build Docker image {tag}: {result.stderr}")
-                return False
+            # Commit transaction on success
+            self.rollback_manager.commit_transaction()
+            logger.info(f"Successfully built Docker image {tag}")
+            return True
 
-        except subprocess.TimeoutExpired:
-            logger.error(f"Timeout building Docker image {tag}")
-            return False
+        except DockerError:
+            # Re-raise DockerError as-is
+            raise
+        except subprocess.TimeoutExpired as e:
+            error = DockerError(
+                f"Timeout building Docker image {tag}",
+                error_code=ErrorCodes.DOCKER_BUILD_FAILED,
+                context=context,
+                remediation="Increase timeout or check build complexity",
+                cause=e,
+            )
+            self.error_reporter.report_error(error, operation="build_docker_image")
+
+            # Execute rollback
+            try:
+                self.rollback_manager.execute_rollback(rollback_id)
+            except Exception as rollback_error:
+                logger.error(f"Rollback failed: {rollback_error}")
+
+            raise error
         except Exception as e:
-            logger.error(f"Error building Docker image {tag}: {e}")
-            return False
+            error = DockerError(
+                f"Unexpected error building Docker image {tag}: {str(e)}",
+                error_code=ErrorCodes.DOCKER_BUILD_FAILED,
+                context=context,
+                remediation="Check Docker configuration and system resources",
+                cause=e,
+            )
+            self.error_reporter.report_error(error, operation="build_docker_image")
+
+            # Execute rollback
+            try:
+                self.rollback_manager.execute_rollback(rollback_id)
+            except Exception as rollback_error:
+                logger.error(f"Rollback failed: {rollback_error}")
+
+            raise error
 
     def _create_fallback_config(
         self, flow: FlowMetadata, environment: str

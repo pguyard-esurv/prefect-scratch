@@ -1,0 +1,53 @@
+{
+  "rollback_plans": {
+    "rollback_20251002_110634": {
+      "plan_id": "rollback_20251002_110634",
+      "description": "Test transaction",
+      "operations": [],
+      "created_at": "2025-10-02T11:06:34.151552",
+      "executed_at": null,
+      "status": "pending"
+    },
+    "rollback_20251002_110652": {
+      "plan_id": "rollback_20251002_110652",
+      "description": "Demo deployment operation",
+      "operations": [
+        {
+          "operation_id": "rollback_20251002_110652_op_1",
+          "operation_type": "deployment_create",
+          "description": "Delete deployment demo_deployment_123",
+          "rollback_data": {
+            "deployment_id": "demo_deployment_123"
+          },
+          "timestamp": "2025-10-02T11:06:52.985860",
+          "status": "failed",
+          "error_message": "Failed to delete deployment: demo_deployment_123"
+        },
+        {
+          "operation_id": "rollback_20251002_110652_op_2",
+          "operation_type": "docker_image_build",
+          "description": "Remove Docker image demo_image:latest",
+          "rollback_data": {
+            "image_name": "demo_image:latest"
+          },
+          "timestamp": "2025-10-02T11:06:52.986657",
+          "status": "failed",
+          "error_message": "Failed to remove Docker image demo_image:latest: Command '['docker', 'rmi', 'demo_image:latest']' returned non-zero exit status 1."
+        }
+      ],
+      "created_at": "2025-10-02T11:06:52.984717",
+      "executed_at": "2025-10-02T11:06:52.987695",
+      "status": "failed"
+    },
+    "rollback_20251002_110657": {
+      "plan_id": "rollback_20251002_110657",
+      "description": "Comprehensive deployment demo",
+      "operations": [],
+      "created_at": "2025-10-02T11:06:57.208327",
+      "executed_at": "2025-10-02T11:06:59.651676",
+      "status": "completed"
+    }
+  },
+  "current_plan_id": "rollback_20251002_110657",
+  "last_updated": "2025-10-02T11:06:59.651853"
+}

@@ -2,7 +2,7 @@
 """
 Deployment System CLI
 
-Main command-line interface for the deployment system.
+Main command-line interface for the deployment system with error handling.
 """
 
 import argparse
@@ -10,6 +10,7 @@ import sys
 
 from .commands import DeploymentCLI
 from .utils import CLIUtils
+from .error_commands import register_error_commands
 
 
 def main():
@@ -199,6 +200,9 @@ def main():
         "--flow-name", required=True, help="Flow name for the deployment"
     )
 
+    # Register error handling commands
+    register_error_commands(subparsers)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -209,7 +213,10 @@ def main():
         cli = DeploymentCLI()
         return execute_command(cli, args)
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        # Use error handling system for CLI errors
+        from ..error_handling import format_user_error
+
+        print(format_user_error(e), file=sys.stderr)
         return 1
 
 
@@ -256,6 +263,14 @@ def execute_command(cli: DeploymentCLI, args) -> int:
         return cmd_list_deployments_ui(cli, args)
     elif args.command == "get-deployment-url":
         return cmd_get_deployment_url(cli, args)
+    elif args.command in ["error", "recovery"]:
+        # Error handling commands are handled by click, so this shouldn't be reached
+        # But we include it for completeness
+        print(
+            f"Error handling command {args.command} should be handled by click",
+            file=sys.stderr,
+        )
+        return 1
     else:
         print(f"Unknown command: {args.command}", file=sys.stderr)
         return 1

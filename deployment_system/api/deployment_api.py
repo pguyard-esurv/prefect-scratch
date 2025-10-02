@@ -1,7 +1,7 @@
 """
 Deployment API
 
-High-level API for deployment operations.
+High-level API for deployment operations with comprehensive error handling.
 """
 
 import logging
@@ -9,35 +9,173 @@ from typing import Any, Optional
 
 from ..config.deployment_config import DeploymentConfig
 from .prefect_client import PrefectClient
+from ..error_handling import (
+    DeploymentError,
+    PrefectAPIError,
+    ErrorContext,
+    ErrorCodes,
+    RetryHandler,
+    RetryPolicies,
+    ErrorReporter,
+    RollbackManager,
+    OperationType,
+    with_retry,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class DeploymentAPI:
-    """High-level API for deployment operations."""
+    """High-level API for deployment operations with error handling and recovery."""
 
     def __init__(self, api_url: Optional[str] = None):
         self.client = PrefectClient(api_url)
+        self.retry_handler = RetryHandler(RetryPolicies.NETWORK_RETRY)
+        self.error_reporter = ErrorReporter()
+        self.rollback_manager = RollbackManager()
 
     def create_deployment(self, config: DeploymentConfig) -> Optional[str]:
-        """Create a deployment from configuration."""
+        """Create a deployment from configuration with error handling and rollback."""
+        context = ErrorContext(
+            deployment_name=config.deployment_name,
+            flow_name=config.flow_name,
+            environment=getattr(config, "environment", "unknown"),
+            operation="create_deployment",
+        )
+
+        # Start rollback transaction
+        rollback_id = self.rollback_manager.start_transaction(
+            f"Create deployment {config.full_name}"
+        )
+
         try:
             deployment_dict = config.to_dict()
-            return self.client.run_async(self.client.create_deployment(deployment_dict))
+
+            # Use retry handler for the API call
+            deployment_id = self.retry_handler.retry(
+                self.client.run_async, self.client.create_deployment(deployment_dict)
+            )
+
+            if deployment_id:
+                # Add rollback operation for successful creation
+                self.rollback_manager.add_rollback_operation(
+                    operation_type=OperationType.DEPLOYMENT_CREATE,
+                    description=f"Delete deployment {config.full_name}",
+                    rollback_data={"deployment_id": deployment_id},
+                )
+
+                # Commit transaction on success
+                self.rollback_manager.commit_transaction()
+                logger.info(f"Successfully created deployment: {config.full_name}")
+                return deployment_id
+            else:
+                raise DeploymentError(
+                    f"Failed to create deployment: {config.full_name}",
+                    error_code=ErrorCodes.DEPLOYMENT_CREATE_FAILED,
+                    context=context,
+                    remediation="Check Prefect server connectivity and deployment configuration",
+                )
+
         except Exception as e:
-            logger.error(f"Failed to create deployment {config.full_name}: {e}")
-            return None
+            # Report error with context
+            error = PrefectAPIError(
+                f"Failed to create deployment {config.full_name}: {str(e)}",
+                error_code=ErrorCodes.DEPLOYMENT_CREATE_FAILED,
+                context=context,
+                remediation="Check Prefect server status and deployment configuration",
+                cause=e,
+            )
+
+            self.error_reporter.report_error(
+                error=error,
+                operation="create_deployment",
+                additional_context={"config": config.to_dict()},
+            )
+
+            # Execute rollback
+            try:
+                self.rollback_manager.execute_rollback(rollback_id)
+            except Exception as rollback_error:
+                logger.error(f"Rollback failed: {rollback_error}")
+
+            raise error
 
     def update_deployment(self, deployment_id: str, config: DeploymentConfig) -> bool:
-        """Update an existing deployment."""
+        """Update an existing deployment with rollback capability."""
+        context = ErrorContext(
+            deployment_name=config.deployment_name,
+            flow_name=config.flow_name,
+            environment=getattr(config, "environment", "unknown"),
+            operation="update_deployment",
+        )
+
+        # Start rollback transaction
+        rollback_id = self.rollback_manager.start_transaction(
+            f"Update deployment {config.full_name}"
+        )
+
         try:
-            deployment_dict = config.to_dict()
-            return self.client.run_async(
-                self.client.update_deployment(deployment_id, deployment_dict)
+            # Get current deployment configuration for rollback
+            current_deployment = self.retry_handler.retry(
+                self.client.run_async,
+                self.client.get_deployment_by_name(
+                    config.deployment_name, config.flow_name
+                ),
             )
+
+            if current_deployment:
+                # Add rollback operation with previous configuration
+                self.rollback_manager.add_rollback_operation(
+                    operation_type=OperationType.DEPLOYMENT_UPDATE,
+                    description=f"Restore previous configuration for {config.full_name}",
+                    rollback_data={
+                        "deployment_id": deployment_id,
+                        "previous_config": current_deployment,
+                    },
+                )
+
+            # Update deployment
+            deployment_dict = config.to_dict()
+            success = self.retry_handler.retry(
+                self.client.run_async,
+                self.client.update_deployment(deployment_id, deployment_dict),
+            )
+
+            if success:
+                self.rollback_manager.commit_transaction()
+                logger.info(f"Successfully updated deployment: {config.full_name}")
+                return True
+            else:
+                raise DeploymentError(
+                    f"Failed to update deployment: {config.full_name}",
+                    error_code=ErrorCodes.DEPLOYMENT_UPDATE_FAILED,
+                    context=context,
+                    remediation="Check deployment configuration and Prefect server status",
+                )
+
         except Exception as e:
-            logger.error(f"Failed to update deployment {config.full_name}: {e}")
-            return False
+            # Report error
+            error = PrefectAPIError(
+                f"Failed to update deployment {config.full_name}: {str(e)}",
+                error_code=ErrorCodes.DEPLOYMENT_UPDATE_FAILED,
+                context=context,
+                remediation="Check Prefect server status and deployment configuration",
+                cause=e,
+            )
+
+            self.error_reporter.report_error(
+                error=error,
+                operation="update_deployment",
+                additional_context={"config": config.to_dict()},
+            )
+
+            # Execute rollback
+            try:
+                self.rollback_manager.execute_rollback(rollback_id)
+            except Exception as rollback_error:
+                logger.error(f"Rollback failed: {rollback_error}")
+
+            raise error
 
     def delete_deployment(self, deployment_id: str) -> bool:
         """Delete a deployment."""
